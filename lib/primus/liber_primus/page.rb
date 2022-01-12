@@ -1,3 +1,5 @@
+require "psych"
+
 class Primus::LiberPrimus::Page
   attr_reader :number, :lines
 
@@ -11,7 +13,7 @@ class Primus::LiberPrimus::Page
 
   def self.open(page_number:)
     path = self.file_name(page_number: page_number)
-    data = Psych.safe_load(File.read(path))
+    data = ::Psych.safe_load(File.read(path))
     new(number: page_number, lines: data["body"].split(" "))
   end
 

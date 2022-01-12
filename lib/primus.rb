@@ -4,6 +4,7 @@ module Primus
   end
 end
 
+require "psych"
 require "primus/rune_to_letter"
 require "primus/gematria_primus"
 require "primus/gematria_primus/translation"

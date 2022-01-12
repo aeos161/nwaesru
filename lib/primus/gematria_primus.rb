@@ -6,7 +6,8 @@ class Primus::GematriaPrimus
   end
 
   def find_translation(rune:)
-    translations.detect { |tr| tr.rune == rune } || NoTranslation.new
+    result = translations.detect { |tr| tr.rune == rune }
+    result || NoTranslation.new(letter: rune)
   end
 
   def self.build
