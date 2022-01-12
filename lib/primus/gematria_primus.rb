@@ -1,4 +1,4 @@
-class GematriaPrimus
+class Primus::GematriaPrimus
   attr_reader :translations
 
   def initialize(translations:)
@@ -7,7 +7,7 @@ class GematriaPrimus
 
   def self.builder
     translations = dictionary.map_with_index do |data, index|
-      Translation.new(data.merge(index: index))
+      Primus::Translation.new(data.merge(index: index))
     end
     new(translations: translations)
   end
@@ -26,7 +26,7 @@ class GematriaPrimus
       { rune: "ᚾ", letter: "n", value: 29 },
       { rune: "ᛁ", letter: "i", value: 31 },
       { rune: "ᛂ", letter: "j", value: 37 },
-      { rune: "ᛇ", letter: "eo",value: 41 },
+      { rune: "ᛇ", letter: "eo", value: 41 },
       { rune: "ᛈ", letter: "p", value: 43 },
       { rune: "ᛉ", letter: "x", value: 47 },
       { rune: "ᛋ", letter: "s", value: 53 },
