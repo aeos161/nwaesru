@@ -5,9 +5,13 @@ class Primus::GematriaPrimus
     @translations = translations
   end
 
+  def find_translation(rune:)
+    translations.detect { |tr| tr.rune == rune } || NoTranslation.new
+  end
+
   def self.build
     translations = dictionary.map.with_index do |data, index|
-      Primus::Translation.new(data.merge(index: index))
+      Translation.new(data.merge(index: index))
     end
     new(translations: translations)
   end

@@ -1,4 +1,4 @@
-class Primus::Translation
+class Primus::GematriaPrimus::Translation
   attr_reader :index, :rune, :letter, :value
 
   def initialize(index:, rune:, letter:, value:)

@@ -1,4 +1,6 @@
 require "primus"
+require "pry"
+require "psych"
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|

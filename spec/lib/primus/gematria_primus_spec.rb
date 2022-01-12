@@ -14,4 +14,21 @@ RSpec.describe Primus::GematriaPrimus do
       expect(result.size).to eq(29)
     end
   end
+
+  describe "#find_translation" do
+    it "returns the translation for the rune" do
+      tr1 = build_translation(index: 0, rune: "ᚠ", letter: "f", value: 2)
+      tr2 = build_translation(index: 1, rune: "ᚢ", letter: "u", value: 3)
+      translator = Primus::GematriaPrimus.new(translations: [tr1, tr2])
+
+      result = translator.find_translation(rune: "ᚢ")
+
+      expect(result).to eq(tr2)
+    end
+  end
+
+  def build_translation(rune:, index:, letter:, value:)
+    Primus::GematriaPrimus::Translation.new(index: index, rune: rune,
+                                            letter: letter, value: value)
+  end
 end

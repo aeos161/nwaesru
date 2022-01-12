@@ -12,6 +12,7 @@ Gem::Specification.new do |config|
 
   config.add_development_dependency "bundler", "~> 2.1"
   config.add_development_dependency "pry", "~> 0.14"
+  config.add_development_dependency "psych", "~> 4.0"
   config.add_development_dependency "rake", "~> 13.0"
   config.add_development_dependency "rspec", "~> 3.10"
 end
