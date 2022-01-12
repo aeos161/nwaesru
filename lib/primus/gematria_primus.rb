@@ -5,8 +5,8 @@ class Primus::GematriaPrimus
     @translations = translations
   end
 
-  def self.builder
-    translations = dictionary.map_with_index do |data, index|
+  def self.build
+    translations = dictionary.map.with_index do |data, index|
       Primus::Translation.new(data.merge(index: index))
     end
     new(translations: translations)
