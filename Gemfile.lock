@@ -31,11 +31,11 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  bundler
+  bundler (~> 2.1)
   primus!
-  pry
+  pry (~> 0.14)
   rake
-  rspec
+  rspec (~> 3.10)
 
 BUNDLED WITH
    2.1.4
