@@ -27,6 +27,6 @@ class Primus::LiberPrimus::Page
     unless encoded
       dir_path = DECODED_DIR_PATH
     end
-    [dir_path, "page#{page_number}#{FILE_EXT}"].join("/")
+    [dir_path, "page_#{page_number}#{FILE_EXT}"].join("/")
   end
 end

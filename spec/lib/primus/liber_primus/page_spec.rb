@@ -14,7 +14,7 @@ RSpec.describe Primus::LiberPrimus::Page do
     it "builds the encoded file name" do
       result = Primus::LiberPrimus::Page.file_name(page_number: 56)
 
-      expect(result).to eq("data/encoded/liber_primus/page56.yml")
+      expect(result).to eq("data/encoded/liber_primus/page_56.yml")
     end
 
     context "encoded is false" do
@@ -22,7 +22,7 @@ RSpec.describe Primus::LiberPrimus::Page do
         result = Primus::LiberPrimus::Page.file_name(page_number: 56,
                                                      encoded: false)
 
-        expect(result).to eq("data/decoded/liber_primus/page56.yml")
+        expect(result).to eq("data/decoded/liber_primus/page_56.yml")
       end
     end
   end
