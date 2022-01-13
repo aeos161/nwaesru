@@ -43,7 +43,7 @@ class Primus::GematriaPrimus
       { rune: "ᛖ", letter: "e", value: 67 },
       { rune: "ᛗ", letter: "m", value: 71 },
       { rune: "ᛚ", letter: "l", value: 73 },
-      { rune: "ᛝ", letter: "ing", value: 79 },
+      { rune: "ᛝ", letter: "ng", value: 79 },
       { rune: "ᛟ", letter: "oe", value: 83 },
       { rune: "ᛞ", letter: "d", value: 89 },
       { rune: "ᚪ", letter: "a", value: 97 },
