@@ -5,7 +5,7 @@ class Primus::LiberPrimus::Page
   DECODED_DIR_PATH = "data/decoded/liber_primus".freeze
   FILE_EXT = ".yml"
 
-  LINE_DELIMITER = "\\".freeze
+  LINE_DELIMITER = "/".freeze
 
   def initialize(number: nil, lines: [])
     @number = number

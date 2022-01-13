@@ -33,7 +33,7 @@ class Primus::GematriaPrimus
       { rune: "ᚻ", letter: "h", value: 23 },
       { rune: "ᚾ", letter: "n", value: 29 },
       { rune: "ᛁ", letter: "i", value: 31 },
-      { rune: "ᛂ", letter: "j", value: 37 },
+      { rune: "ᛄ", letter: "j", value: 37 },
       { rune: "ᛇ", letter: "eo", value: 41 },
       { rune: "ᛈ", letter: "p", value: 43 },
       { rune: "ᛉ", letter: "x", value: 47 },
