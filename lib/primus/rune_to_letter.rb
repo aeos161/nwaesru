@@ -8,9 +8,7 @@ class Primus::RuneToLetter
   def translate(line:)
     line.
       split("").
-      map { |rune| translator.find_translation(rune: rune) }.
-      map(&:letter).
-      join
+      map { |rune| translator.find_translation(rune: rune) }
   end
 
   def self.build

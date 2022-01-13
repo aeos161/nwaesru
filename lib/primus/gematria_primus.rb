@@ -1,20 +1,38 @@
 class Primus::GematriaPrimus
-  attr_reader :translations
+  attr_reader :tokens
 
-  def initialize(translations:)
-    @translations = translations
+  def initialize(tokens:)
+    @tokens = tokens
   end
 
-  def find_translation(rune:)
-    result = translations.detect { |tr| tr.rune == rune }
-    result || NoTranslation.new(letter: rune)
+  def size
+    tokens.size
+  end
+
+  def find_by(rune:)
+    finder = Proc.new { |tr| tr.rune == rune }
+    result = tokens.detect(&finder)
+    result || NoToken.new(rune: rune, letter: rune)
+  end
+
+  def find_by_index(index)
+    finder = Proc.new { |tr| tr.index == index }
+    tokens.detect(&finder)
+  end
+
+  def find_translation(rune: nil, letter: nil, index: nil)
+    value_to_find = rune || letter
+    method_to_use = rune ? :rune : :letter
+    finder = Proc.new { |tr| tr.send(method_to_use) == value_to_find }
+    result = tokens.detect(&finder)
+    result || NoToken.new(letter: rune)
   end
 
   def self.build
-    translations = dictionary.map.with_index do |data, index|
-      Translation.new(data.merge(index: index))
+    tokens = dictionary.map.with_index do |data, index|
+      Token.new(data.merge(index: index))
     end
-    new(translations: translations)
+    new(tokens: tokens)
   end
 
   def self.dictionary

@@ -1,12 +1,19 @@
 class Primus::LiberPrimus::Translator
-  attr_reader :page, :result, :strategy
+  attr_reader :data, :strategy, :result
 
-  def initialize(page:, strategy:)
-    @page = page
+  def initialize(data:, strategy:)
+    @data = data
     @strategy = strategy
   end
 
   def translate
-    @result = page.lines.map { |line| strategy.translate(line: line) }
+    decode = Proc.new { |line| strategy.translate(line: line) }
+    @result = Primus::Translation.new(lines: data.map(&decode))
+  end
+
+  def self.build(page:, strategy:)
+    parser = Primus::LiberPrimus::Parser.new(lines: page.lines)
+    parser.parse
+    new(data: parser.result, strategy: strategy)
   end
 end

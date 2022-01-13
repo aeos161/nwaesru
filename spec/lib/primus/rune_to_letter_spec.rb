@@ -7,7 +7,7 @@ RSpec.describe Primus::RuneToLetter do
 
       result = algorithm.translate(line: runes)
 
-      expect(result).to eq("cae")
+      expect(result.map(&:letter).join).to eq("cae")
     end
   end
 

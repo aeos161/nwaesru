@@ -1,5 +1,3 @@
-require "psych"
-
 class Primus::LiberPrimus::Page
   attr_reader :number, :lines
 
