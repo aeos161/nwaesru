@@ -1,7 +1,7 @@
 class Primus::LiberPrimus::Parser
   attr_reader :lines, :result
 
-  def initialize(lines:)
+  def initialize(lines: [])
     @lines = lines
     @result = []
   end

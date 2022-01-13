@@ -3,7 +3,7 @@ RSpec.describe Primus::GematriaPrimus do
     it "sets the 29 translations" do
       result = Primus::GematriaPrimus.build
 
-      expect(result.translations.size).to eq(29)
+      expect(result.size).to eq(29)
     end
   end
 
@@ -15,20 +15,46 @@ RSpec.describe Primus::GematriaPrimus do
     end
   end
 
-  describe "#find_translation" do
-    it "returns the translation for the rune" do
-      tr1 = build_translation(index: 0, rune: "ᚠ", letter: "f", value: 2)
-      tr2 = build_translation(index: 1, rune: "ᚢ", letter: "u", value: 3)
-      translator = Primus::GematriaPrimus.new(translations: [tr1, tr2])
+  describe "#find_by" do
+    context "when a rune is supplied" do
+      it "returns the token for the rune" do
+        tk1 = build_token(index: 0, rune: "ᚠ", letter: "f", value: 2)
+        tk2 = build_token(index: 1, rune: "ᚢ", letter: "u", value: 3)
+        translator = Primus::GematriaPrimus.new(tokens: [tk1, tk2])
 
-      result = translator.find_translation(rune: "ᚢ")
+        result = translator.find_by(rune: "ᚢ")
 
-      expect(result).to eq(tr2)
+        expect(result).to eq(tk2)
+      end
+    end
+
+    context "when a letter is supplied" do
+      it "returns the token for the letter" do
+        tk1 = build_token(index: 0, rune: "ᚠ", letter: "f", value: 2)
+        tk2 = build_token(index: 1, rune: "ᚢ", letter: "u", value: 3)
+        translator = Primus::GematriaPrimus.new(tokens: [tk1, tk2])
+
+        result = translator.find_by(letter: "f")
+
+        expect(result).to eq(tk1)
+      end
+    end
+
+    context "when an index is supplied" do
+      it "returns the token for the index" do
+        tk1 = build_token(index: 0, rune: "ᚠ", letter: "f", value: 2)
+        tk2 = build_token(index: 1, rune: "ᚢ", letter: "u", value: 3)
+        translator = Primus::GematriaPrimus.new(tokens: [tk1, tk2])
+
+        result = translator.find_by(index: 1)
+
+        expect(result).to eq(tk2)
+      end
     end
   end
 
-  def build_translation(rune:, index:, letter:, value:)
-    Primus::GematriaPrimus::Translation.new(index: index, rune: rune,
-                                            letter: letter, value: value)
+  def build_token(rune:, index:, letter:, value:)
+    Primus::GematriaPrimus::Token.new(index: index, rune: rune, letter: letter,
+                                      value: value)
   end
 end

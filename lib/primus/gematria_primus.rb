@@ -1,6 +1,4 @@
 class Primus::GematriaPrimus
-  attr_reader :tokens
-
   def initialize(tokens:)
     @tokens = tokens
   end
@@ -9,23 +7,10 @@ class Primus::GematriaPrimus
     tokens.size
   end
 
-  def find_by(rune:)
-    finder = Proc.new { |tr| tr.rune == rune }
+  def find_by(rune: nil, letter: nil, index: nil)
+    finder = finder_factory(rune: rune, letter: letter, index: index)
     result = tokens.detect(&finder)
     result || NoToken.new(rune: rune, letter: rune)
-  end
-
-  def find_by_index(index)
-    finder = Proc.new { |tr| tr.index == index }
-    tokens.detect(&finder)
-  end
-
-  def find_translation(rune: nil, letter: nil, index: nil)
-    value_to_find = rune || letter
-    method_to_use = rune ? :rune : :letter
-    finder = Proc.new { |tr| tr.send(method_to_use) == value_to_find }
-    result = tokens.detect(&finder)
-    result || NoToken.new(letter: rune)
   end
 
   def self.build
@@ -67,5 +52,19 @@ class Primus::GematriaPrimus
       { rune: "ᛡ", letter: "io", value: 107 },
       { rune: "ᛠ", letter: "ea", value: 109 },
     ]
+  end
+
+  protected
+
+  attr_reader :tokens
+
+  def finder_factory(rune:, letter:, index:)
+    return build_finder(:rune, rune) unless rune.nil?
+    return build_finder(:letter, letter) unless letter.nil?
+    build_finder(:index, index)
+  end
+
+  def build_finder(method_name, value)
+    Proc.new { |tk| tk.send(method_name) == value }
   end
 end

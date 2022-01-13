@@ -8,4 +8,8 @@ class Primus::Translation
   def to_s
     lines.map { |line| line.map(&:letter).join }.join("\n").rstrip
   end
+
+  def empty?
+    lines.empty?
+  end
 end

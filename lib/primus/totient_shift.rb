@@ -1,4 +1,6 @@
 class Primus::TotientShift
+  attr_reader :translator
+
   def initialize(translator:)
     @translator = translator
     @primes = Prime.each.to_enum
@@ -17,7 +19,7 @@ class Primus::TotientShift
 
   protected
 
-  attr_reader :translator, :primes, :index_of_untranslatable_character
+  attr_reader :primes, :index_of_untranslatable_character
   attr_accessor :number_of_characters_processed
 
   def process(character:)
@@ -25,7 +27,7 @@ class Primus::TotientShift
     return character if not_translatable?
     shifted_index = totient_shift(character: character, prime: primes.next)
     increment_characters_processed
-    translator.find_by_index(shifted_index)
+    translator.find_by(index: shifted_index)
   end
 
   def not_translatable?

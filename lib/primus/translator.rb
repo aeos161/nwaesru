@@ -1,5 +1,5 @@
-class Primus::LiberPrimus::Translator
-  attr_reader :data, :strategy, :result
+class Primus::Translator
+  attr_reader :result, :strategy
 
   def initialize(data:, strategy:)
     @data = data
@@ -16,4 +16,8 @@ class Primus::LiberPrimus::Translator
     parser.parse
     new(data: parser.result, strategy: strategy)
   end
+
+  protected
+
+  attr_reader :data
 end
