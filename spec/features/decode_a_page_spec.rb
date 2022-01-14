@@ -39,6 +39,16 @@ RSpec.describe "decode a page" do
     expect(translator.result.to_s).to eq("")
   end
 
+  it "can do an alternating shift on page 8" do
+    page = Primus::LiberPrimus::Page.open(page_number: 8)
+    strategy = Primus::AlternatingShift.build
+    translator = Primus::Translator.build(page: page, strategy: strategy)
+
+    translator.translate
+
+    expect(translator.result.to_s).to eq("")
+  end
+
   def page56_decoded_text
     Primus::LiberPrimus::Page.open(page_number: 56, encoded: false).to_s
   end

@@ -22,13 +22,21 @@ class Primus::FibonacciShift
 
   def process(character:)
     return character unless character.present?
-    shifted_index = fib_shift(character: character, n: fibonacci.next)
+    shifted_index = fib_shift(character: character) #, n: fibonacci.next)
     translator.find_by(index: shifted_index)
-  rescue
+  rescue => e
+    binding.pry
     character
   end
 
-  def fib_shift(character:, n:)
-    (character.index + n) % translator.size
+  def fib_shift(character:, n: nil)
+    #binding.pry
+    #character
+    (character.index - golden_ratio).to_i % translator.size
+    #(character.index + n) % translator.size
+  end
+
+  def golden_ratio
+    @golden_ratio ||= (1 + Math.sqrt(5)) / 2
   end
 end

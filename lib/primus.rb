@@ -6,6 +6,7 @@ end
 
 require "prime"
 require "psych"
+require "primus/alternating_shift"
 require "primus/fibonacci_shift"
 require "primus/gematria_shift"
 require "primus/rune_to_letter"
