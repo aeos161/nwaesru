@@ -5,8 +5,9 @@ RSpec.describe Primus::RuneToLetter do
       algorithm = Primus::RuneToLetter.new(translator: gematria_primus)
       runes = [build_token(rune: "ᚳ", letter: "c", value: 13, index: 5),
                build_token(rune: "ᚫ", letter: "ae", value: 101, index: 25)]
+      word = Primus::LiberPrimus::Word.new(tokens: runes)
 
-      result = algorithm.translate(line: runes)
+      result = algorithm.translate(word: word)
 
       expect(result.map(&:letter).join).to eq("cae")
     end

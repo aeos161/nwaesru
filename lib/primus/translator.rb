@@ -1,23 +1,23 @@
 class Primus::Translator
   attr_reader :result, :strategy
 
-  def initialize(data:, strategy:)
-    @data = data
+  def initialize(document:, strategy:)
+    @document = document
     @strategy = strategy
   end
 
   def translate
-    decode = Proc.new { |line| strategy.translate(line: line) }
-    @result = Primus::Translation.new(lines: data.map(&decode))
+    decode = Proc.new { |word| strategy.translate(word: word) }
+    @result = Primus::Translation.new(words: document.map(&decode))
   end
 
   def self.build(page:, strategy:)
     parser = Primus::LiberPrimus::Parser.new(lines: page.lines)
     parser.parse
-    new(data: parser.result, strategy: strategy)
+    new(document: parser.result, strategy: strategy)
   end
 
   protected
 
-  attr_reader :data
+  attr_reader :document
 end

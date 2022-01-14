@@ -6,6 +6,8 @@ class Primus::LiberPrimus::Page
   FILE_EXT = ".yml"
 
   LINE_DELIMITER = "/".freeze
+  WORD_DELIMITER = "-".freeze
+  SENTENCE_DELIMITER = ".".freeze
 
   def initialize(number: nil, lines: [])
     @number = number

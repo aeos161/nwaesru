@@ -1,15 +1,20 @@
 class Primus::Translation
-  attr_reader :lines
+  attr_reader :words
 
-  def initialize(lines:)
-    @lines = lines
+  def initialize(words:)
+    @words = words
+    @word_delimiter ||= " "
   end
 
   def to_s
-    lines.map { |line| line.map(&:letter).join }.join("\n").rstrip
+    words.map { |word| word.to_s(:letter) }.join(word_delimiter).strip
   end
 
   def empty?
-    lines.empty?
+    words.empty?
   end
+
+  protected
+
+  attr_reader :word_delimiter
 end

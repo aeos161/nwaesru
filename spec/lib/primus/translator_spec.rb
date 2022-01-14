@@ -3,7 +3,11 @@ RSpec.describe Primus::Translator do
     it "translates to english characters" do
       strategy = Primus::RuneToLetter.new(translator: double.as_null_object)
       allow(strategy).to receive(:translate)
-      translator = Primus::Translator.new(data: ["", ""], strategy: strategy)
+      doc = Primus::LiberPrimus::Document.new(words: [
+        Primus::LiberPrimus::Word.new,
+        Primus::LiberPrimus::Word.new,
+      ])
+      translator = Primus::Translator.new(document: doc, strategy: strategy)
 
       translator.translate
 
@@ -12,7 +16,10 @@ RSpec.describe Primus::Translator do
 
     it "sets a result" do
       strategy = Primus::RuneToLetter.new(translator: double.as_null_object)
-      translator = Primus::Translator.new(data: [""], strategy: strategy)
+      doc = Primus::LiberPrimus::Document.new(words: [
+        Primus::LiberPrimus::Word.new
+      ])
+      translator = Primus::Translator.new(document: doc, strategy: strategy)
 
       translator.translate
 

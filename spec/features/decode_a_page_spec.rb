@@ -30,6 +30,9 @@ RSpec.describe "decode a page" do
   end
 
   it "can do a fibonacci shift on page 3" do
+    pending
+    fail
+
     page = Primus::LiberPrimus::Page.open(page_number: 3)
     strategy = Primus::FibonacciShift.build
     translator = Primus::Translator.build(page: page, strategy: strategy)
@@ -40,6 +43,9 @@ RSpec.describe "decode a page" do
   end
 
   it "can do an alternating shift on page 8" do
+    pending
+    fail
+
     page = Primus::LiberPrimus::Page.open(page_number: 8)
     strategy = Primus::AlternatingShift.build
     translator = Primus::Translator.build(page: page, strategy: strategy)

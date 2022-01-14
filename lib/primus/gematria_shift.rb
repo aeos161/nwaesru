@@ -5,8 +5,10 @@ class Primus::GematriaShift
     @translator = translator
   end
 
-  def translate(line:)
-    line.map { |char| process(character: char) }
+  def translate(word:)
+    Primus::LiberPrimus::Word.new(
+      tokens: word.map { |char| process(character: char) }
+    )
   end
 
   def self.build

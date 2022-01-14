@@ -5,8 +5,8 @@ class Primus::RuneToLetter
     @translator = translator
   end
 
-  def translate(line:)
-    line
+  def translate(word:)
+    word
   end
 
   def self.build

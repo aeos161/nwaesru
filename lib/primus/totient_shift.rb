@@ -8,8 +8,10 @@ class Primus::TotientShift
     @index_of_untranslatable_character = 56
   end
 
-  def translate(line:)
-    line.map { |char| process(character: char) }
+  def translate(word:)
+    Primus::LiberPrimus::Word.new(
+      tokens: word.map { |char| process(character: char) }
+    )
   end
 
   def self.build

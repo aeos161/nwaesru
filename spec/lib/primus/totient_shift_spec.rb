@@ -3,11 +3,12 @@ RSpec.describe Primus::TotientShift do
     it "shifts the letter by the totient number" do
       translator = Primus::GematriaPrimus.build
       algorithm = Primus::TotientShift.new(translator: translator)
-      line = [build_token(rune: "ᚫ", letter: "ae", value: 101, index: 25),
-              build_token(rune: "ᛂ", letter: "j", value: 37, index: 11),
-              build_token(rune: "ᛟ", letter: "oe", value: 83, index: 22)]
+      chars = [build_token(rune: "ᚫ", letter: "ae", value: 101, index: 25),
+               build_token(rune: "ᛂ", letter: "j", value: 37, index: 11),
+               build_token(rune: "ᛟ", letter: "oe", value: 83, index: 22)]
+      word = Primus::LiberPrimus::Word.new(tokens: chars)
 
-      result = algorithm.translate(line: line)
+      result = algorithm.translate(word: word)
 
       expect(result.map(&:letter).join).to eq("ane")
     end

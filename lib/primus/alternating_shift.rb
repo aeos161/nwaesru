@@ -8,9 +8,10 @@ class Primus::AlternatingShift
     @shifts = shifts
   end
 
-  def translate(line:)
-    binding.pry
-    #line.map { |char| process(character: char) }
+  def translate(word:)
+    Primus::LiberPrimus::Word.new(
+      tokens: word.map { |char| process(character: char) }
+    )
     #@number_of_lines_processed += 1
   end
 

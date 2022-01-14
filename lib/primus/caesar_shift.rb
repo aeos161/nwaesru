@@ -5,7 +5,7 @@ class Primus::CaesarShift
     @translator = translator
   end
 
-  def translate(line:)
+  def translate(word:)
     line.map { |char| process(character: char) }
   end
 
