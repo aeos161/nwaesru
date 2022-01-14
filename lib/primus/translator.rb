@@ -1,5 +1,5 @@
 class Primus::Translator
-  attr_reader :result, :strategy
+  attr_reader :document, :result, :strategy
 
   def initialize(document:, strategy:)
     @document = document
@@ -18,6 +18,4 @@ class Primus::Translator
   end
 
   protected
-
-  attr_reader :document
 end

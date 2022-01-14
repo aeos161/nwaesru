@@ -1,7 +1,7 @@
 class Primus::AlternatingShift
   attr_reader :translator
 
-  def initialize(translator:, shifts: [13, 7, 5, 13, 7, 5, 15, 15])
+  def initialize(translator:, shifts: [5, 1, 5, 7, 6, 6, 5, 5, 6, 5, 6, 1])
     @translator = translator
     @number_of_characters_processed = 0
     @number_of_words_processed = 0
@@ -9,10 +9,12 @@ class Primus::AlternatingShift
   end
 
   def translate(word:)
-    Primus::LiberPrimus::Word.new(
+    word = Primus::LiberPrimus::Word.new(
       tokens: word.map { |char| process(character: char) }
     )
-    #@number_of_lines_processed += 1
+    @number_of_words_processed += 1
+    @number_of_characters_processed += word.size
+    word
   end
 
   def self.build
@@ -32,7 +34,7 @@ class Primus::AlternatingShift
   end
 
   def alternating_shift(character:)
-    (character.index + shift_by) % translator.size
+    (character.index - shift_by) % translator.size
   end
 
   def shift_by

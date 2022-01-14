@@ -26,6 +26,7 @@ class Primus::GematriaShift
   end
 
   def gematria_shift(position:)
+    binding.pry
     translator.size - (position + 1)
   end
 end

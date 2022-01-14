@@ -23,6 +23,11 @@ class Primus::LiberPrimus::Document
   def size
     words.size
   end
+  alias :word_count :size
+
+  def token_count
+    words.flat_map(&:tokens).size
+  end
 
   protected
 
