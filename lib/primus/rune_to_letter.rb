@@ -6,7 +6,8 @@ class Primus::RuneToLetter
   end
 
   def translate(word:)
-    word
+    tokens = word.map { |tk| translator.find_by(rune: tk.lexeme) }
+    Primus::Word.new(tokens: tokens)
   end
 
   def self.build

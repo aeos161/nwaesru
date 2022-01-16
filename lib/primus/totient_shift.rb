@@ -9,9 +9,9 @@ class Primus::TotientShift
   end
 
   def translate(word:)
-    Primus::LiberPrimus::Word.new(
-      tokens: word.map { |char| process(character: char) }
-    )
+    tokens = word.map { |tk| translator.find_by(rune: tk.lexeme) }
+    tokens = tokens.map { |char| process(character: char) }
+    Primus::Word.new(tokens: tokens)
   end
 
   def self.build

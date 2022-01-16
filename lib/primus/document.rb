@@ -1,0 +1,33 @@
+class Primus::Document
+  include Enumerable
+
+  attr_reader :text
+
+  def initialize(text: [])
+    @text = text || []
+  end
+
+  def <<(text)
+    @text << text
+  end
+
+  def [](index)
+    words.flat_map(&:tokens).detect { |tk| tk.location.position == index }
+  end
+
+  def word_count
+    words.size
+  end
+
+  def character_count
+    words.map(&:size).sum
+  end
+
+  def each(&block)
+    text.each(&block)
+  end
+
+  def words
+    text.select { |w| w.is_a? Primus::Word }
+  end
+end

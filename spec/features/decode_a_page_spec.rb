@@ -43,18 +43,18 @@ RSpec.describe "decode a page" do
   end
 
   it "can do an alternating shift on page 8" do
-    #8.upto(8) do |n|
-      n = 8
+    8.upto(14) do |n|
       page = Primus::LiberPrimus::Page.open(page_number: n)
       strategy = Primus::AlternatingShift.build
       translator = Primus::Translator.build(page: page, strategy: strategy)
       doc = translator.document
+      binding.pry
       puts "PAGE: #{n}"
       puts "WORDS: #{doc.word_count}"
       puts "CHARS: #{doc.token_count}"
       puts doc.token_count / doc.word_count.to_f
       puts "----"
-    #end
+    end
 
     translator.translate
 

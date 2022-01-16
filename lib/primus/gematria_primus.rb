@@ -10,7 +10,7 @@ class Primus::GematriaPrimus
   def find_by(rune: nil, letter: nil, index: nil)
     finder = finder_factory(rune: rune, letter: letter, index: index)
     result = tokens.detect(&finder)
-    result || NoToken.new(rune: rune, letter: rune)
+    result || Token.new(rune: rune, letter: rune)
   end
 
   def self.build

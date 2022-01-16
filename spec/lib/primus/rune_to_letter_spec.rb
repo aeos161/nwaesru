@@ -3,13 +3,12 @@ RSpec.describe Primus::RuneToLetter do
     it "convers a line of runs into letters" do
       gematria_primus = Primus::GematriaPrimus.build
       algorithm = Primus::RuneToLetter.new(translator: gematria_primus)
-      runes = [build_token(rune: "ᚳ", letter: "c", value: 13, index: 5),
-               build_token(rune: "ᚫ", letter: "ae", value: 101, index: 25)]
-      word = Primus::LiberPrimus::Word.new(tokens: runes)
+      runes = [build_token(rune: "ᚳ"), build_token(rune: "ᚫ")]
+      word = Primus::Word.new(tokens: runes)
 
       result = algorithm.translate(word: word)
 
-      expect(result.map(&:letter).join).to eq("cae")
+      expect(result.to_s(:letter)).to eq("cae")
     end
   end
 
@@ -23,8 +22,7 @@ RSpec.describe Primus::RuneToLetter do
     end
   end
 
-  def build_token(rune:, letter:, value:, index:)
-    Primus::GematriaPrimus::Token.
-      new(rune: rune, letter: letter, value: value, index: index)
+  def build_token(rune:)
+    Primus::Token.new(lexeme: rune)
   end
 end

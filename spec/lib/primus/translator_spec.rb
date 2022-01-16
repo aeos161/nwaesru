@@ -3,11 +3,7 @@ RSpec.describe Primus::Translator do
     it "translates to english characters" do
       strategy = Primus::RuneToLetter.new(translator: double.as_null_object)
       allow(strategy).to receive(:translate)
-      doc = Primus::LiberPrimus::Document.new(words: [
-        Primus::LiberPrimus::Word.new,
-        Primus::LiberPrimus::Word.new,
-      ])
-      translator = Primus::Translator.new(document: doc, strategy: strategy)
+      translator = Primus::Translator.new(data: "ᛈᚪ-ᛈᚪᚪ.", strategy: strategy)
 
       translator.translate
 
@@ -16,10 +12,7 @@ RSpec.describe Primus::Translator do
 
     it "sets a result" do
       strategy = Primus::RuneToLetter.new(translator: double.as_null_object)
-      doc = Primus::LiberPrimus::Document.new(words: [
-        Primus::LiberPrimus::Word.new
-      ])
-      translator = Primus::Translator.new(document: doc, strategy: strategy)
+      translator = Primus::Translator.new(data: "ᛈᚪ-", strategy: strategy)
 
       translator.translate
 
@@ -35,18 +28,6 @@ RSpec.describe Primus::Translator do
       result = Primus::Translator.build(page: page, strategy: strategy)
 
       expect(result.strategy).to eq(strategy)
-    end
-
-    it "parses the page" do
-      strategy = double.as_null_object
-      page = Primus::LiberPrimus::Page.new
-      parser = Primus::LiberPrimus::Parser.new
-      allow(parser).to receive(:parse)
-      allow(Primus::LiberPrimus::Parser).to receive(:new).and_return(parser)
-
-      Primus::Translator.build(page: page, strategy: strategy)
-
-      expect(parser).to have_received(:parse).once
     end
   end
 end

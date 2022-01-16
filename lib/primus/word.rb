@@ -1,4 +1,4 @@
-class Primus::LiberPrimus::Word
+class Primus::Word
   include Enumerable
 
   attr_reader :tokens
@@ -11,6 +11,10 @@ class Primus::LiberPrimus::Word
     tokens == word.tokens
   end
 
+  def <<(token)
+    @tokens << token
+  end
+
   def each(&block)
     tokens.each(&block)
   end
@@ -21,5 +25,9 @@ class Primus::LiberPrimus::Word
 
   def size
     tokens.size
+  end
+
+  def blank?
+    true if tokens.empty?
   end
 end

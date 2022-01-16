@@ -1,27 +1,26 @@
 class Primus::LiberPrimus::Page
-  attr_reader :number, :lines
+  attr_reader :number, :data
 
   ENCODED_DIR_PATH = "data/encoded/liber_primus".freeze
   DECODED_DIR_PATH = "data/decoded/liber_primus".freeze
   FILE_EXT = ".yml"
 
-  LINE_DELIMITER = "/".freeze
-  WORD_DELIMITER = "-".freeze
-  SENTENCE_DELIMITER = ".".freeze
-
-  def initialize(number: nil, lines: [])
+  def initialize(number: nil, data: "")
     @number = number
-    @lines = lines
+    @data = data
   end
 
   def to_s
-    lines.join("\n").rstrip
+    data.to_s
   end
 
   def self.open(page_number:, encoded: true)
     path = self.file_name(page_number: page_number, encoded: encoded)
-    data = Psych.safe_load(File.read(path))
-    new(number: page_number, lines: data["body"].split(LINE_DELIMITER))
+    data = Psych.safe_load(File.read(path))["body"]
+    if encoded
+      data = data.split(" ").join
+    end
+    new(number: page_number, data: data)
   end
 
   def self.file_name(page_number:, encoded: true)
