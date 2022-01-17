@@ -43,25 +43,50 @@ RSpec.describe "decode a page" do
   end
 
   it "can do an alternating shift on page 8" do
-    pending
-    fail
+    document = Primus::Document.new
+    first_word = Primus::Word.new
+    position = 0
 
     8.upto(14) do |n|
       page = Primus::LiberPrimus::Page.open(page_number: n)
-      strategy = Primus::AlternatingShift.build
-      translator = Primus::Translator.build(page: page, strategy: strategy)
-      doc = translator.document
-      binding.pry
-      puts "PAGE: #{n}"
-      puts "WORDS: #{doc.word_count}"
-      puts "CHARS: #{doc.token_count}"
-      puts doc.token_count / doc.word_count.to_f
-      puts "----"
+
+      lexer = Primus::Lexer.build(page: page, starting_position: position)
+      lexer.tokenize
+
+      parser = Primus::Parser.new(tokens: lexer.tokens, document: document,
+                                  first_word: first_word)
+      parser.parse
+
+      position = lexer.position
+      first_word = parser.last_word
+
+      #strategy = Primus::AlternatingShift.build
+      #translator = Primus::Translator.build(page: page, strategy: strategy)
+      #doc = translator.document
+      #binding.pry
+      #puts "PAGE: #{n}"
+      #puts "WORDS: #{doc.word_count}"
+      #puts "CHARS: #{doc.token_count}"
+      #puts doc.token_count / doc.word_count.to_f
+      #puts "----"
     end
 
-    translator.translate
+    token274 = document[274]
+    token501 = document[501]
+    token554 = document[554]
+    puts "274: #{token274.inspect}"
+    puts "501: #{token501.inspect}"
+    puts "554: #{token554.inspect}"
 
-    expect(translator.result.to_s).to eq("")
+    puts token501.location - token274.location
+    puts token554.location - token501.location
+    puts token554.location - token274.location
+
+    binding.pry
+
+    #translator.translate
+
+    #expect(translator.result.to_s).to eq("")
   end
 
   def page56_decoded_text

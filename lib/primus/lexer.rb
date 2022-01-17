@@ -1,5 +1,5 @@
 class Primus::Lexer
-  attr_reader :data, :tokens
+  attr_reader :data, :tokens, :line, :position
 
   def initialize(data:, line: 0, position: 0)
     @data = data.split("").to_enum
@@ -24,7 +24,7 @@ class Primus::Lexer
 
   protected
 
-  attr_reader :current_token, :line, :position
+  attr_reader :current_token
 
   def complete?
     tokens.size >= data.count
