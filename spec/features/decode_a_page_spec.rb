@@ -43,6 +43,9 @@ RSpec.describe "decode a page" do
   end
 
   it "can do an alternating shift on page 8" do
+    pending
+    fail
+
     8.upto(14) do |n|
       page = Primus::LiberPrimus::Page.open(page_number: n)
       strategy = Primus::AlternatingShift.build

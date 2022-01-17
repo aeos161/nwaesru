@@ -7,7 +7,7 @@ class Primus::Translation
   end
 
   def to_s
-    words.map { |word| word.to_s(:letter) }.join
+    words.map { |word| word.to_s(:letter) }.join.rstrip
   end
 
   def empty?

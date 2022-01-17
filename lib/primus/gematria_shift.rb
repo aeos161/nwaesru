@@ -6,9 +6,9 @@ class Primus::GematriaShift
   end
 
   def translate(word:)
-    Primus::LiberPrimus::Word.new(
-      tokens: word.map { |char| process(character: char) }
-    )
+    tokens = word.map { |tk| translator.find_by(rune: tk.lexeme) }
+    tokens = tokens.map { |char| process(character: char) }
+    Primus::Word.new(tokens: tokens)
   end
 
   def self.build
@@ -26,7 +26,6 @@ class Primus::GematriaShift
   end
 
   def gematria_shift(position:)
-    binding.pry
     translator.size - (position + 1)
   end
 end
