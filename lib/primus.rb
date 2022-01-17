@@ -8,6 +8,7 @@ require "prime"
 require "psych"
 
 require "primus/document"
+require "primus/document/filter"
 require "primus/lexer"
 require "primus/parser"
 require "primus/token"

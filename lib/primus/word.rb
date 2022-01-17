@@ -30,4 +30,8 @@ class Primus::Word
   def blank?
     true if tokens.empty?
   end
+
+  def accept(visitor)
+    visitor.visit_word(self)
+  end
 end

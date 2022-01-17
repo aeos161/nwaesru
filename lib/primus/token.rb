@@ -16,4 +16,8 @@ class Primus::Token
   def to_s(*)
     literal.to_s
   end
+
+  def accept(visitor)
+    visitor.visit_token(self)
+  end
 end

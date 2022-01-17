@@ -1,11 +1,12 @@
 class Primus::Parser
-  attr_reader :tokens, :result, :last_word
+  attr_reader :tokens, :result, :last_word, :last_token
 
   def initialize(tokens: [], document: nil, first_word: nil)
     @tokens = tokens
     @result = document || Primus::Document.new
     @first_word = first_word || Primus::Word.new
     @last_word = Primus::Word.new
+    @last_token = nil
   end
 
   def parse
@@ -22,20 +23,30 @@ class Primus::Parser
 
   def parse_tokens
     word = first_word
-    last_token = nil
     tokens.each do |token|
+      parse_token(token, word)
+
       if word_boundary? token
-        add_word word
-        add_token token
         word = Primus::Word.new
-      else
-        unless token.is_a?(Primus::Token::LineBreak)
-          word << token
-        end
       end
-      last_token = token
     end
 
+    handle_end_of_document(word)
+  end
+
+  def parse_token(token, word)
+    if word_boundary? token
+      add_word word
+      add_token token
+    else
+      unless token.is_a?(Primus::Token::LineBreak)
+        word << token
+      end
+    end
+    @last_token = token
+  end
+
+  def handle_end_of_document(word)
     if word.blank?
       add_token last_token
     else

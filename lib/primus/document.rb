@@ -30,4 +30,9 @@ class Primus::Document
   def words
     text.select { |w| w.is_a? Primus::Word }
   end
+
+  def accept(visitor)
+    visited_text = text.map { |element| element.accept(visitor) }
+    Primus::Document.new(text: visited_text)
+  end
 end

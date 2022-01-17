@@ -82,6 +82,8 @@ RSpec.describe "decode a page" do
     puts token554.location - token501.location
     puts token554.location - token274.location
 
+    visitor = Primus::Document::Filter.new(character_to_reject: "ᛉ")
+    new_doc = document.accept(visitor)
     binding.pry
 
     #translator.translate
