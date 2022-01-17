@@ -7,8 +7,9 @@ class Primus::GematriaPrimus
     tokens.size
   end
 
-  def find_by(rune: nil, letter: nil, index: nil)
-    finder = finder_factory(rune: rune, letter: letter, index: index)
+  def find_by(rune: nil, letter: nil, index: nil, value: nil)
+    finder = finder_factory(rune: rune, letter: letter, index: index,
+                            value: value)
     result = tokens.detect(&finder)
     result || Token.new(rune: rune, letter: rune)
   end
@@ -58,10 +59,11 @@ class Primus::GematriaPrimus
 
   attr_reader :tokens
 
-  def finder_factory(rune:, letter:, index:)
+  def finder_factory(rune:, letter:, index:, value:)
     return build_finder(:rune, rune) unless rune.nil?
     return build_finder(:letter, letter) unless letter.nil?
-    build_finder(:index, index)
+    return build_finder(:index, index) unless index.nil?
+    build_finder(:value, value)
   end
 
   def build_finder(method_name, value)

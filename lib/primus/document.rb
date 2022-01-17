@@ -7,6 +7,10 @@ class Primus::Document
     @text = text || []
   end
 
+  def ==(document)
+    text == document.text
+  end
+
   def <<(text)
     @text << text
   end
@@ -15,16 +19,24 @@ class Primus::Document
     words.flat_map(&:tokens).detect { |tk| tk.location.position == index }
   end
 
+  def each(&block)
+    text.each(&block)
+  end
+
+  def to_s
+    text.map { |word| word.to_s(:letter) }.join.rstrip
+  end
+
+  def empty?
+    text.empty?
+  end
+
   def word_count
     words.size
   end
 
   def character_count
     words.map(&:size).sum
-  end
-
-  def each(&block)
-    text.each(&block)
   end
 
   def words

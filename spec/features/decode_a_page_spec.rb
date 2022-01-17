@@ -1,32 +1,28 @@
 RSpec.describe "decode a page" do
   it "can use a totient shift on page 56" do
-    page = Primus::LiberPrimus::Page.open(page_number: 56)
-    strategy = Primus::TotientShift.build
-    translator = Primus::Translator.build(page: page, strategy: strategy)
+    document = Primus::LiberPrimus.page(page_number: 56)
 
-    translator.translate
+    translation = document.accept(Primus::Document::Translator.new)
+    result = translation.accept(Primus::Document::TotientShift.new)
 
-    expect(translator.result.to_s).to eq(page56_decoded_text)
+    expect(result.to_s).to eq(page56_decoded_text)
   end
 
   it "can use a gematria shift on a warning" do
-    page = Primus::LiberPrimus::Page.open(page_number: "warning")
-    strategy = Primus::GematriaShift.build
-    translator = Primus::Translator.build(page: page, strategy: strategy)
+    document = Primus::LiberPrimus.page(page_number: "warning")
 
-    translator.translate
+    translation = document.accept(Primus::Document::Translator.new)
+    result = translation.accept(Primus::Document::GematriaShift.new)
 
-    expect(translator.result.to_s).to eq(warning_decoded_text)
+    expect(result.to_s).to eq(warning_decoded_text)
   end
 
   it "can do a direct rune to letter translation on page 57" do
-    page = Primus::LiberPrimus::Page.open(page_number: 57)
-    strategy = Primus::RuneToLetter.build
-    translator = Primus::Translator.build(page: page, strategy: strategy)
+    document = Primus::LiberPrimus.page(page_number: 57)
 
-    translator.translate
+    result = document.accept(Primus::Document::Translator.new)
 
-    expect(translator.result.to_s).to eq(page57_decoded_text)
+    expect(result.to_s).to eq(page57_decoded_text)
   end
 
   it "can do a fibonacci shift on page 3" do
@@ -43,33 +39,7 @@ RSpec.describe "decode a page" do
   end
 
   it "can do an alternating shift on page 8" do
-    document = Primus::Document.new
-    first_word = Primus::Word.new
-    position = 0
-
-    8.upto(14) do |n|
-      page = Primus::LiberPrimus::Page.open(page_number: n)
-
-      lexer = Primus::Lexer.build(page: page, starting_position: position)
-      lexer.tokenize
-
-      parser = Primus::Parser.new(tokens: lexer.tokens, document: document,
-                                  first_word: first_word)
-      parser.parse
-
-      position = lexer.position
-      first_word = parser.last_word
-
-      #strategy = Primus::AlternatingShift.build
-      #translator = Primus::Translator.build(page: page, strategy: strategy)
-      #doc = translator.document
-      #binding.pry
-      #puts "PAGE: #{n}"
-      #puts "WORDS: #{doc.word_count}"
-      #puts "CHARS: #{doc.token_count}"
-      #puts doc.token_count / doc.word_count.to_f
-      #puts "----"
-    end
+    document = Primus::LiberPrimus.chapter(page_numbers: 8..14)
 
     token274 = document[274]
     token501 = document[501]
@@ -84,11 +54,19 @@ RSpec.describe "decode a page" do
 
     visitor = Primus::Document::Filter.new(character_to_reject: "ᛉ")
     new_doc = document.accept(visitor)
-    binding.pry
 
-    #translator.translate
+    visitor = Primus::Document::Translator.new
+    new_doc2 = new_doc.accept(visitor)
 
-    #expect(translator.result.to_s).to eq("")
+    #visitor = Primus::Document::ComplementShift.new
+    #visitor = Primus::Document::TotientShift.new
+    #visitor = Primus::Document::GematriaShift.new
+    visitor = Primus::Document::StreamCipher.new
+
+    new_doc3 = new_doc2.accept(visitor)
+    #binding.pry
+
+    #expect(result.to_s).to eq("")
   end
 
   def page56_decoded_text

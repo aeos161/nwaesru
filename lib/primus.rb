@@ -1,15 +1,23 @@
-module Primus
-  module LiberPrimus
-
-  end
-end
+module Primus; end
 
 require "prime"
 require "psych"
 
 require "primus/document"
+require "primus/document/builder"
 require "primus/document/filter"
+require "primus/document/alternating_shift"
+require "primus/document/complement_shift"
+require "primus/document/fibonacci_shift"
+require "primus/document/gematria_shift"
+require "primus/document/totient_shift"
+require "primus/document/stream_cipher"
+require "primus/document/translator"
+require "primus/gematria_primus"
+require "primus/gematria_primus/token"
 require "primus/lexer"
+require "primus/liber_primus"
+require "primus/liber_primus/page"
 require "primus/parser"
 require "primus/token"
 require "primus/token/factory"
@@ -19,14 +27,3 @@ require "primus/token/location"
 require "primus/token/sentence_delimiter"
 require "primus/token/word_delimiter"
 require "primus/word"
-
-require "primus/alternating_shift"
-require "primus/fibonacci_shift"
-require "primus/gematria_shift"
-require "primus/rune_to_letter"
-require "primus/totient_shift"
-require "primus/translation"
-require "primus/translator"
-require "primus/gematria_primus"
-require "primus/gematria_primus/token"
-require "primus/liber_primus/page"

@@ -9,8 +9,8 @@ class Primus::Token
 
   def ==(token)
     lexeme == token.lexeme &&
-      literal == token.literal #&&
-      #location == token.location
+      literal == token.literal &&
+      location == token.location
   end
 
   def to_s(*)

@@ -10,6 +10,10 @@ class Primus::LiberPrimus::Page
     @data = data
   end
 
+  def ==(page)
+    data == page.data
+  end
+
   def to_s
     data.to_s
   end

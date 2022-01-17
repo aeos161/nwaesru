@@ -1,7 +1,7 @@
 class Primus::Lexer
   attr_reader :data, :tokens, :line, :position
 
-  def initialize(data:, line: 0, position: 0)
+  def initialize(data: "", line: 0, position: 0)
     @data = data.split("").to_enum
     @line = line || 0
     @position = position || 0
