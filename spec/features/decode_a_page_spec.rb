@@ -1,5 +1,5 @@
 RSpec.describe "decode a page" do
-  it "can use a totient shift on page 56" do
+  it "can decode a running key cipher" do
     document = Primus::LiberPrimus.page(page_number: 56)
 
     translation = document.accept(Primus::Document::Translator.new)
@@ -15,6 +15,16 @@ RSpec.describe "decode a page" do
     result = translation.accept(Primus::Document::Atbash.new)
 
     expect(result.to_s).to eq(warning_decoded_text)
+  end
+
+  it "can decode a vigenere cipher" do
+    document = Primus::LiberPrimus.page(page_number: "welcome")
+    key = "diuinity"
+
+    translation = document.accept(Primus::Document::Translator.new)
+    result = translation.accept(Primus::Document::Vigenere.new(key: key))
+
+    expect(result.to_s).to eq(welcome_decoded_text)
   end
 
   it "can do a direct rune to letter translation on page 57" do
@@ -63,7 +73,7 @@ RSpec.describe "decode a page" do
     new_doc2 = document.accept(visitor)
     one_letter_words = new_doc2.words.select { |w| w.size == 1 }
 
-    binding.pry
+    #binding.pry
 
     #visitor = Primus::Document::ComplementShift.new
     #visitor = Primus::Document::TotientShift.new
@@ -76,7 +86,7 @@ RSpec.describe "decode a page" do
     word = new_doc2.first
     puts word.accept(visitor)
 
-    binding.pry
+    #binding.pry
 
     #expect(result.to_s).to eq("")
   end
@@ -91,5 +101,9 @@ RSpec.describe "decode a page" do
 
   def warning_decoded_text
     Primus::LiberPrimus::Page.open(page_number: "warning", encoded: false).to_s
+  end
+
+  def welcome_decoded_text
+    Primus::LiberPrimus::Page.open(page_number: "welcome", encoded: false).to_s
   end
 end
