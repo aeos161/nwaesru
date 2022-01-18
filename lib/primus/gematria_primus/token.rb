@@ -10,6 +10,13 @@ class Primus::GematriaPrimus::Token
     @value = value
   end
 
+  def ==(token)
+    index == token.index &&
+      rune == token.rune &&
+      letter == token.letter &&
+      value == token.value
+  end
+
   def present?
     true unless value.nil?
   end

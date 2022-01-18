@@ -8,11 +8,11 @@ RSpec.describe "decode a page" do
     expect(result.to_s).to eq(page56_decoded_text)
   end
 
-  it "can use a gematria shift on a warning" do
+  it "can decode an atbash cipher" do
     document = Primus::LiberPrimus.page(page_number: "warning")
 
     translation = document.accept(Primus::Document::Translator.new)
-    result = translation.accept(Primus::Document::GematriaShift.new)
+    result = translation.accept(Primus::Document::Atbash.new)
 
     expect(result.to_s).to eq(warning_decoded_text)
   end
