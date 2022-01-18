@@ -1,6 +1,8 @@
 class Primus::GematriaPrimus::Token
   attr_reader :index, :rune, :letter, :value
 
+  attr_accessor :location
+
   def initialize(index: nil, rune:, letter:, value: nil)
     @index = index
     @rune = rune

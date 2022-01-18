@@ -44,27 +44,39 @@ RSpec.describe "decode a page" do
     token274 = document[274]
     token501 = document[501]
     token554 = document[554]
+    token786 = document[786]
     puts "274: #{token274.inspect}"
     puts "501: #{token501.inspect}"
     puts "554: #{token554.inspect}"
+    puts "786: #{token786.inspect}"
 
-    puts token501.location - token274.location
-    puts token554.location - token501.location
+    #puts token501.location - token274.location
+    #puts token554.location - token501.location
     puts token554.location - token274.location
+    puts token786.location - token274.location
+    puts token786.location - token554.location
 
-    visitor = Primus::Document::Filter.new(character_to_reject: "ᛉ")
-    new_doc = document.accept(visitor)
+    #visitor = Primus::Document::Filter.new(character_to_reject: "ᛉ")
+    #new_doc = document.accept(visitor)
 
     visitor = Primus::Document::Translator.new
-    new_doc2 = new_doc.accept(visitor)
+    new_doc2 = document.accept(visitor)
+    one_letter_words = new_doc2.words.select { |w| w.size == 1 }
+
+    binding.pry
 
     #visitor = Primus::Document::ComplementShift.new
     #visitor = Primus::Document::TotientShift.new
     #visitor = Primus::Document::GematriaShift.new
-    visitor = Primus::Document::StreamCipher.new
+    #visitor = Primus::Document::StreamCipher.new
+    #visitor = Primus::Document::AlternatingShift.new
+    visitor = Primus::GematriaPrimus::Calculator.new
+    #new_doc2.accept(visitor)
 
-    new_doc3 = new_doc2.accept(visitor)
-    #binding.pry
+    word = new_doc2.first
+    puts word.accept(visitor)
+
+    binding.pry
 
     #expect(result.to_s).to eq("")
   end

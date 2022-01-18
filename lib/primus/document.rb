@@ -23,8 +23,10 @@ class Primus::Document
     text.each(&block)
   end
 
-  def to_s
-    text.map { |word| word.to_s(:letter) }.join.rstrip
+  def to_s(format: :letter)
+    visitor = Primus::Document::Printer.new(format: format)
+    accept(visitor)
+    visitor.to_s
   end
 
   def empty?

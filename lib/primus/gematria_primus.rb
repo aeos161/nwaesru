@@ -11,7 +11,15 @@ class Primus::GematriaPrimus
     finder = finder_factory(rune: rune, letter: letter, index: index,
                             value: value)
     result = tokens.detect(&finder)
-    result || Token.new(rune: rune, letter: rune)
+    result.dup || Token.new(rune: rune, letter: rune)
+  end
+
+  def generate_words(sum:, number_of_characters:)
+    tokens.
+      repeated_permutation(number_of_characters).
+      select { |arr| arr.map(&:value).sum == sum }.
+      map { |tks| Primus::Word.new(tokens: tks) }.
+      map { |word| word.to_s(:letter) }
   end
 
   def self.build

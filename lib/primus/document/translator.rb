@@ -6,7 +6,11 @@ class Primus::Document::Translator
   end
 
   def visit_word(word)
-    tokens = word.map { |tk| dictionary.find_by(rune: tk.lexeme) }
+    tokens = word.map do |tk|
+      token = dictionary.find_by(rune: tk.lexeme)
+      token.location = tk.location
+      token
+    end
     Primus::Word.new(tokens: tokens)
   end
 
