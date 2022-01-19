@@ -16,13 +16,13 @@ RSpec.describe Primus::Lexer do
       lexer.tokenize
 
       expect(lexer.tokens).to match_array([
-        Primus::Token::Character.new(lexeme: "ᚫ", location: double),
-        Primus::Token::Character.new(lexeme: "ᛄ", location: double),
-        Primus::Token::WordDelimiter::new(location: double),
-        Primus::Token::Character.new(lexeme: "ᛟ", location: double),
-        Primus::Token::Character.new(lexeme: "ᛋ", location: double),
-        Primus::Token::Character.new(lexeme: "ᚱ", location: double),
-        Primus::Token::SentenceDelimiter.new(location: double),
+        Primus::Token::Character.new(lexeme: "ᚫ"),
+        Primus::Token::Character.new(lexeme: "ᛄ"),
+        Primus::Token::WordDelimiter::new,
+        Primus::Token::Character.new(lexeme: "ᛟ"),
+        Primus::Token::Character.new(lexeme: "ᛋ"),
+        Primus::Token::Character.new(lexeme: "ᚱ"),
+        Primus::Token::SentenceDelimiter.new,
       ])
     end
 

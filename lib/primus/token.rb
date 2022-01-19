@@ -1,5 +1,6 @@
 class Primus::Token
-  attr_reader :lexeme, :literal, :location
+  attr_reader :lexeme, :literal
+  attr_accessor :location
 
   def initialize(lexeme: "", literal: nil, location: nil)
     @lexeme = lexeme
@@ -8,9 +9,7 @@ class Primus::Token
   end
 
   def ==(token)
-    lexeme == token.lexeme &&
-      literal == token.literal &&
-      location == token.location
+    lexeme == token.lexeme && literal == token.literal
   end
 
   def to_s(*)

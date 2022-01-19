@@ -3,6 +3,10 @@ class Primus::Token::Character < Primus::Token
     super(lexeme: lexeme, literal: lexeme, location: location)
   end
 
+  def ==(token)
+    lexeme == token.lexeme && literal == token.literal
+  end
+
   def delimiter?
     false
   end
