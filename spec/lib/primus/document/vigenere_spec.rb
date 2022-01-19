@@ -14,6 +14,7 @@ RSpec.describe Primus::Document::Vigenere do
 
   describe "#visit_token" do
     it "returns the token" do
+      anything = ""
       visitor = Primus::Document::Vigenere.new(key: anything)
       token = Primus::Token::WordDelimiter.new
 

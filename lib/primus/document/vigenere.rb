@@ -1,13 +1,13 @@
 class Primus::Document::Vigenere
   attr_reader :alphabet, :key, :modulus
 
-  def initialize(alphabet: nil, key:, modulus: nil)
+  def initialize(alphabet: nil, key:, modulus: nil, interrupter_sequence: [])
     @alphabet = alphabet || Primus::GematriaPrimus.build
     @key = key.split("").map { |l| @alphabet.find_by(letter: l) }.to_enum
     @modulus = modulus || @alphabet.size
     @number_of_characters_processed = 0
     @current_key_character = nil
-    @interrupter_sequence = [48, 74, 84, 132, 159, 160, 250]
+    @interrupter_sequence = interrupter_sequence
   end
 
   def visit_word(word)
@@ -21,7 +21,8 @@ class Primus::Document::Vigenere
 
   protected
 
-  attr_accessor :number_of_characters_processed, :interrupter_sequence
+  attr_reader :interrupter_sequence
+  attr_accessor :number_of_characters_processed
 
   def interrupter?
     true if interrupter_sequence.include? number_of_characters_processed
@@ -29,12 +30,16 @@ class Primus::Document::Vigenere
 
   def process(character:)
     return character if character.index.nil?
+    decoded_character = decode(character)
+    increment_characters_processed
+    decoded_character
+  end
+
+  def decode(character)
     if interrupter?
-      increment_characters_processed
       character
     else
       plain_text_index = (character.index - next_key_letter.index) % modulus
-      increment_characters_processed
       alphabet.find_by(index: plain_text_index)
     end
   end

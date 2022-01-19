@@ -27,13 +27,14 @@ RSpec.describe Primus::Document::TotientShift do
       end
     end
 
-    context "for the skip character" do
+    context "for an interrupter" do
       it "does not shift the letter" do
-        dictionary = Primus::GematriaPrimus.build
+        alphabet = Primus::GematriaPrimus.build
         visitor = Primus::Document::TotientShift.new(
-          dictionary: dictionary, number_of_characters_processed: 56
+          alphabet: alphabet, number_of_characters_processed: 56,
+          interrupter_sequence: [56]
         )
-        tokens = [dictionary.find_by(rune: "ᚠ")]
+        tokens = [alphabet.find_by(rune: "ᚠ")]
         word = Primus::Word.new(tokens: tokens)
 
         result = visitor.visit_word(word)
