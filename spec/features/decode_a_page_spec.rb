@@ -1,7 +1,8 @@
 RSpec.describe "decode a page" do
   it "can decode a running key cipher" do
     document = Primus::LiberPrimus.page(page_number: 56)
-    totient = Primus::Document::TotientShift.new(interrupter_sequence: [56])
+    totient = Primus::Document::TotientShift.new
+    totient.skip_sequence = [57]
 
     translation = document.accept(Primus::Document::Translator.new)
     result = translation.accept(totient)
@@ -21,10 +22,9 @@ RSpec.describe "decode a page" do
   it "can decode a vigenere cipher" do
     document = Primus::LiberPrimus.page(page_number: "welcome")
     key = "diuinity"
-    interrupter_sequence = [48, 74, 84, 132, 159, 160, 250]
-    vigenere = Primus::Document::Vigenere.new(
-      key: key, interrupter_sequence: interrupter_sequence
-    )
+    skip_sequence = [49, 75, 85, 133, 160, 161, 251]
+    vigenere = Primus::Document::Vigenere.new(key: key)
+    vigenere.skip_sequence = skip_sequence
 
     translation = document.accept(Primus::Document::Translator.new)
     result = translation.accept(vigenere)

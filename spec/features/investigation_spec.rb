@@ -13,13 +13,24 @@ RSpec.describe "investigation" do
   end
 
   it "can do an affine cipher on page 8" do
-    document = Primus::LiberPrimus.page(page_number: 8)
+    document = Primus::LiberPrimus.chapter(page_numbers: 8..14)
 
     filter = Primus::Document::Filter.new(character_to_reject: "ᛉ")
-    filtered = document.accept(filter)
-    translated = document.accept(Primus::Document::Translator.new)
-    affine = Primus::Document::Affine.new(key: 26, magnitude: 9)
-    result = translated.accept(affine)
+    translated = document.accept(filter)
+    puts translated.to_s(:rune)
+
+    translated = translated.accept(Primus::Document::Translator.new)
+    puts translated.to_s
+
+
+    #keys = [[5, 14], [9, 4]]
+    #keys.each do |data|
+    #  #binding.pry
+      #data = [14, 5]
+      #affine = Primus::Document::Affine.new(key: data[0], magnitude: data[1])
+      #result = translated.accept(affine)
+      #puts result.to_s
+    #end
 
     binding.pry
   end

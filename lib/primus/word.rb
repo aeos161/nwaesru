@@ -20,7 +20,7 @@ class Primus::Word
   end
 
   def to_s(method = :rune)
-    tokens.map(&method).join
+    tokens.map { |tk| tk.to_s(method) }.join
   end
 
   def size

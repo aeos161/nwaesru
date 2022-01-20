@@ -4,6 +4,8 @@ require "prime"
 require "psych"
 
 require "primus/document"
+require "primus/document/decoder"
+
 require "primus/document/affine"
 require "primus/document/atbash"
 require "primus/document/alternating_shift"

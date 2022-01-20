@@ -12,7 +12,8 @@ class Primus::Token
     lexeme == token.lexeme && literal == token.literal
   end
 
-  def to_s(*)
+  def to_s(format = nil)
+    return lexeme if format == :rune
     literal.to_s
   end
 

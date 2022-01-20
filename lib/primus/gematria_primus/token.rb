@@ -17,6 +17,11 @@ class Primus::GematriaPrimus::Token
       value == token.value
   end
 
+  def to_s(method = :rune)
+    return rune if method == :rune
+    letter
+  end
+
   def present?
     true unless value.nil?
   end

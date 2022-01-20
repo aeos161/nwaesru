@@ -15,6 +15,11 @@ RSpec.describe Primus::Document::Filter do
         Primus::Token::Character.new(lexeme: "ᛋ"),
       ]))
     end
+
+    it "stores the filtered out characters" do
+      pending
+      fail
+    end
   end
 
   describe "#visit_token" do

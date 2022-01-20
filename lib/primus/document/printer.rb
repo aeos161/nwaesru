@@ -15,6 +15,6 @@ class Primus::Document::Printer
   end
 
   def visit_token(token)
-    @data << token.to_s
+    @data << token.to_s(format)
   end
 end
