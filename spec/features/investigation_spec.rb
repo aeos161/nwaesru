@@ -13,15 +13,46 @@ RSpec.describe "investigation" do
   end
 
   it "can do an affine cipher on page 8" do
-    document = Primus::LiberPrimus.chapter(page_numbers: 8..14)
+    document = Primus::LiberPrimus.page(page_number: 8)
+    puts document.to_s
+    #binding.pry
 
-    filter = Primus::Document::Filter.new(character_to_reject: "ᛉ")
-    translated = document.accept(filter)
-    puts translated.to_s(:rune)
+    #filter = Primus::Document::Filter.new(character_to_reject: "ᛉ")
+    #translated = document.accept(filter)
+    #puts translated.to_s(:rune)
 
-    translated = translated.accept(Primus::Document::Translator.new)
-    puts translated.to_s
+    document = document.accept(Primus::Document::Translator.new)
+    puts document.to_s
+    #binding.pry
 
+    xnor = <<~TEXT
+    ᛉᛗᚢᚳᚦᛒᛡᛠᛉᚣᚩᛗᛝᛚᚢᛏᚩᛝᛋᛞᚩᚫᚱᛏᛄᚦᛋᛖᛋᛒᛠᛈ
+    ᛝᚩᚦᚻᛟᚢᛖᛚᛉᛚᚱᛇᚾᚱᛉᛋᚻᛋᚣᚢᛇᚾᚩᛞᚪᛡᚢᚱᛉᛄᛗᛚ
+    ᛠᛗᛠᛒᚳᚳᚾᛋᚷᛖᛏᛄᛄᚩᛁᛠᛒᛖᛏᛈᛠᚦᚻᛈᚻᛈᚱᚠᛖᚪᛒᚫ
+    ᚠᛗᚠᛄᚳᚠᛚᚦᛋᚢᚫᛗᛟᛇᛒᛚᛝᚾᛗᛟᛏᛒᚩᛡᚻᛈᚾᛞᛋᛠᚣ
+    TEXT
+    puts xnor
+
+    lines = xnor.split("\n")
+    text = []
+    lines.each do |line|
+      tokens = line.split("").map { |tk| Primus::Token.new(lexeme: tk) }
+      text << Primus::Word.new(tokens: tokens)
+      text << Primus::Token::SentenceDelimiter.new
+    end
+    xnor_doc = Primus::Document.new(text: text)
+    result = xnor_doc.accept(Primus::Document::Translator.new)
+    (1..28).each do |letter|
+      (1..28).each do |mg|
+        begin
+          pt = result.accept(Primus::Document::Affine.new(key: letter, magnitude: mg))
+          puts "#{letter}: #{pt}"
+        rescue => e
+          puts e.message
+        end
+      end
+    end
+    binding.pry
 
     #keys = [[5, 14], [9, 4]]
     #keys.each do |data|
@@ -32,7 +63,6 @@ RSpec.describe "investigation" do
       #puts result.to_s
     #end
 
-    binding.pry
   end
 
   it "can do an alternating shift on page 8" do
