@@ -53,8 +53,25 @@ RSpec.describe Primus::GematriaPrimus do
     end
   end
 
+  describe "#sum" do
+    it "sums the value of all letters" do
+      alphabet = Primus::GematriaPrimus.build
+      word = create_word(%w(d i u i n i t y))
+
+      result = alphabet.sum(word: word)
+
+      expect(result).to eq(376)
+    end
+  end
+
   def build_token(rune:, index:, letter:, value:)
     Primus::GematriaPrimus::Token.new(index: index, rune: rune, letter: letter,
                                       value: value)
+  end
+
+  def create_word(text)
+    alphabet = Primus::GematriaPrimus.build
+    tks = Array(text).map { |tk| alphabet.find_by(letter: tk) }
+    Primus::Word.new(tokens: tks)
   end
 end

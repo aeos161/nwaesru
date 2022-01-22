@@ -14,6 +14,10 @@ class Primus::GematriaPrimus
     result.dup || Token.new(rune: rune, letter: rune)
   end
 
+  def sum(word:)
+    word.map(&:value).sum(0)
+  end
+
   def generate_words(sum:, number_of_characters:)
     tokens.
       repeated_permutation(number_of_characters).

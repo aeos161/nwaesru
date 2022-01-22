@@ -104,7 +104,7 @@ RSpec.describe Primus::Parser do
         parser.parse
         result = parser.result
 
-        expect(result.text.first).to eq(
+        expect(result.text).to eq([
           Primus::Word.new(tokens: [
             Primus::Token::Character.new(lexeme: "ᛇ", location: double),
             Primus::Token::Character.new(lexeme: "ᚣ", location: double),
@@ -112,8 +112,9 @@ RSpec.describe Primus::Parser do
             Primus::Token::Character.new(lexeme: "ᚫ", location: double),
             Primus::Token::Character.new(lexeme: "ᚷ", location: double),
             Primus::Token::Character.new(lexeme: "ᛄ", location: double),
-          ])
-        )
+          ]),
+          Primus::Token::WordDelimiter.new(location: double)
+        ])
       end
     end
   end

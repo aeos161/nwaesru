@@ -47,7 +47,7 @@ class Primus::Parser
   end
 
   def handle_end_of_document(word)
-    if word.blank?
+    if word.blank? && !word_boundary?(last_token)
       add_token last_token
     else
       add_word word

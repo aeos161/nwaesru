@@ -9,7 +9,23 @@ class Primus::Document::Builder
   end
 
   def build
-    pages.each { |page| build_page(page) }
+    if Array(pages).one?
+      build_page(pages.first)
+    else
+      build_chapter(pages)
+    end
+  end
+
+  def build_chapter(pages)
+
+    tokens = Array(pages).map do |page|
+      lexer = Primus::Lexer.build(page: page, starting_position: position)
+      lexer.tokenize
+      @position = lexer.position
+      lexer.tokens
+    end
+    parser = Primus::Parser.new(tokens: tokens.flatten, document: result)
+    parser.parse
   end
 
   def build_page(page)
@@ -25,6 +41,7 @@ class Primus::Document::Builder
   def self.for_pages(page_numbers: [])
     page_numbers = Array(page_numbers)
     pages = page_numbers.map do |page_number|
+      puts "PG: #{page_number}"
       Primus::LiberPrimus::Page.open(page_number: page_number)
     end
     new(pages: pages)
