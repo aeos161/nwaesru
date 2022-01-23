@@ -19,22 +19,51 @@ RSpec.describe "section 12 experiments (pg 8 - 14)" do
     puts "CHARACTERS: #{document.character_count}"
     puts "1129: #{document[1129]}"
 
+    alphabet = Primus::GematriaPrimus.build
+    puts "ICex: #{alphabet.expected_index_of_coincidence}"
+    ic_test = document.accept(Primus::Document::Translator.new)
+    ic_test.index_of_coincidence
+    puts "ICc: #{ic_test.index_of_coincidence}"
+
     filtered = document.accept(Primus::Document::Mask.new(mask: "1001"))
     puts "FWORDS: #{filtered.word_count}"
-    puts "FCHARACTERS: #{filtered.character_count}"
-    puts filtered.to_s(:rune)
+    puts "FTOKENS: #{filtered.character_count}"
+    puts filtered.to_s #(:rune)
 
-    puts filtered.accept(Primus::Document::Translator.new)
+    filtered = filtered.accept(Primus::Document::Translator.new)
+    puts "FCHARS: #{filtered.words.flat_map(&:tokens).map(&:letter).join.split("").size}"
+    puts "ICf: #{filtered.index_of_coincidence}"
 
-    actual = <<~TEXT
-ᛉᛁᛉᛗ-ᚢᛉᛗᚳᚦᛈᚩᛒ-ᛡᚾᛏ-ᛠᛉ-ᛈᚱᚣ-ᚩᚳᛠᛗᛝᚷᛉᛚᚢ-ᛝᛁᛏᚩ-ᛄᚠᛝ-ᛋᛚᚾᛞ.ᚩᛗ-ᛇᚫ-ᚱᛞᚹᛏᛄᚦ-ᚣᚦᛋ-ᚫᚣᛖᛋᛉᛟᛒ-ᛠᚱᛇ-ᛈᛝᚢᛈ-ᚩᚦᛉ-ᚪᚻᛟᚱᛝᚢᛖᚱ-ᚣᛚᛉᛚ-ᛡᛚᚱ-ᛈᚹᛇᚾ-ᛠᚪᚱᛉᛝ-ᚣᛋᚻᚢᛚ-ᛋᚣ-ᚷᚾᚢ-ᛇᚫᚾᚾ-ᚩᚫᛖᛞ-ᚪᚩᛄᛡᚢᚪᛉ-ᚱᛉᛡᛟᛄ-ᛗᛁᛇᛚᛠᚻᚦᛗᛠᚣ.ᚷᛒᚳᛈᛉᚳ-ᚾᛟᛟᛋᚷᛗᛈᛖᛏᛚᚾᛄ-ᛄᚳᛝᚩ-ᛁᚹᛚᛠᛒ-ᚠᚪᛖ-ᛏᛝ-ᚾᛈᛠᚩᛏᚦ-ᚻᛝᛉᛈᚻᛈᚳᛈᚱᚢ-ᛚᚠᛖᛟ-ᚷᚪᛒᚠᛁᚫᚠᚢᛟ-ᛗᚠᚣᛝᛄᚳ-ᚻᛏᚠᛚᚫ-ᛖᚦᛋᛚᚩᚢ-ᚫᚩᚪᛗᛟᚢᚹᛇ.ᛒᚾᛋᛚᛝᛄᛟᚾ-ᛗᛚᛒ-ᛟᛏ-ᚾᛞᛒᚩᚾᚦᛡᚻᛟ-ᚱᛈᚾᚠᛈᛞ-ᛋᚩᛁᛠᚣᚾ-ᛇᚣᚹᚫᚷᛄ-ᛝᛗᚪᚹᛈ-ᚪᚢᚾ-ᛈᛡᛗᛖᛞᛟ.ᛁ-ᛉᛡᛗ-ᚠᛈᚩ-ᚦᛉᛞ-ᚩᛞ-ᛋᛈᛉᛡᚷ-ᛟᚻᚠᚦᛉᛄᛟᛋᚦᚣᚦ-ᛏᚻᛋᚣ-ᚻᛠᚷᛚᚫᚱᛏ-ᚢᛋᛟ-ᚦᚠᚠᚣᛟᛡ-ᛇᚳᚣᛒᛚᛝ-ᛠᚱᚻᛞ-ᛄᚣᛏᚫ-ᚻᛞᚳᛋ-ᛉᚠᛞ-ᚦᛗ-ᚳᛇᛝ-ᚫᚾᛡᛠᚹᛁᛡ-ᛒᛗᛝ-ᚷᛈᛁᚳ-ᛠᛚᚷᛉᚣᚣᚱᛄ-ᛉᛁᛄᚢ-ᛖᚣ-ᚪᛝᛈ-ᛡᚫᚳ-ᛖᛠᚹᛒᚦᛟᚠᛗ-ᚫᚱᚠᚩᛏ-ᛝᛉᛞ-ᛗᛖᛡ-ᚩᛈᛋ-ᛇᛞ-ᛇᛟᚫᚾ-ᚷᛗᚣᛁᚫᛁᛄ-ᛈᛄᚩᛡᚷ-ᛈᚳᛄ-ᛚᛖᛡᚻᛚᚷᚱᛇ-ᛟᚣ-ᛠᚣᛗᚹᚾᚹ-ᚠᛁᛄᚢᛗᚫᚾᚳᛗᛠᛁ.ᚩᛇ-ᛒᛚᛞ-ᚾᚹᚠᚾᛒᚱ-ᛋᛟᚦᛡ-ᚪᛡᛏᚷᚷᚹ-ᚪᛋᛡᚦᛋᚦᛋᚠᛗᚷᛞᛠ-ᛝᛈᚩᚪᚣᛝᛈᛋ-ᛟᚾᛇᚪᛖ-ᚻᚢᚷ-ᚩ-ᚢᚦᛏ-ᛒᚷᚣᛝᚠᚣᛁᚻ-ᚹᛡᛠᚱᚫᚹᛡᛞᚪᚦᚳ-ᛉᚢ-ᛈᛏᛋᚢᛖ-ᚷᚦᛡᛚ-ᛖᛋᛠᛝᛉᛈᛉ-ᚾᛟ-ᛞᛟᛒ-ᚾᚹᚢᛁᛇᛚᛞ-ᛁ-ᚦᚣᚷ-ᛟᛈᛡ-ᛖᚪ.ᚠᛋᛉᛞ-ᛖᚷᚦᛠ-ᚾᛋ-ᛞᛟᛗᛖ-ᛗᚾᛉ-ᚹᛒᛠᛈᛟ-ᛗᛉᚫ-ᛄᚩᛞᚻᛡᚷᚠ-ᚣᛗ-ᛁᚷᛉᚻᚹ-ᚾ-ᛋᛗᚷᛠ-ᚣᛚᚱᛄᛗᛉᚣ-ᛇᚱᚢᛟ-ᚣᚦᚢᛟᚩ-ᚱᚢᚹ-ᛁᛒᚳ.ᛠᛏᛞ-ᛚᛖᛋᛄ-ᚳᛟ-ᚷᛞᛡ-ᚢᚹᛝᚻᚫᚢᛈ-ᛏᛈᚩᚣ-ᚾᛇᚦᛟᛏᛇᚳᚠ-ᛒᚪᚾ-ᛗᚦᛝ-ᛟᛠᚢᛁᚪ-ᚾᚻᛝᛉᚩ-ᛇᛁᛡᚠᛟᛒᚦᚠ-ᛋᛒ-ᚠᛞᛇ-ᚩᚦᛏ-7-ᚷ-ᛚᛄᛖᚫ.ᚣᛁᚫᚹᚻ-ᚫᛏ.ᛁᛉ-ᛉᚻᛞᚩᛠ-ᚫᛋᛝᛚᛝ-ᛖᚩᚻᛗᚩᛟᛒᚦ-ᚱᛚᛋ-ᚳᚻ-ᚪᛡᚾᛇᚱᛉᚦ-ᚣᛉᚻ-ᛡᚾᚢ-ᛗᛉᚹ-ᛖᛈᛖ-ᚩᚳᛈᚳᛞᚪᛉᚢᛗᛝᛟ-ᛋᚾᛟᛉ-ᚠᚱᚳᛒᚢᛄᚱᚫᛝ-ᛒᛋᛟᛠᛡᚪᛚ-ᛏᛟᚾᚫᛟᚪ-ᛁ-ᛡᛋᚳᛖ-ᚹᛒ.ᚾᛚᛝ-ᚦᚾᛁᛠ-ᛒᛡᚱᚠᛖᛁᚹ-ᚾᚠᛗᚢᚷᚾ-ᛄᛚᚳᚱ.ᛝᚣᛉᛋᚪᛟᚱᛉᚳ-ᛒᚫ-ᚠᚢᚪᛖᚪᚹ-ᛚᚾ-ᛄᛉ-ᚻᚦᛉ-ᛗᛚᚾᛖ-ᛏᛝᚦᚪᚩᚢᛗᚣ-ᚠᛝᚪ-ᚻᛡᛇᛡ-ᛚᛏᛁ-ᛇᛁ-ᚳᚢᚢᛖ-ᚳᛒ-ᚫᛇᚠᚦᚳᛚᚩᛉᛚᚩᛚ-ᚠᚳᛠ-ᚪᚠᛟᚫᚠ-ᚾᚳ-ᚢᛒᚱ-ᚾᛇᚩᛉ-ᛁᚳᛟ-ᛞᛉᛠᛝᚠᚱᛡᚳᛇ-ᛉᛟᛈᛗᛞᚳᚦᚹᛈ.ᛡᚻ-ᚾᚦᛇᛏᚹᛖᚢ-ᚫᛇᚦ-ᛝᛟᛏᚳᚷᛒᛠ-ᚪᚳᛒᚪᚩᚹᚫ-ᛉᚢ-ᚫᛖᛒ.ᛇᛏᚢᚩ-ᛟᛞᚠᚢᛋ.ᛡᛄᛗᚦᛠᛏᚪ-ᛒᚹᚣ-ᛏᛄᚻᚦᚫ-ᛚᚪᚱᚫᛟᚦᚩᚾᛟᛁᛖ-ᛡᚠᚷ-ᛋᚠᚦᛏ-ᛠᛡᛠᛁᚢᛡᛇᛝᛞ-ᛉᛏᚠᛒᚻᚢᛋᚳᚱᛇᚹ-ᛇᛈᛋᚢᛚᚪᛈᚢᚳᛖᚠᛞᛉ-ᚦᛠᛇᛝᚻ-ᚣᚱᛗ-ᛟᚾᛚ-ᛈᚹᛞᚱᛄ-ᚪᛝᛞ-ᛁᚦᛏᚷᚢᚹᚳᚻᛖᚩᚪᛖ-ᛉᚪᚢ-ᚳᛁ-ᚱᚳᚹ-ᛠᛇᛏ-ᚦᚳᚻᚢ.ᛡᚹᛟ-ᚷᛇᛈ-ᚢᛈᚦ-ᚷᚣᚢᚪᛗ-ᚹᚳᛖᛝᚱᛠᛞᛏᚻ-ᛄᛁᛈᚻᚠᛉᛝᛈᚾ-ᛒᚳᚪᚷᛋᛟ-ᛉᛠᛈᚪᚩᚷᚠᚳᛡᛄ-ᛠᚢᚠᛋᛚ-ᚣᛚ-ᚢᛒ-ᛉ.ᚱᚣᚾ-ᛁᛠ-ᛚᚹᛋ-ᚠᚦᚪᛠ-ᛈᚷ.ᛏᚷᛡᛟᛠᛡᛒ-ᛉᛄᛒ-ᛖᚾ-ᛞᚠᛠᛗ-ᚦᚪᛗᚠᚪ.ᚻᛡ-ᛗᛁᛏᛟ-ᚻᚣᚹᛏ-ᚠᛒᛁ-ᚫᛖ-ᛝᛒ-ᛚᛏᛠᛉ-ᛟᛋᚾᛉ-ᚹᛏᛠᛏ-ᛖᚢᛡᛖ-ᛉᚾᛇ-ᛟᚳᚾᚠᚩᚾᚠ-ᚳᚪ-ᚷᚱᚩ-ᛠᚦᚹᚣ-ᛒᛁ-ᛝᛇᛟ-ᚣ-ᚷᛗᚩ-ᛁᚷᛄ-ᚩᛇ-ᚢᛁᛉᛝᚪᚱᛉ-ᛏᛄᛞᛈ-ᚾᛝᚷᛏᚢ-ᛚᚷᚳᛏ-ᚢᛒᛇ-ᛈᚩᚣᚢᛏ-ᛡᚫᛏᚹᛏᛇ-ᛡᚫᚫ-ᚦᛏᛝ.ᛠᚳᛁᛉᚻᚦᚣ-ᚻᛚᚾᛋᚱᛡᚫᛚᚫ-ᛖᚷᚻ-ᛞᚾᚻᛠ-ᚠᚪᚹᛖᚠᛄ-ᛒᛇᚱᚹᛏᛉᚾᛠᛖᛁ-ᚠᚾᛡᚳ.ᛋᛟᚹ-ᛈᚷᛝᛟ-ᚷᚦᚠᛄᚷᚳ-ᛒᛁᛗᛚᛇᛠᚹ-ᚾᚫᚹᚷ.ᚩᚻᚪᛏᚾᛄ-ᚣᛝᛏᛡᛝ-ᚢ-ᚩᚠᚣ-ᛗᚢᛒ-ᛏᚠᛈ.ᚱᚩ-ᛉᚩᛝᛒ-ᛖᛏᚩᛉ-ᚣᛗᚠᛉ-ᛖᚩᚫᚷᚣᛚ-ᚩᛇ-ᚠᛋᚫᛇᛗ-ᛡᛟᚹᚾᚩᚢᚹᛖᛁ-ᚾᚦᚫᛠᚪ-ᛠᛚ-ᚹ-ᛡᚩ-ᚢᚦᛗ-ᛝᛚᚪᚠᛝ-ᛚᚠᛚᚳᛒᚢᛝᛉ-ᚣᛡᚪᚷ-ᚹᛟᚪᚻᚹᚢ-ᛖᛠᚷ-ᛁᚪᛏᛄᛗ-ᛏᛖᛁ-ᚣᛡ-ᚦᚾᚠᚦ-ᚩᛈᚻᚪ-ᚻᛋᛠ-ᛡᛉᚪᚫ-ᚠᚣᛞᛠᛇᚠᚫ-ᛏᛗ-ᚳᛡᚷ-ᚱᚢᛞ-ᛄ-ᛋᛡᛇᚩ-ᛚᛟ-ᚦᚱᚫᛒᛚᚦ-ᛖᚪᚦᛗᛚ-ᚦᛉᚪᚱ-ᛟᛖᛒᛄᚱᛄᛖᛁᛈ-ᚪᛖᛠᚠᛄᚢ-ᛞᚹᚦᚣ-ᛉᚷᚩᚳᛡ-ᛇᛗᛞᚳᛏ-ᚻᛚᚦᛝᛖᛗᚱ-ᛒᚷᛞᛉᛗᛒᛉᚳᛝᚦᚣᛞᚫᛠ-ᛋᛏᛗᛏᚻᚹ-ᛇᚳᚪᛞ-ᛠᚢᛒᛉ-ᛡᛁᛡᛚ-ᚷᛋᚦᛞ-ᚠᚢᚩᛠ-ᛚᛋᚣᛏ-ᛋᚪᛞᚫᚹᛄᛞ-ᛋᛈᛋᛄ-ᚪᛖᛁᛇᛒᛟ-ᛏᛄ-ᚠᚩᛚᛞ-ᚾᚷᚳ-ᛚᚷᛗ-ᛠᚦᚢ-ᛟᚻᚾᛟᚣᛡ.ᛇᚻᚣᚪᛈ-ᚾᛋ.ᛞᚫᛠᚳᛉᛄ-ᚦᚹᛋᚱᚦᚫᚾ-ᛡᛚᚣᚫᛋᛖ-ᛟᚣᛝᛡ-ᚦᚣᚷᛇᚱ-ᛋᛠᛏ-ᛡᚳᛉ-ᛠᚷ-ᚳᛒᛋ-ᚹᚾᚻᛖᛝᛋ-ᚩᛡᛗᛉᛝ-ᛉᚦ-ᛠᛞᚳᛒᚷᛉᚹᛝᚢ-ᛉᛞᛈ.ᛉᛡᛈᛟ-ᚾᛡᚠᛡᚢᛋ-ᛉᚪᛖᚻᚱᚣᛠᛇ-ᛒᛟ-ᚪᛝᛡ-ᚳᚱᚳᛈᚩᛏ-ᚻᚣᚫᛁᛋᚩᚦᛚ-ᛟᛚ-ᛋᚪᚢᚪᛈᚻ.
-    TEXT
+    slices = (1..100).map do |period|
+      chars = filtered.words.flat_map(&:tokens)
+      text = chars.map(&:letter).join.split("")
+      if text.size % period != 0
+        padding = (text.size / period.to_f).ceil
+        1.upto((padding * period) - text.size) do
+          text << "."
+        end
+      end
+      text.each_slice(period).to_a.transpose.map(&:join)
+    rescue => e
+      puts e.inspect
+      puts "didn't like #{period}"
+    end
 
-    expect(document.to_s(:rune)).to eq(actual.rstrip)
+    slices.each.with_index do |slice, period|
+      if !slice.nil?
+        puts "PERIOD: #{period + 1}"
+        ic = slice.map { |text| Primus.index_of_coincidence(text) }.sum / (period + 1).to_f
+        puts "IC: #{ic}"
+      end
+    end
+
+    #binding.pry
+
   end
 
   it "can xnor the text then brute force affine" do
     document = Primus::LiberPrimus.chapter(page_numbers: 8..14)
+    #binding.pry
 
     filter = Primus::Document::Mask.new(mask: "1001")
     document = document.accept(filter)
@@ -43,14 +72,17 @@ RSpec.describe "section 12 experiments (pg 8 - 14)" do
     document = document.accept(Primus::Document::Translator.new)
     puts document.to_s
     #puts document.to_s.split(" ").join("-")
-    binding.pry
+    #binding.pry
 
     if false
       (1..28).each do |letter|
         (1..28).each do |mg|
           begin
             pt = document.accept(Primus::Document::Affine.new(key: letter, magnitude: mg))
-            #puts "#{letter}: #{pt}"
+            puts "-----"
+            puts "affine: [#{letter}, #{mg}]"
+            puts "#{pt}"
+            puts "-----"
           rescue => e
             puts e.message
           end
@@ -58,26 +90,28 @@ RSpec.describe "section 12 experiments (pg 8 - 14)" do
       end
     end
 
-    keys = [
-      "diuinity", "mournful", "struggle", "discouer", "yourself", "rasputin",
-      "circumference", "firfumferenfe", "forallissacred", "aethereal",
-      %w(ae th e r ea l), %w(ae t h e r e a l), %w(ae th e r e a l),
-      %w(ae t h e r ea l), %w(a e th e r e a l), %w(a e th e r ea l),
-      "buffers", "uoid", "carnal", "mobius", "analog", "obscura", "cameraobscura",
-      "form", "cabal", "command", "program", "unreasonable", "grigorirasputin",
-      "consumption", %w(c o n s u m p t io n), "preseruation", %w(p r e s e r u a t io n),
-      "adherence", "program", "programreality", "discouer", "enlightened",
-      "youcantseetheforestwhenyoureloocingatthetrees",
-      %w(y o u c a n t s e e th e f o r e s t w h e n y o u r e l o o c ng a t th e t r e e s)
-    ]
-    keys.each do |key|
-      vigenere = Primus::Document::Vigenere.new(key: key)
-      pt = document.accept(vigenere)
+    if false
+      keys = [
+        "diuinity", "mournful", "struggle", "discouer", "yourself", "rasputin",
+        "circumference", "firfumferenfe", "forallissacred", "aethereal",
+        %w(ae th e r ea l), %w(ae t h e r e a l), %w(ae th e r e a l),
+        %w(ae t h e r ea l), %w(a e th e r e a l), %w(a e th e r ea l),
+        "buffers", "uoid", "carnal", "mobius", "analog", "obscura", "cameraobscura",
+        "form", "cabal", "command", "program", "unreasonable", "grigorirasputin",
+        "consumption", %w(c o n s u m p t io n), "preseruation", %w(p r e s e r u a t io n),
+        "adherence", "program", "programreality", "discouer", "enlightened",
+        "youcantseetheforestwhenyoureloocingatthetrees",
+        %w(y o u c a n t s e e th e f o r e s t w h e n y o u r e l o o c ng a t th e t r e e s)
+      ]
+      keys.each do |key|
+        vigenere = Primus::Document::Vigenere.new(key: key)
+        pt = document.accept(vigenere)
 
-      puts "-----"
-      puts "KEY: #{key}"
-      puts pt
-      puts "-----"
+        puts "-----"
+        puts "KEY: #{key}"
+        puts pt
+        puts "-----"
+      end
     end
   end
 
@@ -115,7 +149,7 @@ RSpec.describe "section 12 experiments (pg 8 - 14)" do
     one_letter_words = new_doc2.words.select { |w| w.size == 1 }
     puts one_letter_words.map { |w| [w.to_s, w.first.location.position].join("|") }
 
-    binding.pry
+    #binding.pry
     keys = %w(diuinity mournful struggle discouer yourself rasputin)
 
     keys.each do |key|

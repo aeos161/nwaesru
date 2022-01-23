@@ -7,9 +7,9 @@ RSpec.describe Primus::GematriaPrimus do
     end
   end
 
-  describe ".dictionary" do
+  describe ".alphabet" do
     it "contains all 29 runes" do
-      result = Primus::GematriaPrimus.dictionary
+      result = Primus::GematriaPrimus.alphabet
 
       expect(result.size).to eq(29)
     end

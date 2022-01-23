@@ -14,6 +14,19 @@ class Primus::GematriaPrimus
     result.dup || Token.new(rune: rune, letter: rune)
   end
 
+  def unique_tokens
+    @unique_tokebns ||= tokens.map(&:letter).join.split("").uniq.sort
+  end
+
+  def expected_index_of_coincidence
+    relative_frequencies = Primus::relative_word_frequencies_in_english
+    gp_rel_freq = relative_frequencies.select do |freq|
+      unique_tokens.include? freq[0]
+    end
+    c = unique_tokens.size.to_f
+    (gp_rel_freq.map { |freq| freq[1] ** 2 }.sum) / (1/c)
+  end
+
   def sum(word:)
     word.map(&:value).sum(0)
   end
@@ -27,13 +40,13 @@ class Primus::GematriaPrimus
   end
 
   def self.build
-    tokens = dictionary.map.with_index do |data, index|
+    tokens = alphabet.map.with_index do |data, index|
       Token.new(data.merge(index: index))
     end
     new(tokens: tokens)
   end
 
-  def self.dictionary
+  def self.alphabet
     [
       { rune: "ᚠ", letter: "f", value: 2 },
       { rune: "ᚢ", letter: "u", value: 3 },

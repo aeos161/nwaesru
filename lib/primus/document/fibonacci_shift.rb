@@ -27,7 +27,7 @@ class Primus::FibonacciShift
     shifted_index = fib_shift(character: character) #, n: fibonacci.next)
     translator.find_by(index: shifted_index)
   rescue => e
-    binding.pry
+    #binding.pry
     character
   end
 

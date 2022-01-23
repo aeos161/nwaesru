@@ -41,6 +41,11 @@ class Primus::Document
     words.map(&:size).sum
   end
 
+  def index_of_coincidence
+    chars = words.flat_map(&:tokens).map(&:letter).join
+    Primus.index_of_coincidence(chars)
+  end
+
   def words
     text.select { |w| w.is_a? Primus::Word }
   end
