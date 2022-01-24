@@ -17,7 +17,6 @@ class Primus::Document::Builder
   end
 
   def build_chapter(pages)
-
     tokens = Array(pages).map do |page|
       lexer = Primus::Lexer.build(page: page, starting_position: position)
       lexer.tokenize
@@ -41,7 +40,6 @@ class Primus::Document::Builder
   def self.for_pages(page_numbers: [])
     page_numbers = Array(page_numbers)
     pages = page_numbers.map do |page_number|
-      puts "PG: #{page_number}"
       Primus::LiberPrimus::Page.open(page_number: page_number)
     end
     new(pages: pages)

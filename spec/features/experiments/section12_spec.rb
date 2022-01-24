@@ -31,7 +31,7 @@ RSpec.describe "section 12 experiments (pg 8 - 14)" do
     puts filtered.to_s #(:rune)
 
     filtered = filtered.accept(Primus::Document::Translator.new)
-    puts "FCHARS: #{filtered.words.flat_map(&:tokens).map(&:letter).join.split("").size}"
+    puts "FCHARS: #{filtered.words.flat_map(&:tokens).map(&:letter).size}"
     puts "ICf: #{filtered.index_of_coincidence}"
 
     slices = (1..100).map do |period|
@@ -52,7 +52,7 @@ RSpec.describe "section 12 experiments (pg 8 - 14)" do
     slices.each.with_index do |slice, period|
       if !slice.nil?
         puts "PERIOD: #{period + 1}"
-        ic = slice.map { |text| Primus.index_of_coincidence(text) }.sum / (period + 1).to_f
+        ic = slice.map { |text| Primus.index_of_coincidence(text: text) }.sum / (period + 1).to_f
         puts "IC: #{ic}"
       end
     end

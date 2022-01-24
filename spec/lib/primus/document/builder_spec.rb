@@ -1,11 +1,11 @@
 RSpec.describe Primus::Document::Builder do
   describe "#build_page" do
     it "it tokenizes the page" do
-      lexer = Primus::Lexer.new
-      allow(lexer).to receive(:tokenize)
+      page = Primus::LiberPrimus::Page.open(page_number: 8)
+      lexer = Primus::Lexer.build(page: page)
+      allow(lexer).to receive(:tokenize).and_call_original
       allow(Primus::Lexer).to receive(:build).and_return(lexer)
       builder = Primus::Document::Builder.new
-      page = Primus::LiberPrimus::Page.new
 
       builder.build_page(page)
 

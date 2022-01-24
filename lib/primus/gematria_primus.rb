@@ -15,7 +15,7 @@ class Primus::GematriaPrimus
   end
 
   def unique_tokens
-    @unique_tokebns ||= tokens.map(&:letter).join.split("").uniq.sort
+    @unique_tokens ||= tokens.map(&:letter).uniq.sort
   end
 
   def expected_index_of_coincidence

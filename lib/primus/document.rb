@@ -43,7 +43,7 @@ class Primus::Document
 
   def index_of_coincidence
     chars = words.flat_map(&:tokens).map(&:letter).join
-    Primus.index_of_coincidence(chars)
+    Primus.index_of_coincidence(text: chars)
   end
 
   def words
