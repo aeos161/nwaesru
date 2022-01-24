@@ -1,21 +1,11 @@
 module Primus
-  def self.relative_word_frequencies_in_english
-    frequencies =
-      [0.084966, 0.020720, 0.045388, 0.033844, 0.111607, 0.018121, 0.024705,
-      0.030034, 0.075448, 0.001965, 0.011016, 0.054893, 0.030129, 0.066544,
-      0.071635, 0.031671, 0.001962, 0.075809, 0.057351, 0.069509, 0.036308,
-      0.010074, 0.012899, 0.002902, 0.017779, 0.002722]
-    ("a".."z").zip(frequencies)
-  end
-
   def self.index_of_coincidence(text:, alphabet: nil)
     alphabet ||= Primus::GematriaPrimus::build
-    chars = text.split("").
-            select { |char| alphabet.unique_tokens.include? char }.
-            group_by { |char| char }.transform_values(&:size)
+    chars = text.select { |char| alphabet.include? char }.
+            group_by(&:letter).transform_values(&:size)
     numerator = chars.map { |letter, count| count * (count - 1) }.sum
     total_chars = chars.map { |letter, count| count }.sum
-    c = alphabet.unique_tokens.size.to_f
+    c = alphabet.size.to_f
     denominator = (total_chars * (total_chars - 1)) / c
     numerator / denominator
   end

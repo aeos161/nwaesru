@@ -7,11 +7,12 @@ RSpec.describe Primus::GematriaPrimus do
     end
   end
 
-  describe ".alphabet" do
-    it "contains all 29 runes" do
-      result = Primus::GematriaPrimus.alphabet
+  describe "#size" do
+    it "the number of tokens" do
+      tk = build_token(index: 1, rune: "ᚢ", letter: "u", value: 3)
+      result = Primus::GematriaPrimus.new(tokens: [tk])
 
-      expect(result.size).to eq(29)
+      expect(result.size).to eq(1)
     end
   end
 
@@ -61,6 +62,19 @@ RSpec.describe Primus::GematriaPrimus do
       result = alphabet.sum(word: word)
 
       expect(result).to eq(376)
+    end
+  end
+
+  describe "#expected_index_of_coincidence" do
+    it "calculates the expected index of coincidence" do
+      alphabet = Primus::GematriaPrimus.build
+      frequencies = alphabet.map { |tk| tk.frequency ** 2 }.sum
+      number_of_letters = alphabet.size
+      expected_index_of_coincidence = frequencies / (1 / number_of_letters.to_f)
+
+      result = alphabet.expected_index_of_coincidence
+
+      expect(result).to eq(expected_index_of_coincidence)
     end
   end
 

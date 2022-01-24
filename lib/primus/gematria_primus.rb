@@ -1,6 +1,12 @@
 class Primus::GematriaPrimus
+  include Enumerable
+
   def initialize(tokens:)
     @tokens = tokens
+  end
+
+  def each(&block)
+    tokens.each(&block)
   end
 
   def size
@@ -14,17 +20,9 @@ class Primus::GematriaPrimus
     result.dup || Token.new(rune: rune, letter: rune)
   end
 
-  def unique_tokens
-    @unique_tokens ||= tokens.map(&:letter).uniq.sort
-  end
-
   def expected_index_of_coincidence
-    relative_frequencies = Primus::relative_word_frequencies_in_english
-    gp_rel_freq = relative_frequencies.select do |freq|
-      unique_tokens.include? freq[0]
-    end
-    c = unique_tokens.size.to_f
-    (gp_rel_freq.map { |freq| freq[1] ** 2 }.sum) / (1/c)
+    frequencies = tokens.map { |tk| tk.frequency ** 2 }.sum
+    frequencies / (1 / size.to_f)
   end
 
   def sum(word:)
@@ -40,44 +38,13 @@ class Primus::GematriaPrimus
   end
 
   def self.build
+    path = "data/gematria_primus.yml"
+    alphabet = Psych.safe_load(File.read(path))["tokens"]
     tokens = alphabet.map.with_index do |data, index|
-      Token.new(data.merge(index: index))
+      params = data.transform_keys(&:to_sym).merge(index: index)
+      Token.new(params)
     end
     new(tokens: tokens)
-  end
-
-  def self.alphabet
-    [
-      { rune: "ᚠ", letter: "f", value: 2 },
-      { rune: "ᚢ", letter: "u", value: 3 },
-      { rune: "ᚦ", letter: "th", value: 5 },
-      { rune: "ᚩ", letter: "o", value: 7 },
-      { rune: "ᚱ", letter: "r", value: 11 },
-      { rune: "ᚳ", letter: "c", value: 13 },
-      { rune: "ᚷ", letter: "g", value: 17 },
-      { rune: "ᚹ", letter: "w", value: 19 },
-      { rune: "ᚻ", letter: "h", value: 23 },
-      { rune: "ᚾ", letter: "n", value: 29 },
-      { rune: "ᛁ", letter: "i", value: 31 },
-      { rune: "ᛄ", letter: "j", value: 37 },
-      { rune: "ᛇ", letter: "eo", value: 41 },
-      { rune: "ᛈ", letter: "p", value: 43 },
-      { rune: "ᛉ", letter: "x", value: 47 },
-      { rune: "ᛋ", letter: "s", value: 53 },
-      { rune: "ᛏ", letter: "t", value: 59 },
-      { rune: "ᛒ", letter: "b", value: 61 },
-      { rune: "ᛖ", letter: "e", value: 67 },
-      { rune: "ᛗ", letter: "m", value: 71 },
-      { rune: "ᛚ", letter: "l", value: 73 },
-      { rune: "ᛝ", letter: "ng", value: 79 },
-      { rune: "ᛟ", letter: "oe", value: 83 },
-      { rune: "ᛞ", letter: "d", value: 89 },
-      { rune: "ᚪ", letter: "a", value: 97 },
-      { rune: "ᚫ", letter: "ae", value: 101 },
-      { rune: "ᚣ", letter: "y", value: 103 },
-      { rune: "ᛡ", letter: "io", value: 107 },
-      { rune: "ᛠ", letter: "ea", value: 109 },
-    ]
   end
 
   protected

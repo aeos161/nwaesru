@@ -1,0 +1,147 @@
+---
+  tokens:
+    -
+        letter: f
+        rune: ᚠ
+        value: 2
+        frequency: 0.02400
+    -
+        letter: u
+        rune: ᚢ
+        value: 3
+        frequency: 0.02730
+    -
+        letter: th
+        rune: ᚦ
+        value: 5
+        frequency: 0.03560
+    -
+        letter: o
+        rune: ᚩ
+        value: 7
+        frequency: 0.07640
+    -
+        letter: r
+        rune: ᚱ
+        value: 11
+        frequency: 0.06280
+    -
+        letter: c
+        rune: ᚳ
+        value: 13
+        frequency: 0.03880
+    -
+        letter: g
+        rune: ᚷ
+        value: 17
+        frequency: 0.01870
+    -
+        letter: w
+        rune: ᚹ
+        value: 19
+        frequency: 0.01680
+    -
+        letter: h
+        rune: ᚻ
+        value: 23
+        frequency: 0.05050
+    -
+        letter: n
+        rune: ᚾ
+        value: 29
+        frequency: 0.07230
+    -
+        letter: i
+        rune: ᛁ
+        value: 31
+        frequency: 0.07570
+    -
+        letter: j
+        rune: ᛄ
+        value: 37
+        frequency: 0.00160
+    -
+        letter: eo
+        rune: ᛇ
+        value: 41
+        frequency: 0.00073
+    -
+        letter: p
+        rune: ᛈ
+        value: 43
+        frequency: 0.02140
+    -
+        letter: x
+        rune: ᛉ
+        value: 47
+        frequency: 0.00230
+    -
+        letter: s
+        rune: ᛋ
+        value: 53
+        frequency: 0.06600
+    -
+        letter: t
+        rune: ᛏ
+        value: 59
+        frequency: 0.09280
+    -
+        letter: b
+        rune: ᛒ
+        value: 61
+        frequency: 0.01480
+    -
+        letter: e
+        rune: ᛖ
+        value: 67
+        frequency: 0.12490
+    -
+        letter: m
+        rune: ᛗ
+        value: 71
+        frequency: 0.02510
+    -
+        letter: l
+        rune: ᛚ
+        value: 73
+        frequency: 0.04070
+    -
+        letter: ng
+        rune: ᛝ
+        value: 79
+        frequency: 0.02200
+    -
+        letter: oe
+        rune: ᛟ
+        value: 83
+        frequency: 0.00039
+    -
+        letter: d
+        rune: ᛞ
+        value: 89
+        frequency: 0.03820
+    -
+        letter: a
+        rune: ᚪ
+        value: 97
+        frequency: 0.08040
+    -
+        letter: ae
+        rune: ᚫ
+        value: 101
+        frequency: 0.00012
+    -
+        letter: y
+        rune: ᚣ
+        value: 103
+        frequency: 0.01660
+    -
+        letter: io
+        rune: ᛡ
+        value: 107
+        frequency: 0.00830
+    -
+        letter: ea
+        rune: ᛠ
+        value: 109
+        frequency: 0.00690

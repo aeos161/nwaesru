@@ -25,25 +25,30 @@ RSpec.describe "section 12 experiments (pg 8 - 14)" do
     ic_test.index_of_coincidence
     puts "ICc: #{ic_test.index_of_coincidence}"
 
-    filtered = document.accept(Primus::Document::Mask.new(mask: "1001"))
+    filtered = document.accept(
+      Primus::Document::Filter.new(character_to_reject: "ᛉ")
+    )
     puts "FWORDS: #{filtered.word_count}"
     puts "FTOKENS: #{filtered.character_count}"
-    puts filtered.to_s #(:rune)
+
+    filtered = filtered.accept(Primus::Document::Mask.new(mask: "1001"))
+    puts "FWORDS: #{filtered.word_count}"
+    puts "FTOKENS: #{filtered.character_count}"
+    #puts filtered.to_s #(:rune)
 
     filtered = filtered.accept(Primus::Document::Translator.new)
     puts "FCHARS: #{filtered.words.flat_map(&:tokens).map(&:letter).size}"
     puts "ICf: #{filtered.index_of_coincidence}"
 
     slices = (1..100).map do |period|
-      chars = filtered.words.flat_map(&:tokens)
-      text = chars.map(&:letter).join.split("")
+      text = filtered.words.flat_map(&:tokens)
       if text.size % period != 0
         padding = (text.size / period.to_f).ceil
         1.upto((padding * period) - text.size) do
-          text << "."
+          text << Primus::GematriaPrimus::Token.new
         end
       end
-      text.each_slice(period).to_a.transpose.map(&:join)
+      text.each_slice(period).to_a.transpose
     rescue => e
       puts e.inspect
       puts "didn't like #{period}"
@@ -57,7 +62,7 @@ RSpec.describe "section 12 experiments (pg 8 - 14)" do
       end
     end
 
-    #binding.pry
+    binding.pry
 
   end
 

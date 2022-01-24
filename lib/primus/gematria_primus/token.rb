@@ -1,13 +1,15 @@
 class Primus::GematriaPrimus::Token
-  attr_reader :index, :rune, :letter, :value
+  attr_reader :index, :rune, :letter, :value, :frequency
 
   attr_accessor :location
 
-  def initialize(index: nil, rune:, letter:, value: nil)
+  def initialize(index: nil, rune: nil, letter: nil, value: nil,
+                 frequency: nil)
     @index = index
     @rune = rune
     @letter = letter
     @value = value
+    @frequency = frequency
   end
 
   def ==(token)
