@@ -6,7 +6,11 @@ class Primus::Document::Mask
   def visit_word(word)
     filter = Proc.new { |tk| next_bit == 0 }
     tokens = word.reject(&filter)
-    Primus::Word.new(tokens: tokens)
+    if tokens.empty?
+      Primus::Token::WordDelimiter.new
+    else
+      Primus::Word.new(tokens: tokens)
+    end
   end
 
   def visit_token(token)

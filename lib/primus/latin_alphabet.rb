@@ -1,10 +1,12 @@
 class Primus::LatinAlphabet
+  include Enumerable
+
   def initialize(tokens:)
     @tokens = tokens
   end
 
-  def unique_tokens
-    @unique_tokebns ||= tokens.map(&:letter).join.split("").uniq.sort
+  def each(&block)
+    tokens.each(&block)
   end
 
   def expected_index_of_coincidence

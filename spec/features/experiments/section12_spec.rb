@@ -1,5 +1,6 @@
 RSpec.describe "section 12 experiments (pg 8 - 14)" do
   it "page level information" do
+    binding.pry
     (8..14).each do |n|
       document = Primus::LiberPrimus.page(page_number: n)
       puts "PAGE: #{n}"
@@ -34,11 +35,12 @@ RSpec.describe "section 12 experiments (pg 8 - 14)" do
     filtered = filtered.accept(Primus::Document::Mask.new(mask: "1001"))
     puts "FWORDS: #{filtered.word_count}"
     puts "FTOKENS: #{filtered.character_count}"
-    #puts filtered.to_s #(:rune)
+    puts filtered.to_s #(:rune)
 
     filtered = filtered.accept(Primus::Document::Translator.new)
     puts "FCHARS: #{filtered.words.flat_map(&:tokens).map(&:letter).size}"
-    puts "ICf: #{filtered.index_of_coincidence}"
+    puts "ICf1: #{filtered.index_of_coincidence}"
+    binding.pry
 
     slices = (1..100).map do |period|
       text = filtered.words.flat_map(&:tokens)

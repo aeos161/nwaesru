@@ -9,6 +9,18 @@ module Primus
     denominator = (total_chars * (total_chars - 1)) / c
     numerator / denominator
   end
+
+  def self.to_word(text:, alphabet: nil)
+    alphabet ||= Primus::GematriaPrimus::build
+    # TODO: take bigrams into account
+    tokens = text.split("").map { |tk| alphabet.find_by(letter: tk) }
+    Primus::Word.new(tokens: tokens, alphabet: alphabet)
+  end
+
+  def self.parse(text:, alphabet: nil)
+    alphabet ||= Primus::GematriaPrimus::build
+    text.split(" ").map { |word| to_word(text: word) }
+  end
 end
 
 require "prime"

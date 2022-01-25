@@ -10,7 +10,12 @@ class Primus::Document::Filter
     filter = Proc.new { |tk| tk.lexeme == character_to_reject }
     @filtered += word.select(&filter).flatten.compact
     tokens = word.reject(&filter)
-    Primus::Word.new(tokens: tokens)
+
+    if tokens.empty?
+      Primus::Token::WordDelimiter.new
+    else
+      Primus::Word.new(tokens: tokens)
+    end
   end
 
   def visit_token(token)
