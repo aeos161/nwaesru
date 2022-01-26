@@ -12,4 +12,30 @@ RSpec.describe Primus do
       expect(result).to eq(index_of_coincidence)
     end
   end
+
+  describe "#to_word" do
+    it "standardizes the word" do
+      text = "zkia"
+
+      result = Primus.to_word(text: text)
+
+      expect(result.to_s(:letter)).to eq("scio")
+    end
+
+    it "properly tokenizes the word" do
+      alphabet = Primus::GematriaPrimus.build
+      text = "aethereal"
+
+      result = Primus.to_word(text: text)
+
+      expect(result.tokens).to match_array([
+        alphabet.find_by(letter: "ae"),
+        alphabet.find_by(letter: "th"),
+        alphabet.find_by(letter: "e"),
+        alphabet.find_by(letter: "r"),
+        alphabet.find_by(letter: "ea"),
+        alphabet.find_by(letter: "l"),
+      ])
+    end
+  end
 end

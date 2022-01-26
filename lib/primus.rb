@@ -7,20 +7,37 @@ module Primus
     total_chars = chars.map { |letter, count| count }.sum
     c = alphabet.size.to_f
     denominator = (total_chars * (total_chars - 1)) / c
-    binding.pry
     numerator / denominator
   end
 
   def self.to_word(text:, alphabet: nil)
-    alphabet ||= Primus::GematriaPrimus::build
-    # TODO: take bigrams into account
-    tokens = text.split("").map { |tk| alphabet.find_by(letter: tk) }
-    Primus::Word.new(tokens: tokens, alphabet: alphabet)
+    Primus::Word.new(tokens: lex(text: text))
   end
 
   def self.parse(text:, alphabet: nil)
     alphabet ||= Primus::GematriaPrimus::build
     text.split(" ").map { |word| to_word(text: word) }
+  end
+
+  def self.lex(text:)
+    alphabet ||= Primus::GematriaPrimus::build
+    standardized_text = text.gsub("ing", "ng").gsub("ia", "io").gsub("z", "s").
+                        gsub("k", "c")
+    p = 0
+    tokens = []
+    until p > standardized_text.size - 1 do
+      tk = standardized_text[p..(p + 1)]
+
+      if tk.match?(/th|eo|ng|ing|oe|ae|io|ia|ea/)
+        tokens << alphabet.find_by(letter: tk)
+        p += 2
+      else
+        tokens << alphabet.find_by(letter: tk[0])
+        p += 1
+      end
+    end
+
+    tokens
   end
 end
 
