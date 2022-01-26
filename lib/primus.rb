@@ -7,6 +7,7 @@ module Primus
     total_chars = chars.map { |letter, count| count }.sum
     c = alphabet.size.to_f
     denominator = (total_chars * (total_chars - 1)) / c
+    binding.pry
     numerator / denominator
   end
 

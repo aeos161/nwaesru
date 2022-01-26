@@ -1,5 +1,5 @@
 RSpec.describe Primus::GematriaPrimus do
-  describe ".builder" do
+  describe ".build" do
     it "sets the 29 translations" do
       result = Primus::GematriaPrimus.build
 
@@ -10,7 +10,7 @@ RSpec.describe Primus::GematriaPrimus do
   describe "#size" do
     it "the number of tokens" do
       tk = build_token(index: 1, rune: "ᚢ", letter: "u", value: 3)
-      result = Primus::GematriaPrimus.new(tokens: [tk])
+      result = Primus::GematriaPrimus.build(tokens: [tk])
 
       expect(result.size).to eq(1)
     end
@@ -21,7 +21,7 @@ RSpec.describe Primus::GematriaPrimus do
       it "returns the token for the rune" do
         tk1 = build_token(index: 0, rune: "ᚠ", letter: "f", value: 2)
         tk2 = build_token(index: 1, rune: "ᚢ", letter: "u", value: 3)
-        translator = Primus::GematriaPrimus.new(tokens: [tk1, tk2])
+        translator = Primus::GematriaPrimus.build(tokens: [tk1, tk2])
 
         result = translator.find_by(rune: "ᚢ")
 
@@ -33,7 +33,7 @@ RSpec.describe Primus::GematriaPrimus do
       it "returns the token for the letter" do
         tk1 = build_token(index: 0, rune: "ᚠ", letter: "f", value: 2)
         tk2 = build_token(index: 1, rune: "ᚢ", letter: "u", value: 3)
-        translator = Primus::GematriaPrimus.new(tokens: [tk1, tk2])
+        translator = Primus::GematriaPrimus.build(tokens: [tk1, tk2])
 
         result = translator.find_by(letter: "f")
 
@@ -45,7 +45,7 @@ RSpec.describe Primus::GematriaPrimus do
       it "returns the token for the index" do
         tk1 = build_token(index: 0, rune: "ᚠ", letter: "f", value: 2)
         tk2 = build_token(index: 1, rune: "ᚢ", letter: "u", value: 3)
-        translator = Primus::GematriaPrimus.new(tokens: [tk1, tk2])
+        translator = Primus::GematriaPrimus.build(tokens: [tk1, tk2])
 
         result = translator.find_by(index: 1)
 
@@ -76,16 +76,5 @@ RSpec.describe Primus::GematriaPrimus do
 
       expect(result).to eq(expected_index_of_coincidence)
     end
-  end
-
-  def build_token(rune:, index:, letter:, value:)
-    Primus::GematriaPrimus::Token.new(index: index, rune: rune, letter: letter,
-                                      value: value)
-  end
-
-  def create_word(text)
-    alphabet = Primus::GematriaPrimus.build
-    tks = Array(text).map { |tk| alphabet.find_by(letter: tk) }
-    Primus::Word.new(tokens: tks)
   end
 end

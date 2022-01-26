@@ -28,13 +28,11 @@ class Primus::GematriaPrimus::Token
   end
 
   def +(token)
-    sum = to_i + token.to_i
-    alphabet.find_by(value: sum)
+    to_i + token.to_i
   end
 
   def -(token)
-    diff = to_i - token.to_i
-    alphabet.find_by(value: diff.abs)
+    to_i - token.to_i
   end
 
   def to_i
@@ -53,7 +51,9 @@ class Primus::GematriaPrimus::Token
   def factors(token)
     letters = alphabet.reject { |tk| tk >= self }
     res = letters.size.downto(1).flat_map { |n| letters.combination(n).to_a }
-    res.select { |combo| combo.map(&:to_i).sum == value }
+    res.
+      select { |combo| combo.map(&:to_i).sum == value }.
+      select { |combo| combo.include? token }
   end
 
   private

@@ -1,6 +1,5 @@
 RSpec.describe "section 12 experiments (pg 8 - 14)" do
   it "page level information" do
-    binding.pry
     (8..14).each do |n|
       document = Primus::LiberPrimus.page(page_number: n)
       puts "PAGE: #{n}"
@@ -40,7 +39,6 @@ RSpec.describe "section 12 experiments (pg 8 - 14)" do
     filtered = filtered.accept(Primus::Document::Translator.new)
     puts "FCHARS: #{filtered.words.flat_map(&:tokens).map(&:letter).size}"
     puts "ICf1: #{filtered.index_of_coincidence}"
-    binding.pry
 
     slices = (1..100).map do |period|
       text = filtered.words.flat_map(&:tokens)
@@ -63,14 +61,10 @@ RSpec.describe "section 12 experiments (pg 8 - 14)" do
         puts "IC: #{ic}"
       end
     end
-
-    binding.pry
-
   end
 
   it "can xnor the text then brute force affine" do
     document = Primus::LiberPrimus.chapter(page_numbers: 8..14)
-    #binding.pry
 
     filter = Primus::Document::Mask.new(mask: "1001")
     document = document.accept(filter)
@@ -182,11 +176,5 @@ RSpec.describe "section 12 experiments (pg 8 - 14)" do
     #binding.pry
 
     #expect(result.to_s).to eq("")
-  end
-
-  def create_word(text)
-    alphabet = Primus::GematriaPrimus.build
-    tks = Array(text).map { |tk| alphabet.find_by(letter: tk) }
-    Primus::Word.new(tokens: tks)
   end
 end

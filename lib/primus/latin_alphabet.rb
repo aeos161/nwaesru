@@ -9,6 +9,14 @@ class Primus::LatinAlphabet
     tokens.each(&block)
   end
 
+  def size
+    tokens.size
+  end
+
+  def include?(token)
+    tokens.map(&:letter).include? token.letter
+  end
+
   def expected_index_of_coincidence
     relative_frequencies = Primus.relative_word_frequencies_in_english
     c = unique_tokens.size.to_f

@@ -36,10 +36,4 @@ RSpec.describe Primus::Document::Affine do
       expect(result).to eq(token)
     end
   end
-
-  def create_word(text)
-    alphabet = Primus::GematriaPrimus.build
-    tks = Array(text).map { |tk| alphabet.find_by(letter: tk) }
-    Primus::Word.new(tokens: tks)
-  end
 end

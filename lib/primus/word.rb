@@ -3,8 +3,7 @@ class Primus::Word
 
   attr_reader :tokens
 
-  def initialize(tokens: [], alphabet: nil)
-    @alphabet ||= Primus::GematriaPrimus.build
+  def initialize(tokens: [])
     @tokens = tokens
   end
 
@@ -33,14 +32,10 @@ class Primus::Word
   end
 
   def sum
-    alphabet.sum(word: self)
+    map(&:to_i).sum(0)
   end
 
   def accept(visitor)
     visitor.visit_word(self)
   end
-
-  protected
-
-  attr_reader :alphabet
 end

@@ -39,4 +39,14 @@ RSpec.describe Primus::Word do
       expect(result).to eq(2)
     end
   end
+
+  describe "#sum" do
+    it "sums the token values" do
+      word = create_word(%w(d i u i n i t y))
+
+      result = word.sum
+
+      expect(result).to eq(376)
+    end
+  end
 end

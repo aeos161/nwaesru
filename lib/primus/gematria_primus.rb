@@ -1,5 +1,6 @@
 class Primus::GematriaPrimus
   include Enumerable
+  include Singleton
 
   def initialize(tokens:)
     @tokens = tokens
@@ -26,7 +27,7 @@ class Primus::GematriaPrimus
   end
 
   def sum(word:)
-    word.map(&:value).sum(0)
+    word.sum
   end
 
   def generate_words(sum:, number_of_characters:)
@@ -37,14 +38,22 @@ class Primus::GematriaPrimus
       map { |word| word.to_s(:letter) }
   end
 
-  def self.build
+  def self.instance(tokens: nil)
+    tokens ||= load_alphabet
+    new(tokens: tokens)
+  end
+
+  def self.build(tokens: nil)
+    instance(tokens: tokens)
+  end
+
+  def self.load_alphabet
     path = "data/gematria_primus.yml"
     alphabet = Psych.safe_load(File.read(path))["tokens"]
-    tokens = alphabet.map.with_index do |data, index|
+    alphabet.map.with_index do |data, index|
       params = data.transform_keys(&:to_sym).merge(index: index)
       Token.new(params)
     end
-    new(tokens: tokens)
   end
 
   protected
