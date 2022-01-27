@@ -11,33 +11,14 @@ module Primus
   end
 
   def self.to_word(text:, alphabet: nil)
-    Primus::Word.new(tokens: lex(text: text))
+    lexer = Primus::Lexer.new(data: text)
+    lexer.tokenize
+    Primus::Word.new(tokens: lexer.tokens)
   end
 
   def self.parse(text:, alphabet: nil)
     alphabet ||= Primus::GematriaPrimus::build
     text.split(" ").map { |word| to_word(text: word) }
-  end
-
-  def self.lex(text:)
-    alphabet ||= Primus::GematriaPrimus::build
-    standardized_text = text.downcase.gsub("ing", "ng").gsub("ia", "io").
-                        gsub("z", "s").gsub("k", "c").gsub("v", "u")
-    p = 0
-    tokens = []
-    until p > standardized_text.size - 1 do
-      tk = standardized_text[p..(p + 1)]
-
-      if tk.match?(/th|eo|ng|ing|oe|ae|io|ia|ea/)
-        tokens << alphabet.find_by(letter: tk)
-        p += 2
-      else
-        tokens << alphabet.find_by(letter: tk[0])
-        p += 1
-      end
-    end
-
-    tokens
   end
 end
 

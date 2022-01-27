@@ -40,8 +40,29 @@ RSpec.describe Primus::Lexer do
         Primus::Token::Character.new(lexeme: "l"),
         Primus::Token::Character.new(lexeme: "u"),
         Primus::Token::Character.new(lexeme: "c"),
-        Primus::Token::Character.new(lexeme: "k"),
+        Primus::Token::Character.new(lexeme: "c"),
         Primus::Token::SentenceDelimiter.new,
+      ])
+    end
+
+    it "standardizes the case of the letters" do
+      lexer = Primus::Lexer.new(data: "AB")
+
+      lexer.tokenize
+
+      expect(lexer.tokens).to match_array([
+        Primus::Token::Character.new(lexeme: "a"),
+        Primus::Token::Character.new(lexeme: "b"),
+      ])
+    end
+
+    it "standarizes the bi graphs" do
+      lexer = Primus::Lexer.new(data: "ing")
+
+      lexer.tokenize
+
+      expect(lexer.tokens).to match_array([
+        Primus::Token::Character.new(lexeme: "ng"),
       ])
     end
 
