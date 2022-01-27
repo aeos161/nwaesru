@@ -33,6 +33,8 @@ class Primus::Token::Factory
     case lexeme
     when Primus::Token::WordDelimiter::IDENTIFIER
       Primus::Token::WordDelimiter.new(location: no_location)
+    when Primus::Token::WordDelimiter::LITERAL
+      Primus::Token::WordDelimiter.new(location: no_location)
     when Primus::Token::SentenceDelimiter::IDENTIFIER
       Primus::Token::SentenceDelimiter.new(location: no_location)
     when Primus::Token::LineBreak::IDENTIFIER

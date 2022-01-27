@@ -10,7 +10,7 @@ RSpec.describe Primus::Lexer do
   end
 
   describe "#tokenize" do
-    it "tokenizes an entire sentence" do
+    it "tokenizes an entire rune sentence" do
       lexer = Primus::Lexer.new(data: "ᚫᛄ-ᛟᛋᚱ.")
 
       lexer.tokenize
@@ -22,6 +22,25 @@ RSpec.describe Primus::Lexer do
         Primus::Token::Character.new(lexeme: "ᛟ"),
         Primus::Token::Character.new(lexeme: "ᛋ"),
         Primus::Token::Character.new(lexeme: "ᚱ"),
+        Primus::Token::SentenceDelimiter.new,
+      ])
+    end
+
+    it "tokenizes an entire letter sentence" do
+      lexer = Primus::Lexer.new(data: "good luck.")
+
+      lexer.tokenize
+
+      expect(lexer.tokens).to match_array([
+        Primus::Token::Character.new(lexeme: "g"),
+        Primus::Token::Character.new(lexeme: "o"),
+        Primus::Token::Character.new(lexeme: "o"),
+        Primus::Token::Character.new(lexeme: "d"),
+        Primus::Token::WordDelimiter::new,
+        Primus::Token::Character.new(lexeme: "l"),
+        Primus::Token::Character.new(lexeme: "u"),
+        Primus::Token::Character.new(lexeme: "c"),
+        Primus::Token::Character.new(lexeme: "k"),
         Primus::Token::SentenceDelimiter.new,
       ])
     end

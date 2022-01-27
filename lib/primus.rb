@@ -21,8 +21,8 @@ module Primus
 
   def self.lex(text:)
     alphabet ||= Primus::GematriaPrimus::build
-    standardized_text = text.gsub("ing", "ng").gsub("ia", "io").gsub("z", "s").
-                        gsub("k", "c")
+    standardized_text = text.downcase.gsub("ing", "ng").gsub("ia", "io").
+                        gsub("z", "s").gsub("k", "c").gsub("v", "u")
     p = 0
     tokens = []
     until p > standardized_text.size - 1 do
