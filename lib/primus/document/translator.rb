@@ -1,13 +1,14 @@
 class Primus::Document::Translator
   attr_reader :dictionary
 
-  def initialize(dictionary: nil)
+  def initialize(dictionary: nil, search_key: :rune)
     @dictionary = dictionary || Primus::GematriaPrimus.build
+    @search_key = search_key || :rune
   end
 
   def visit_word(word)
     tokens = word.map do |tk|
-      token = dictionary.find_by(rune: tk.lexeme)
+      token = dictionary.find_by(search_key => tk.lexeme)
       token.location = tk.location
       token
     end
@@ -17,4 +18,8 @@ class Primus::Document::Translator
   def visit_token(token)
     token
   end
+
+  protected
+
+  attr_reader :search_key
 end
