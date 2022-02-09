@@ -17,23 +17,24 @@ RSpec.describe Primus do
     it "standardizes the word" do
       text = "zkia"
 
-      result = Primus.to_word(text: text)
+      result = Primus.to_word(text)
 
       expect(result.to_s(:letter)).to eq("scio")
     end
 
     it "properly tokenizes the word" do
+      alphabet = Primus::GematriaPrimus.build
       text = "aethereal"
 
-      result = Primus.to_word(text: text)
+      result = Primus.to_word(text)
 
       expect(result.tokens).to match_array([
-        Primus::Token::Character.new(lexeme: "ae"),
-        Primus::Token::Character.new(lexeme: "th"),
-        Primus::Token::Character.new(lexeme: "e"),
-        Primus::Token::Character.new(lexeme: "r"),
-        Primus::Token::Character.new(lexeme: "ea"),
-        Primus::Token::Character.new(lexeme: "l"),
+        alphabet.find_by(letter: "ae"),
+        alphabet.find_by(letter: "th"),
+        alphabet.find_by(letter: "e"),
+        alphabet.find_by(letter: "r"),
+        alphabet.find_by(letter: "ea"),
+        alphabet.find_by(letter: "l"),
       ])
     end
   end

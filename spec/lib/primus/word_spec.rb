@@ -27,6 +27,30 @@ RSpec.describe Primus::Word do
     end
   end
 
+  describe "#+" do
+    it "adds words using modular arithmetic" do
+      wordA = create_word(%w(c a r n a l))
+      wordB = create_word(%w(a n a l o g))
+      wordC = wordA - wordB
+
+      result = wordC + wordB
+
+      expect(result).to eq(wordA)
+    end
+  end
+
+  describe "#-" do
+    it "subtracts words using modular subtraction" do
+      wordA = create_word(%w(c a r n a l))
+      wordB = create_word(%w(a n a l o g))
+      wordC = wordB + wordA
+
+      result = wordC - wordA
+
+      expect(result).to eq(wordB)
+    end
+  end
+
   describe "#size" do
     it "returns the number of tokens" do
       word = Primus::Word.new(tokens: [

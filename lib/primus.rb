@@ -1,4 +1,6 @@
 module Primus
+  module Processor; end
+
   def self.index_of_coincidence(text:, alphabet: nil)
     alphabet ||= Primus::GematriaPrimus::build
     chars = text.select { |char| alphabet.include? char }.
@@ -10,15 +12,19 @@ module Primus
     numerator / denominator
   end
 
-  def self.to_word(text:, alphabet: nil)
-    lexer = Primus::Lexer.new(data: text)
-    lexer.tokenize
-    Primus::Word.new(tokens: lexer.tokens)
+  def self.sum(text, strategy = :letter)
+    parse(text, strategy).map(&:sum)
   end
 
-  def self.parse(text:, alphabet: nil)
-    alphabet ||= Primus::GematriaPrimus::build
-    text.split(" ").map { |word| to_word(text: word) }
+  def self.parse(text, strategy = :letter)
+    text.split(" ").map { |word| to_word(word, strategy) }
+  end
+
+  def self.to_word(text, strategy = :letter)
+    lexer = Primus::Lexer.new(data: text)
+    lexer.tokenize
+    translator = Primus::Document::Translator.new(search_key: strategy)
+    translator.visit_word(Primus::Word.new(tokens: lexer.tokens))
   end
 end
 
@@ -31,6 +37,7 @@ require "primus/document/decoder"
 require "primus/document/affine"
 require "primus/document/atbash"
 require "primus/document/alternating_shift"
+require "primus/document/analyzer"
 require "primus/document/builder"
 require "primus/document/caesar_shift"
 require "primus/document/complement_shift"
@@ -53,7 +60,13 @@ require "primus/latin_alphabet/token"
 require "primus/lexer"
 require "primus/liber_primus"
 require "primus/liber_primus/page"
+
 require "primus/parser"
+
+require "primus/processor/affine"
+require "primus/processor/printer"
+require "primus/processor/vigenere"
+
 require "primus/token"
 require "primus/token/factory"
 require "primus/token/character"

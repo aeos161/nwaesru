@@ -20,4 +20,8 @@ class Primus::Token
   def accept(visitor)
     visitor.visit_token(self)
   end
+
+  def sum
+    0
+  end
 end
