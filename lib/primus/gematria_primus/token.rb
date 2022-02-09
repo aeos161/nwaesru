@@ -35,6 +35,20 @@ class Primus::GematriaPrimus::Token
     to_i - token.to_i
   end
 
+  def <<(token)
+    return self if token.nil?
+    return self if token.index.nil?
+    shifted_index = (index + token.index) % alphabet.size
+    alphabet.find_by(index: shifted_index)
+  end
+
+  def >>(token)
+    return self if token.nil?
+    return self if token.index.nil?
+    shifted_index = (index - token.index) % alphabet.size
+    alphabet.find_by(index: shifted_index.abs)
+  end
+
   def to_i
     value.to_i
   end

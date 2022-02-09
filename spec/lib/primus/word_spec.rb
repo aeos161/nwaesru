@@ -43,7 +43,7 @@ RSpec.describe Primus::Word do
     it "subtracts words using modular subtraction" do
       wordA = create_word(%w(c a r n a l))
       wordB = create_word(%w(a n a l o g))
-      wordC = wordB + wordA
+      wordC = wordA + wordB
 
       result = wordC - wordA
 

@@ -23,6 +23,32 @@ RSpec.describe Primus::GematriaPrimus::Token do
     end
   end
 
+  describe "#<<" do
+    it "shifts the token up by the index" do
+      alphabet = Primus::GematriaPrimus.build
+      j = alphabet.find_by(index: 11)
+      th = alphabet.find_by(index: 2)
+      p = alphabet.find_by(index: 13)
+
+      result = j << th
+
+      expect(result).to eq(p)
+    end
+  end
+
+  describe "#>>" do
+    it "shifts the token down by the index" do
+      alphabet = Primus::GematriaPrimus.build
+      j = alphabet.find_by(index: 11)
+      th = alphabet.find_by(index: 2)
+      p = alphabet.find_by(index: 13)
+
+      result = p >> th
+
+      expect(result).to eq(j)
+    end
+  end
+
   describe "#factors" do
     it "factors the letter as a sum of the input and other letters" do
       alphabet = Primus::GematriaPrimus.build

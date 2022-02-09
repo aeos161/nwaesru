@@ -18,15 +18,13 @@ class Primus::Word
   end
 
   def +(word)
-    letters = tokens.zip(word.tokens).map(&method(:modular_addition))
-    new_tokens = letters.map { |index| alphabet.find_by(index: index) }
-    Primus::Word.new(tokens: new_tokens)
+    letters = tokens.zip(word.tokens).map { |a, b| a << b }
+    Primus::Word.new(tokens: letters)
   end
 
   def -(word)
-    letters = tokens.zip(word.tokens).map(&method(:modular_subtraction))
-    new_tokens = letters.map { |index| alphabet.find_by(index: index.abs) }
-    Primus::Word.new(tokens: new_tokens)
+    letters = tokens.zip(word.tokens).map { |a, b| a >> b }
+    Primus::Word.new(tokens: letters)
   end
 
   def each(&block)
@@ -59,15 +57,5 @@ class Primus::Word
 
   def alphabet
     @@alphabet ||= Primus::GematriaPrimus.build
-  end
-
-  def modular_addition(terms)
-    return terms[0].index if terms[1].nil?
-    (terms[0].index + terms[1].index) % alphabet.size
-  end
-
-  def modular_subtraction(terms)
-    return terms[0].index if terms[1].nil?
-    (terms[0].index - terms[1].index) % alphabet.size
   end
 end
