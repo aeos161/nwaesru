@@ -49,6 +49,19 @@ RSpec.describe Primus::GematriaPrimus::Token do
     end
   end
 
+  describe "#^" do
+    it "xors the indexes" do
+      alphabet = Primus::GematriaPrimus.build
+      r = alphabet.find_by(index: 4)
+      c = alphabet.find_by(index: 5)
+      u = alphabet.find_by(index: 1)
+
+      result = r ^ c
+
+      expect(result).to eq(u)
+    end
+  end
+
   describe "#factors" do
     it "factors the letter as a sum of the input and other letters" do
       alphabet = Primus::GematriaPrimus.build

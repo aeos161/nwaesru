@@ -27,6 +27,11 @@ class Primus::Word
     Primus::Word.new(tokens: letters)
   end
 
+  def ^(word)
+    letters = tokens.zip(word.tokens).map { |a, b| a ^ b }
+    Primus::Word.new(tokens: letters)
+  end
+
   def each(&block)
     tokens.each(&block)
   end

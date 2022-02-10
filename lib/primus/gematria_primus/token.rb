@@ -49,6 +49,13 @@ class Primus::GematriaPrimus::Token
     alphabet.find_by(index: shifted_index.abs)
   end
 
+  def ^(token)
+    return self if token.nil?
+    return self if token.index.nil?
+    xor_index = (index ^ token.index) % alphabet.size
+    alphabet.find_by(index: xor_index)
+  end
+
   def to_i
     value.to_i
   end

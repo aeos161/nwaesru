@@ -51,6 +51,18 @@ RSpec.describe Primus::Word do
     end
   end
 
+  describe "#^" do
+    it "xors all the tokens of the word" do
+      wordA = create_word(%w(c a r n a l))
+      wordB = create_word(%w(a n a l o g))
+      wordC = create_word(%w(f b ea f io e))
+
+      result = wordA ^ wordB
+
+      expect(result).to eq(wordC)
+    end
+  end
+
   describe "#size" do
     it "returns the number of tokens" do
       word = Primus::Word.new(tokens: [
