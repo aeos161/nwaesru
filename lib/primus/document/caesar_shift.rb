@@ -1,6 +1,5 @@
 class Primus::Document::CaesarShift < Primus::Document::Affine
-  def initialize(alphabet: nil, key:, modulus: nil, magnitude: 1)
-    super
-    @magnitude = 1
+  def initialize(alphabet: nil, key:, modulus: nil)
+    super(alphabet: alphabet, key: key, modulus: modulus, magnitude: 1)
   end
 end

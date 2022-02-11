@@ -9,7 +9,7 @@ class Primus::Document::Affine
   end
 
   def visit_word(word)
-    assert_key_and_magnitude_are_co_prime!
+    assert_key_and_modulus_are_co_prime!
     tokens = word.map { |char| process(character: char) }
     Primus::Word.new(tokens: tokens)
   end
@@ -20,9 +20,9 @@ class Primus::Document::Affine
 
   protected
 
-  def assert_key_and_magnitude_are_co_prime!
-    gcd = key.gcd(magnitude)
-    fail "#{key} and #{magnitude} are not co-prime" unless gcd == 1
+  def assert_key_and_modulus_are_co_prime!
+    gcd = key.gcd(modulus)
+    fail "#{key} and #{modulus} are not co-prime" unless gcd == 1
   end
 
   def process(character:)
@@ -31,11 +31,7 @@ class Primus::Document::Affine
   end
 
   def decode(character)
-    index = (modinv.index(1) * (character.index - magnitude)) % modulus
+    index = (key.inv(modulus) * (character.index - magnitude)) % modulus
     alphabet.find_by(index: index)
-  end
-
-  def modinv
-    0.upto(modulus - 1).map { |b| (key * b) % modulus }
   end
 end

@@ -1,18 +1,19 @@
 class Primus::Document::Vigenere < Primus::Document::Decoder
-  def initialize(alphabet: nil, modulus: nil, key: nil)
-    super
+  def initialize(alphabet: nil, modulus: nil, key: nil, direction: :-)
+    super(alphabet: alphabet, modulus: modulus, key: key)
     if key.respond_to? :split
       key = key.split("")
     end
     @key = key.map { |l| @alphabet.find_by(letter: l) }.to_enum
+    @direction = direction || :-
     @current_key_character = nil
   end
 
   protected
 
   def decode(character)
-    plain_text_index = (character.index - next_key_letter.index) % modulus
-    alphabet.find_by(index: plain_text_index)
+    key_char = next_key_letter
+    character >> key_char
   rescue => e
     puts "----"
     puts "KEY: #{key.inspect}"
@@ -27,4 +28,8 @@ class Primus::Document::Vigenere < Primus::Document::Decoder
     key.rewind
     @current_key_character = key.next
   end
+
+  protected
+
+  attr_reader :direction
 end

@@ -12,16 +12,18 @@ RSpec.describe Primus::Document::Affine do
       expect(result).to eq(plain_text)
     end
 
-    context "key and magnitude are not co-prime" do
+    context "key and modulus are not co-prime" do
       it "raises an error" do
-        key = 0
+        key = 28
+        modulus = 28
         magnitude = 0
         cipher_text = create_word(%w(b p w d f i p))
-        visitor = Primus::Document::Affine.new(key: key, magnitude: magnitude)
+        visitor = Primus::Document::Affine.new(key: key, magnitude: magnitude,
+                                               modulus: modulus)
 
         expect {
           visitor.visit_word(cipher_text)
-        }.to raise_error("0 and 0 are not co-prime")
+        }.to raise_error("28 and 28 are not co-prime")
       end
     end
   end

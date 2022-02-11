@@ -34,6 +34,18 @@ RSpec.describe Primus::GematriaPrimus::Token do
 
       expect(result).to eq(p)
     end
+
+    context "if an integer is supplied" do
+      it "shifts the token up by the integer" do
+        alphabet = Primus::GematriaPrimus.build
+        j = alphabet.find_by(index: 11)
+        p = alphabet.find_by(index: 13)
+
+        result = j << 2
+
+        expect(result).to eq(p)
+      end
+    end
   end
 
   describe "#>>" do
@@ -47,6 +59,18 @@ RSpec.describe Primus::GematriaPrimus::Token do
 
       expect(result).to eq(j)
     end
+
+    context "if an integer is supplied" do
+      it "shifts the token down by the integer" do
+        alphabet = Primus::GematriaPrimus.build
+        j = alphabet.find_by(index: 11)
+        p = alphabet.find_by(index: 13)
+
+        result = p >> 2
+
+        expect(result).to eq(j)
+      end
+    end
   end
 
   describe "#^" do
@@ -59,6 +83,18 @@ RSpec.describe Primus::GematriaPrimus::Token do
       result = r ^ c
 
       expect(result).to eq(u)
+    end
+
+    context "an integer is supplied" do
+      it "xors the indexes" do
+        alphabet = Primus::GematriaPrimus.build
+        r = alphabet.find_by(index: 4)
+        u = alphabet.find_by(index: 1)
+
+        result = r ^ 5
+
+        expect(result).to eq(u)
+      end
     end
   end
 

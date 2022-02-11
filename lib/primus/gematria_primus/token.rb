@@ -37,22 +37,22 @@ class Primus::GematriaPrimus::Token
 
   def <<(token)
     return self if token.nil?
-    return self if token.index.nil?
-    shifted_index = (index + token.index) % alphabet.size
+    shift = token.respond_to?(:index) ? token.index : token.to_i
+    shifted_index = (index + shift) % alphabet.size
     alphabet.find_by(index: shifted_index)
   end
 
   def >>(token)
     return self if token.nil?
-    return self if token.index.nil?
-    shifted_index = (index - token.index) % alphabet.size
+    shift = token.respond_to?(:index) ? token.index : token.to_i
+    shifted_index = (index - shift) % alphabet.size
     alphabet.find_by(index: shifted_index.abs)
   end
 
   def ^(token)
     return self if token.nil?
-    return self if token.index.nil?
-    xor_index = (index ^ token.index) % alphabet.size
+    shift = token.respond_to?(:index) ? token.index : token.to_i
+    xor_index = (index ^ shift) % alphabet.size
     alphabet.find_by(index: xor_index)
   end
 

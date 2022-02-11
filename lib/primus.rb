@@ -28,6 +28,8 @@ module Primus
   end
 end
 
+require "numeric_inverse/ext"
+
 require "prime"
 require "psych"
 

@@ -1,14 +1,8 @@
-class Primus::Document::Atbash < Primus::Document::Decoder
-
-  protected
-
-  def decode(character)
-    current_position = character.index
-    new_position = gematria_shift(position: current_position)
-    alphabet.find_by(index: new_position)
-  end
-
-  def gematria_shift(position:)
-    (-1 * (position + 1)) % modulus
+class Primus::Document::Atbash < Primus::Document::Affine
+  def initialize(alphabet: nil, modulus: nil)
+    alphabet ||= Primus::GematriaPrimus.build
+    modulus ||= alphabet.size
+    key = modulus - 1
+    super(alphabet: alphabet, key: key, magnitude: key, modulus: modulus)
   end
 end
