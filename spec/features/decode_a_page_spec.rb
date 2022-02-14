@@ -19,10 +19,18 @@ RSpec.describe "decode a page" do
     expect(result.to_s).to eq(warning_decoded_text)
   end
 
+  it "can translate runes" do
+    document = Primus::LiberPrimus.page(page_number: "know_this")
+
+    result = document.accept(Primus::Document::Translator.new)
+
+    expect(result.to_s).to eq(know_this_decoded_text)
+  end
+
   it "can decode a vigenere cipher" do
-    document = Primus::LiberPrimus.page(page_number: "welcome")
+    document = Primus::LiberPrimus.page(page_number: ["welcome", "welcome_2"])
     key = "diuinity"
-    skip_sequence = [49, 75, 85, 133, 160, 161, 251]
+    skip_sequence = [49, 75, 85, 133, 160, 161, 251, 422, 444, 466, 515]
     vigenere = Primus::Document::Vigenere.new(key: key)
     vigenere.skip_sequence = skip_sequence
 
@@ -32,7 +40,28 @@ RSpec.describe "decode a page" do
     expect(result.to_s).to eq(welcome_decoded_text)
   end
 
-  it "can do a direct rune to letter translation on page 57" do
+  it "can decode a vigenere cipher" do
+    document = Primus::LiberPrimus.page(page_number: [107, 167])
+    key = "firfumferenfe"
+    skip_sequence = [50, 59]
+    vigenere = Primus::Document::Vigenere.new(key: key)
+    vigenere.skip_sequence = skip_sequence
+
+    translation = document.accept(Primus::Document::Translator.new)
+    result = translation.accept(vigenere)
+
+    expect(result.to_s).to eq(page107_decoded_text)
+  end
+
+  it "can do a direct rune to letter translation" do
+    document = Primus::LiberPrimus.page(page_number: 229)
+
+    result = document.accept(Primus::Document::Translator.new)
+
+    expect(result.to_s).to eq(page229_decoded_text)
+  end
+
+  it "can do a direct rune to letter translation" do
     document = Primus::LiberPrimus.page(page_number: 57)
 
     result = document.accept(Primus::Document::Translator.new)
@@ -52,7 +81,25 @@ RSpec.describe "decode a page" do
     Primus::LiberPrimus::Page.open(page_number: "warning", encoded: false).to_s
   end
 
+  def know_this_decoded_text
+    Primus::LiberPrimus::Page.open(
+      page_number: "know_this", encoded: false
+    ).to_s
+  end
+
   def welcome_decoded_text
-    Primus::LiberPrimus::Page.open(page_number: "welcome", encoded: false).to_s
+    a = Primus::LiberPrimus::Page.open(page_number: "welcome", encoded: false)
+    b = Primus::LiberPrimus::Page.open(page_number: "welcome_2", encoded: false)
+    a.to_s + " " + b.to_s
+  end
+
+  def page107_decoded_text
+    a = Primus::LiberPrimus::Page.open(page_number: 107, encoded: false).to_s
+    b = Primus::LiberPrimus::Page.open(page_number: 167, encoded: false).to_s
+    a + b
+  end
+
+  def page229_decoded_text
+    Primus::LiberPrimus::Page.open(page_number: 229, encoded: false).to_s
   end
 end

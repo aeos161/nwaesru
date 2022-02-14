@@ -15,8 +15,13 @@ class Primus::Document
     @text << text
   end
 
+  def +(document)
+    @text = @text + document.text
+    self
+  end
+
   def [](index)
-    words.flat_map(&:tokens).detect { |tk| tk.location.position == index }
+    tokens.detect { |tk| tk.location.position == index }
   end
 
   def each(&block)
@@ -48,6 +53,10 @@ class Primus::Document
 
   def words
     text.select { |w| w.is_a? Primus::Word }
+  end
+
+  def tokens
+    words.flat_map(&:tokens)
   end
 
   def accept(visitor)
