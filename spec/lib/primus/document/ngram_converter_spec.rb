@@ -17,7 +17,7 @@ RSpec.describe Primus::Document::NgramConverter do
       converter.convert
       result = converter.result
 
-      expect(result.to_s(:rune)).to eq("ᚪᚳ-ᚪᛏ")
+      expect(result.to_s(:rune)).to eq("ᚪ.ᚳ-ᚪ.ᛏ")
     end
   end
 end
