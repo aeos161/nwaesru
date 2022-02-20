@@ -43,12 +43,13 @@ class Primus::Document
   end
 
   def character_count
-    words.map(&:size).sum
+    counter = Primus::Document::TokenCounter.new
+    accept(counter)
+    counter.size
   end
 
-  def index_of_coincidence
-    chars = words.flat_map(&:tokens)
-    Primus.index_of_coincidence(text: chars)
+  def index_of_coincidence(length: 1)
+    Primus.index_of_coincidence(document: self, length: length)
   end
 
   def words

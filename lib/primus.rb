@@ -1,14 +1,21 @@
 module Primus
   module Processor; end
 
-  def self.index_of_coincidence(text:, alphabet: nil)
+  def self.index_of_coincidence(document:, length: 1, alphabet: nil)
     alphabet ||= Primus::GematriaPrimus::build
-    chars = text.select { |char| alphabet.include? char }.
-            group_by(&:letter).transform_values(&:size)
-    numerator = chars.map { |letter, count| count * (count - 1) }.sum
-    total_chars = chars.map { |letter, count| count }.sum
-    c = alphabet.size.to_f
-    denominator = (total_chars * (total_chars - 1)) / c
+    counter = Primus::Document::TokenCounter.new(length: length || 1)
+    document.accept(counter)
+    tokens = counter.result
+    if length == 1
+      numerator = tokens.reject(&:zero?).sum { |count| count * (count - 1) }
+    else
+      numerator = tokens.sum do |row|
+        row.reject(&:zero?).sum { |count| count * (count - 1) }
+      end
+    end
+    total_tokens = counter.size
+    c = (alphabet.size ** length).to_f
+    denominator = (total_tokens * (total_tokens - 1)) / c
     numerator / denominator
   end
 
@@ -43,7 +50,6 @@ require "primus/document/analyzer"
 require "primus/document/builder"
 require "primus/document/caesar_shift"
 require "primus/document/complement_shift"
-require "primus/document/digraph_counter"
 require "primus/document/fibonacci_shift"
 require "primus/document/filter"
 require "primus/document/mask"
