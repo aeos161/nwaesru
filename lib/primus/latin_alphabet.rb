@@ -17,6 +17,10 @@ class Primus::LatinAlphabet
     tokens.map(&:letter).include? token.letter
   end
 
+  def find_by(index: nil)
+    tokens[index].dup
+  end
+
   def expected_index_of_coincidence
     relative_frequencies = Primus.relative_word_frequencies_in_english
     c = unique_tokens.size.to_f
