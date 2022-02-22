@@ -6,8 +6,10 @@ RSpec.describe Primus do
       numerator = [0, 2, 0, 0, 0, 0].sum
       denominator = (7 * 6) / 26.to_f
       index_of_coincidence = numerator / denominator
+      document = Primus::Document.new(text: [text])
 
-      result = Primus.index_of_coincidence(text: text, alphabet: alphabet)
+      result = Primus.index_of_coincidence(document: document,
+                                           alphabet: alphabet)
 
       expect(result).to eq(index_of_coincidence)
     end

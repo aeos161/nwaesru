@@ -1,5 +1,5 @@
 RSpec.describe "section 12 experiments (pg 8 - 14)" do
-  it "page level information" do
+  xit "page level information" do
     (8..14).each do |n|
       document = Primus::LiberPrimus.page(page_number: n)
       puts "PAGE: #{n}"
@@ -13,7 +13,7 @@ RSpec.describe "section 12 experiments (pg 8 - 14)" do
     end
   end
 
-  it "chapter level information" do
+  xit "chapter level information" do
     document = Primus::LiberPrimus.chapter(page_numbers: 8..14)
     puts "WORDS: #{document.word_count}"
     puts "CHARACTERS: #{document.character_count}"
@@ -63,7 +63,7 @@ RSpec.describe "section 12 experiments (pg 8 - 14)" do
     end
   end
 
-  it "can xnor the text then brute force affine" do
+  xit "can xnor the text then brute force affine" do
     document = Primus::LiberPrimus.chapter(page_numbers: 8..14)
 
     filter = Primus::Document::Mask.new(mask: "1001")
@@ -73,10 +73,9 @@ RSpec.describe "section 12 experiments (pg 8 - 14)" do
     document = document.accept(Primus::Document::Translator.new)
     puts document.to_s
     #puts document.to_s.split(" ").join("-")
-    #binding.pry
 
     if false
-      (1..28).each do |letter|
+      (-1..-28).each do |letter|
         (1..28).each do |mg|
           begin
             pt = document.accept(Primus::Document::Affine.new(key: letter, magnitude: mg))
@@ -116,7 +115,7 @@ RSpec.describe "section 12 experiments (pg 8 - 14)" do
     end
   end
 
-  it "can do an alternating shift on page 8" do
+  xit "can do an alternating shift on page 8" do
     document = Primus::LiberPrimus.chapter(page_numbers: 8..14)
 
     token274 = document[274]
@@ -136,13 +135,10 @@ RSpec.describe "section 12 experiments (pg 8 - 14)" do
 
     visitor = Primus::Document::Filter.new(character_to_reject: "ᛉ")
     new_doc = document.accept(visitor)
-    #new_doc = document
-    #binding.pry
     tokens = new_doc.words.flat_map(&:tokens).map.with_index do |tk, index|
       tk.location = Primus::Token::Location.new(position: index, line: 0)
       tk
     end
-    #binding.pry
 
     visitor = Primus::Document::Translator.new
     new_doc2 = new_doc.accept(visitor)
@@ -150,7 +146,6 @@ RSpec.describe "section 12 experiments (pg 8 - 14)" do
     one_letter_words = new_doc2.words.select { |w| w.size == 1 }
     puts one_letter_words.map { |w| [w.to_s, w.first.location.position].join("|") }
 
-    #binding.pry
     keys = %w(diuinity mournful struggle discouer yourself rasputin)
 
     keys.each do |key|
@@ -161,20 +156,5 @@ RSpec.describe "section 12 experiments (pg 8 - 14)" do
       puts new_doc3
       puts "-----"
     end
-
-    #visitor = Primus::Document::ComplementShift.new
-    #visitor = Primus::Document::TotientShift.new
-    #visitor = Primus::Document::GematriaShift.new
-    #visitor = Primus::Document::StreamCipher.new
-    #visitor = Primus::Document::AlternatingShift.new
-    #visitor = Primus::GematriaPrimus::Calculator.new
-    #new_doc2.accept(visitor)
-
-    #word = new_doc2.first
-    #puts word.accept(visitor)
-
-    #binding.pry
-
-    #expect(result.to_s).to eq("")
   end
 end
