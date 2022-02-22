@@ -10,6 +10,7 @@ Gem::Specification.new do |config|
   config.homepage = "https://rubygems.org/gems/primus"
   config.license = "MIT"
 
+  config.add_development_dependency "simplecov", "~> 0.2"
   config.add_development_dependency "bundler", "~> 2.1"
   config.add_development_dependency "numeric_inverse", "~> 0.1"
   config.add_development_dependency "pry", "~> 0.14"

@@ -15,11 +15,6 @@ class Primus::Document
     @text << text
   end
 
-  def +(document)
-    @text = @text + document.text
-    self
-  end
-
   def [](index)
     tokens.detect { |tk| tk.location.position == index }
   end
@@ -32,10 +27,6 @@ class Primus::Document
     visitor = Primus::Document::Printer.new(format: format)
     accept(visitor)
     visitor.to_s
-  end
-
-  def empty?
-    text.empty?
   end
 
   def word_count

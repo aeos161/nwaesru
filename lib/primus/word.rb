@@ -55,12 +55,4 @@ class Primus::Word
   def accept(visitor)
     visitor.visit_word(self)
   end
-
-  protected
-
-  attr_reader :alphabet
-
-  def alphabet
-    @@alphabet ||= Primus::GematriaPrimus.build
-  end
 end

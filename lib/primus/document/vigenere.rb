@@ -14,12 +14,6 @@ class Primus::Document::Vigenere < Primus::Document::Decoder
   def decode(character)
     key_char = next_key_letter
     character >> key_char
-  rescue => e
-    puts "----"
-    puts "KEY: #{key.inspect}"
-    puts "CHAR: #{character.inspect}"
-    puts e.inspect
-    puts "---"
   end
 
   def next_key_letter
