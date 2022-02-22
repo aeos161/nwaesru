@@ -43,8 +43,8 @@ RSpec.describe "investigation" do
   xit "investigate pages 0 to 3" do
     document = Primus::LiberPrimus.chapter(page_numbers: 0..2)
     document = document.accept(Primus::Document::Translator.new)
-    analysis = Primus::Document::Analyzer.new(document: document)
-    analysis.analyze
+    #analysis = Primus::Document::Analyzer.new(document: document)
+    #analysis.analyze
     #puts document.index_of_coincidence
     #puts document.character_count
     #puts document.to_s

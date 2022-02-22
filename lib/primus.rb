@@ -46,7 +46,6 @@ require "primus/document/decoder"
 require "primus/document/affine"
 require "primus/document/atbash"
 require "primus/document/alternating_shift"
-require "primus/document/analyzer"
 require "primus/document/builder"
 require "primus/document/caesar_shift"
 require "primus/document/complement_shift"
@@ -73,10 +72,6 @@ require "primus/liber_primus"
 require "primus/liber_primus/page"
 
 require "primus/parser"
-
-require "primus/processor/affine"
-require "primus/processor/printer"
-require "primus/processor/vigenere"
 
 require "primus/token"
 require "primus/token/factory"
