@@ -82,7 +82,7 @@ class Primus::Lexer
   end
 
   def replaceable_tokens
-    { ing: :ng, ia: :io, z: :s, k: :c, v: :u }
+    { ing: :ng, ia: :io, z: :s, k: :c, v: :u, qu: :cw }
   end
 
   def bigraphs

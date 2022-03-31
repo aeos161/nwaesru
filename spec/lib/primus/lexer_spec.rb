@@ -89,5 +89,14 @@ RSpec.describe Primus::Lexer do
         )
       end
     end
+
+    it "handles punctuation" do
+      lexer = Primus::Lexer.new(data: "King Arthur was at Caerlleon upon Usk;")
+
+      lexer.tokenize
+      last_token = lexer.tokens.last
+
+      expect(last_token).to eq(Primus::Token::Punctuation.new(lexeme: ";"))
+    end
   end
 end

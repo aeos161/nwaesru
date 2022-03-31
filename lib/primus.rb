@@ -40,6 +40,8 @@ require "numeric_inverse/ext"
 require "prime"
 require "psych"
 
+require "primus/page"
+
 require "primus/document"
 require "primus/document/decoder"
 

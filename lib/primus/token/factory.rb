@@ -40,6 +40,17 @@ class Primus::Token::Factory
     when Primus::Token::LineBreak::IDENTIFIER
       Primus::Token::LineBreak.new(location: no_location)
     else
+      create_punctuation
+    end
+  end
+
+  def create_punctuation
+    assert_lexeme_is_punctuation!
+    Primus::Token::Punctuation.new(lexeme: lexeme)
+  end
+
+  def assert_lexeme_is_punctuation!
+    unless Primus::Token::Punctuation::IDENTIFIER.match? lexeme
       fail "Unknown lexeme: #{lexeme}"
     end
   end

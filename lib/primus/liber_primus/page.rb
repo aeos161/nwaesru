@@ -1,26 +1,17 @@
-class Primus::LiberPrimus::Page
+class Primus::LiberPrimus::Page < Primus::Page
   attr_reader :number, :data
 
   ENCODED_DIR_PATH = "data/encoded/liber_primus".freeze
   DECODED_DIR_PATH = "data/decoded/liber_primus".freeze
-  FILE_EXT = ".yml"
 
   def initialize(number: nil, data: "")
     @number = number
     @data = data
   end
 
-  def ==(page)
-    data == page.data
-  end
-
-  def to_s
-    data.to_s
-  end
-
   def self.open(page_number:, encoded: true)
-    path = self.file_name(page_number: page_number, encoded: encoded)
-    data = Psych.safe_load(File.read(path))["body"]
+    path = file_name(page_number: page_number, encoded: encoded)
+    data = load_data(path)
     if encoded
       data = data.split(" ").join
     end

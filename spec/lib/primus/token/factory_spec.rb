@@ -56,13 +56,23 @@ RSpec.describe Primus::Token::Factory do
       end
     end
 
+    context "for punctuation" do
+      it "instantiates punctuation" do
+        factory = Primus::Token::Factory.new(lexeme: ";")
+
+        result = factory.create_token
+
+        expect(result).to eq(Primus::Token::Punctuation.new(lexeme: ";"))
+      end
+    end
+
     context "for an unknown lexeme" do
       it "raises an error" do
-        factory = Primus::Token::Factory.new(lexeme: "!")
+        factory = Primus::Token::Factory.new(lexeme: "@")
 
         expect {
           factory.create_token
-        }.to raise_error("Unknown lexeme: !")
+        }.to raise_error("Unknown lexeme: @")
       end
     end
   end
