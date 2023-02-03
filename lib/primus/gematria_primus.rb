@@ -30,12 +30,19 @@ class Primus::GematriaPrimus
     word.sum
   end
 
-  def generate_words(sum:, number_of_characters:)
+  def generate_words(number_of_characters:, sum: nil)
+    by_sum = Proc.new do |tokens|
+      if sum.nil?
+        true
+      else
+        tokens.map(&:value).sum == sum
+      end
+    end
+
     tokens.
       repeated_permutation(number_of_characters).
-      select { |arr| arr.map(&:value).sum == sum }.
-      map { |tks| Primus::Word.new(tokens: tks) }.
-      map { |word| word.to_s(:letter) }
+      select(&by_sum).
+      map { |tks| Primus::Word.new(tokens: tks) }
   end
 
   def self.instance(tokens: nil)

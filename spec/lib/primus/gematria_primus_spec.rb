@@ -77,4 +77,25 @@ RSpec.describe Primus::GematriaPrimus do
       expect(result).to eq(expected_index_of_coincidence)
     end
   end
+
+  describe "#generate_words" do
+    it "generates all words for the number of characters" do
+      alphabet = Primus::GematriaPrimus.instance
+
+      result = alphabet.generate_words(number_of_characters: 2)
+
+      expect(result.size).to eq(841)
+    end
+
+    context "when a gp sum is specified" do
+      it "only generates words that match the sum" do
+        alphabet = Primus::GematriaPrimus.instance
+
+        result = alphabet.generate_words(number_of_characters: 2, sum: 18)
+
+        expect(result.map(&:to_s)).to match_array(["ᚦᚳ", "ᚩᚱ", "ᚱᚩ", "ᚳᚦ"])
+      end
+    end
+
+  end
 end
