@@ -1,17 +1,18 @@
 class Primus::GematriaPrimus::Token
   include Comparable
 
-  attr_reader :index, :rune, :letter, :value, :frequency
+  attr_reader :index, :rune, :letter, :alt_letter, :value, :frequency
 
   attr_accessor :location
 
   @@alphabet = nil
 
   def initialize(index: nil, rune: nil, letter: nil, value: nil,
-                 frequency: nil)
+                 frequency: nil, alt_letter: nil)
     @index = index
     @rune = rune
     @letter = letter
+    @alt_letter = alt_letter
     @value = value
     @frequency = frequency
   end

@@ -7,6 +7,7 @@
         frequency: 0.02400
     -
         letter: u
+        alt_letter: v
         rune: ᚢ
         value: 3
         frequency: 0.02730
@@ -27,6 +28,7 @@
         frequency: 0.06280
     -
         letter: c
+        alt_letter: k
         rune: ᚳ
         value: 13
         frequency: 0.03880
@@ -77,6 +79,7 @@
         frequency: 0.00230
     -
         letter: s
+        alt_letter: z
         rune: ᛋ
         value: 53
         frequency: 0.06600
@@ -107,6 +110,7 @@
         frequency: 0.04070
     -
         letter: ng
+        alt_letter: ing
         rune: ᛝ
         value: 79
         frequency: 0.02200
@@ -137,6 +141,7 @@
         frequency: 0.01660
     -
         letter: io
+        alt_letter: ia
         rune: ᛡ
         value: 107
         frequency: 0.00830

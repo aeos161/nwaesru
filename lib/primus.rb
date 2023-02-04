@@ -42,6 +42,8 @@ require "linguo"
 require "prime"
 require "psych"
 
+require "primus/core_extensions/string_monkey_patch"
+
 require "primus/page"
 
 require "primus/document"
@@ -81,3 +83,5 @@ require "primus/token/punctuation"
 require "primus/token/sentence_delimiter"
 require "primus/token/word_delimiter"
 require "primus/word"
+
+Primus::CoreExtensions::StringMonkeyPatch.apply_patch
