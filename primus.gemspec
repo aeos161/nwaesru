@@ -11,6 +11,7 @@ Gem::Specification.new do |config|
   config.license = "MIT"
 
   config.add_runtime_dependency "linguo"
+  config.add_runtime_dependency "thor"
 
   config.add_development_dependency "simplecov", "~> 0.2"
   config.add_development_dependency "bundler", "~> 2.1"
