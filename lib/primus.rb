@@ -24,7 +24,8 @@ module Primus
   end
 
   def self.parse(text, strategy = :letter)
-    text.split(" ").map { |word| to_word(word, strategy) }
+    text = text.respond_to?(:split) ? text.split(" ") : text
+    text.map { |word| to_word(word, strategy) }
   end
 
   def self.to_word(text, strategy = :letter)
