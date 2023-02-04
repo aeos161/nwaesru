@@ -21,6 +21,10 @@ module Primus
       def gp_sum
         Primus.sum(self)
       end
+
+      def to_gp(strategy = :letter)
+        Primus.parse(self, strategy)
+      end
     end
   end
 end

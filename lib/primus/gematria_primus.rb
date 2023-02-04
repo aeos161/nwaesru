@@ -35,7 +35,7 @@ class Primus::GematriaPrimus
       if sum.nil?
         true
       else
-        tokens.map(&:value).sum == sum
+        Array(sum).include? tokens.map(&:value).sum
       end
     end
 

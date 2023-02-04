@@ -1,9 +1,9 @@
 class Primus::GematriaPrimus::Token
   include Comparable
 
-  attr_reader :index, :rune, :letter, :alt_letter, :value, :frequency
+  attr_reader :index, :rune, :alt_letter, :value, :frequency
 
-  attr_accessor :location
+  attr_accessor :location, :letter
 
   @@alphabet = nil
 
@@ -68,6 +68,10 @@ class Primus::GematriaPrimus::Token
 
   def present?
     true unless value.nil?
+  end
+
+  def alt?
+    true unless alt_letter.nil?
   end
 
   def factors(token)
