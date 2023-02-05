@@ -22,22 +22,97 @@ RSpec.describe "investigation" do
     end
   end
 
-  xit "investigate pages 54 and 55" do
+  it "investigate page 7" do
+    #red = "ᛞᚩ-ᛟᛏᚦᚫ.ᚳᚹᛄ-ᛉᛠ-ᚷᛠᛗ"
+    red = Primus::parse("ᚳᚹᛄ ᛉᛠ ᚷᛠᛗ", :rune)
+    gp = Primus::GematriaPrimus.instance
+    #prime_sums = (16..872).select(:prime?)
+
+    #two_candidates = gp.generate_words(number_of_characters: 2)
+    #three_candidates = gp.generate_words(number_of_characters: 3)
+    #four_candidates = gp.generate_words(number_of_characters: 4)
+    #five_candidates = gp.generate_words(number_of_characters: 5)
+
+    #binding.pry
+    #word_list = gp.generate_words(number_of_characters: 8)
+    # generate all combinations of 3-2-3
+    # filter to only those that sum to a prime number
+    # convert to english words
+
+
+
+  end
+
+  it "investigate pages 23 to 26" do
+    document = Primus::LiberPrimus.chapter(page_numbers: 23..26)
+    #document2 = Primus::Document.new(text: document.text.reverse)
+    totient = Primus::Document::TotientShift.new
+    atbash = Primus::Document::Atbash.new
+
+    translation = document.accept(Primus::Document::Translator.new)
+    #result1 = translation.accept(atbash)
+    #result2 = result1.accept(totient)
+    #result1 = translation.accept(totient)
+    #result2 = result1.accept(atbash)
+
+    #binding.pry
+  end
+
+  it "brute force page 39" do
+    red_letters = "ᛡᚳᛋ"
+    page = Primus::LiberPrimus::Page.new(data: red_letters)
+    builder = Primus::Document::Builder.new(pages: page)
+    builder.build
+    document = builder.result
+    translation = document.accept(Primus::Document::Translator.new)
+
+    gematria = Primus::GematriaPrimus.instance
+    candidates = gematria.generate_words(number_of_characters: red_letters.size)
+    primes = candidates.select { |word| word.sum.prime? }
+
+    # puts primes.map { |word| word.to_s(:letter) }
+    #binding.pry
+
+  end
+
+  it "investigate page 41" do
+    gp = Primus::GematriaPrimus.instance
+    #contraction = Primus.parse("ᛉᛚᛄᚳ", :rune).first
+    #key = %(ng x l j)
+
+    #key = %w(ng x l j).map { |l| gp.find_by(letter: l) }
+    #cipher_text = create_word(%w(x l j c))
+
+    key = create_word(%w(a b th e))
+    contraction = Primus.parse("ᛉᛚᛄᚳ", :rune).first
+
+    #binding.pry
+  end
+
+  it "investigate pages 54 and 55" do
     document = Primus::LiberPrimus.chapter(page_numbers: 54..55)
-    document = document.accept(Primus::Document::Translator.new)
-    wordA = document.words[0]
-    wordB = document.words[1]
+    document2 = Primus::Document.new(text: document.text.reverse)
+    atbash = Primus::Document::Atbash.new
+    totient = Primus::Document::TotientShift.new
+    #binding.pry
 
-    word0 = create_word(%w(s h a d o w s))
-    word1 = create_word(%w(u o i d))
-    word2 = create_word(%w(f o r m))
-    word3 = create_word(%w(u o i d))
-    word4 = create_word(%w(c a b a l))
+    translation = document2.accept(Primus::Document::Translator.new)
+    result1 = translation.accept(totient)
+    result2 = result1.accept(atbash)
+    #result1 = translation.accept(atbash)
+    #result2 = result1.accept(totient)
 
-    word5 = create_word(%w(ae th e r ea l))
-    word6 = create_word(%w(b u f f e r s))
-    word7 = create_word(%w(u o i d))
-    word8 = create_word(%w(c a r n a l))
+    page23 = "ᛋᚹᚩᛉᚹ-ᚩᛝᚢ-ᚻᛝᛟ-ᛏᛚᚠ-ᛄᚷᛏᛝᛄᛝ".reverse
+    page56 = "ᚳᛉ-ᛞᛄᚢ-ᛒᛖᛁ".reverse
+    page = Primus::LiberPrimus::Page.new(data: page23, number: 1)
+    builder = Primus::Document::Builder.new(pages: page)
+    builder.build
+    document = builder.result
+    translation = document.accept(Primus::Document::Translator.new)
+    result1 = translation.accept(totient)
+    result2 = result1.accept(atbash)
+
+    #binding.pry
   end
 
   xit "investigate pages 0 to 3" do
@@ -174,6 +249,42 @@ RSpec.describe "investigation" do
     translator.translate
 
     expect(translator.result.to_s).to eq("")
+  end
+
+  it "investigate pages" do
+    document = Primus::LiberPrimus.page(page_number: 55)
+
+    translation = document.accept(Primus::Document::Translator.new)
+
+    #binding.pry
+  end
+
+  it "investigate mabinogion" do
+    page = Primus::Page.open(path: "2012/mabinogion")
+    lexer = Primus::Lexer.build(page: page)
+    lexer.tokenize
+    parser = Primus::Parser.new(tokens: lexer.tokens)
+    parser.parse
+    document = parser.result
+
+    translation = document.accept(
+      Primus::Document::Translator.new(search_key: :letter)
+    )
+
+    puts translation.word_count
+    puts translation.character_count
+
+    unique_words = translation.words.uniq(&:to_s)
+
+    dict = {}
+    unique_words.reduce(dict) do |dict, word|
+      sum = word.sum
+      dict[sum] ||= []
+      dict[sum] << word.to_s(:letter)
+      dict
+    end
+
+    #binding.pry
   end
 
   xit "can subtract gp words" do

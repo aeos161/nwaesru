@@ -18,6 +18,7 @@ class Primus::GematriaPrimus::Token
   end
 
   def <=>(token)
+    return letter <=> token.letter if to_i == token.to_i
     to_i <=> token.to_i
   end
 
@@ -61,8 +62,9 @@ class Primus::GematriaPrimus::Token
     value.to_i
   end
 
-  def to_s(method = :rune)
+  def to_s(method = :rune, alt: false)
     return rune if method == :rune
+    return alt_letter if alt
     letter
   end
 

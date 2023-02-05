@@ -17,11 +17,11 @@ RSpec.describe Primus do
 
   describe "#to_word" do
     it "standardizes the word" do
-      text = "zkia"
+      text = "zkio"
 
       result = Primus.to_word(text)
 
-      expect(result.to_s(:letter)).to eq("scio")
+      expect(result.to_s(:letter)).to eq("scia")
     end
 
     it "properly tokenizes the word" do

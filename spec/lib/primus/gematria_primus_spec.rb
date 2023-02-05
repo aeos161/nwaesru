@@ -96,6 +96,5 @@ RSpec.describe Primus::GematriaPrimus do
         expect(result.map(&:to_s)).to match_array(["ᚦᚳ", "ᚩᚱ", "ᚱᚩ", "ᚳᚦ"])
       end
     end
-
   end
 end

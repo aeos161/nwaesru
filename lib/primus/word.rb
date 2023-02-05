@@ -1,4 +1,5 @@
 class Primus::Word
+  include Comparable
   include Enumerable
 
   attr_reader :tokens
@@ -11,6 +12,10 @@ class Primus::Word
 
   def ==(word)
     tokens == word.tokens
+  end
+
+  def <=>(word)
+    tokens <=> word.tokens
   end
 
   def <<(token)
@@ -37,7 +42,9 @@ class Primus::Word
   end
 
   def to_s(method = :rune)
-    tokens.map { |tk| tk.to_s(method) }.join
+    expander = Primus::Word::Expander.new(method: method)
+    expander.visit_word(self)
+    expander.results.first
   end
 
   def size

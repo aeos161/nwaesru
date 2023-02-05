@@ -1,3 +1,9 @@
+require "numeric_inverse/ext"
+
+require "linguo"
+require "prime"
+require "psych"
+
 module Primus
   module Processor; end
 
@@ -35,12 +41,6 @@ module Primus
     translator.visit_word(Primus::Word.new(tokens: lexer.tokens))
   end
 end
-
-require "numeric_inverse/ext"
-
-require "linguo"
-require "prime"
-require "psych"
 
 require "primus/core_extensions/string_monkey_patch"
 
@@ -83,5 +83,6 @@ require "primus/token/punctuation"
 require "primus/token/sentence_delimiter"
 require "primus/token/word_delimiter"
 require "primus/word"
+require "primus/word/expander"
 
 Primus::CoreExtensions::StringMonkeyPatch.apply_patch
