@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+require "thor"
+require "pry"
+require "./lib/primus.rb"
+
+module Primus
+  class Cli < Thor
+    def self.exit_on_failure?
+      true
+    end
+
+    desc "words", "generate words"
+    subcommand "words", Primus::Commands::Words
+
+    desc "crib", "generate keys"
+    subcommand "crib", Primus::Commands::Crib
+  end
+end
+
+Primus::Cli.start

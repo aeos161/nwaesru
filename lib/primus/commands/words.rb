@@ -1,9 +1,4 @@
-#!/usr/bin/env ruby
-require "thor"
-require "pry"
-require "primus"
-
-class WordsCommand < Thor
+class Primus::Commands::Words < Primus::Commands::SubCommandBase
   desc "generate", "Generate words"
   option :number_of_characters, type: :string, required: true, aliases: :n
   option :only_english_words, type: :boolean
@@ -36,5 +31,3 @@ class WordsCommand < Thor
     end
   end
 end
-
-WordsCommand.start

@@ -5,6 +5,7 @@ require "prime"
 require "psych"
 
 module Primus
+  module Commands; end
   module Processor; end
 
   def self.index_of_coincidence(document:, length: 1, alphabet: nil)
@@ -84,5 +85,9 @@ require "primus/token/sentence_delimiter"
 require "primus/token/word_delimiter"
 require "primus/word"
 require "primus/word/expander"
+
+require "primus/commands/sub_command_base"
+require "primus/commands/words"
+require "primus/commands/crib"
 
 Primus::CoreExtensions::StringMonkeyPatch.apply_patch

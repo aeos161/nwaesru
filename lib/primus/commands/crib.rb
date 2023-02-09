@@ -1,8 +1,4 @@
-#!/usr/bin/env ruby
-require "thor"
-require "./lib/primus.rb"
-
-class CribCommand < Thor
+class Primus::Commands::Crib < Primus::Commands::SubCommandBase
   desc "generate", "Generate a key to satisfy cipher text"
   option :cipher_text, type: :string, required: true
   option :plain_text, type: :string, required: true, repeatable: true
@@ -15,5 +11,3 @@ class CribCommand < Thor
     end
   end
 end
-
-CribCommand.start
