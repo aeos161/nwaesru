@@ -3,6 +3,7 @@ require "numeric_inverse/ext"
 require "linguo"
 require "prime"
 require "psych"
+require "thor"
 
 module Primus
   module Commands; end
