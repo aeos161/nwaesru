@@ -4,31 +4,45 @@ class Primus::Commands::Brute < Primus::Commands::SubCommandBase
   desc "crib", "Generate candidate english words/phrases for cipher text"
   option :require_prime_sum, type: :boolean
   option :break_at, type: :numeric
+  option :paralellism, type: :numeric
   def crib(cipher_text_input)
+    paralellism = options.fetch(:paralellism, 5)
     break_at = options[:break_at]
+
     @cipher_text = parse(cipher_text_input)
     assert_ngram_size_is_supported!
     @bi_grams = load_bi_grams
     @tri_grams = load_tri_grams
 
-    candidates = []
+    phrases = []
 
     @tri_grams.each do |word0|
       @bi_grams.each do |word1|
         @tri_grams.each do |word2|
-          candidates << [word0, word1, word2]
-          break if break_at && candidates.size >= break_at
+          phrases << [word0, word1, word2]
+          break if break_at && phrases.size >= break_at
         end
-        break if break_at && candidates.size >= break_at
+        break if break_at && phrases.size >= break_at
       end
-      break if break_at && candidates.size >= break_at
+      break if break_at && phrases.size >= break_at
     end
 
-    candidates = candidates.select { |phrase| phrase.map(&:gp_sum).sum.prime? }
+    chunks = phrases.each_slice(phrases.size / paralellism.to_f)
+    @candidates = []
+    threads = []
+
+    chunks.each do |chunk|
+      threads << Thread.new do
+        result = chunk.select { |phrase| phrase.map(&:gp_sum).sum.prime? }
+        @candidates.concat(result)
+      end
+    end
+
+    threads.each(&:join)
 
     puts "Cipher Text: #{cipher_text.join(" ")}"
-    puts "Number of Results: #{candidates.size}"
-    puts candidates.map { |phrase| phrase.join(" ") + "." }
+    puts "Number of Results: #{@candidates.size}"
+    puts @candidates.map { |phrase| phrase.join(" ") + "." }
   end
 
   desc "key", "Generate a key to satisfy cipher text"
