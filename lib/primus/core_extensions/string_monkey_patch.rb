@@ -19,11 +19,15 @@ module Primus
       end
 
       def gp_sum
-        Primus.sum(self)
+        Primus.sum(self).sum
       end
 
       def to_gp(strategy = :letter)
         Primus.parse(self, strategy)
+      end
+
+      def prime?
+        gp_sum.prime?
       end
     end
   end
