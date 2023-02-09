@@ -22,27 +22,6 @@ RSpec.describe "investigation" do
     end
   end
 
-  it "investigate page 7" do
-    #red = "ᛞᚩ-ᛟᛏᚦᚫ.ᚳᚹᛄ-ᛉᛠ-ᚷᛠᛗ"
-    red = Primus::parse("ᚳᚹᛄ ᛉᛠ ᚷᛠᛗ", :rune)
-    gp = Primus::GematriaPrimus.instance
-    #prime_sums = (16..872).select(:prime?)
-
-    #two_candidates = gp.generate_words(number_of_characters: 2)
-    #three_candidates = gp.generate_words(number_of_characters: 3)
-    #four_candidates = gp.generate_words(number_of_characters: 4)
-    #five_candidates = gp.generate_words(number_of_characters: 5)
-
-    #binding.pry
-    #word_list = gp.generate_words(number_of_characters: 8)
-    # generate all combinations of 3-2-3
-    # filter to only those that sum to a prime number
-    # convert to english words
-
-
-
-  end
-
   it "investigate pages 23 to 26" do
     document = Primus::LiberPrimus.chapter(page_numbers: 23..26)
     #document2 = Primus::Document.new(text: document.text.reverse)

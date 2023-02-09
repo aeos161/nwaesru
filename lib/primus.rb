@@ -32,7 +32,8 @@ module Primus
   end
 
   def self.parse(text, strategy = :letter)
-    text = text.respond_to?(:split) ? text.split(" ") : text
+    splitter = strategy == :rune ? "-" : " "
+    text = text.respond_to?(:split) ? text.split(splitter) : text
     text.map { |word| to_word(word, strategy) }
   end
 
@@ -89,6 +90,6 @@ require "primus/word/expander"
 
 require "primus/commands/sub_command_base"
 require "primus/commands/words"
-require "primus/commands/crib"
+require "primus/commands/brute"
 
 Primus::CoreExtensions::StringMonkeyPatch.apply_patch

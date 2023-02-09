@@ -9,11 +9,11 @@ module Primus
       true
     end
 
-    desc "words", "generate words"
+    desc "words", "generate n-grams"
     subcommand "words", Primus::Commands::Words
 
-    desc "crib", "generate keys"
-    subcommand "crib", Primus::Commands::Crib
+    desc "brute", "brute force attempts"
+    subcommand "brute", Primus::Commands::Brute
   end
 end
 
