@@ -46,7 +46,8 @@ class Primus::GematriaPrimus
   end
 
   def self.instance(tokens: nil)
-    tokens ||= load_alphabet
+    load_alphabet
+    tokens ||= @@alphabet
     new(tokens: tokens)
   end
 
@@ -55,15 +56,18 @@ class Primus::GematriaPrimus
   end
 
   def self.load_alphabet
+    return unless @@alphabet.nil?
     path = "data/gematria_primus.yml"
-    alphabet = Psych.safe_load(File.read(path))["tokens"]
-    alphabet.map.with_index do |data, index|
+    tokens = Psych.safe_load(File.read(path))["tokens"]
+    @@alphabet = tokens.map.with_index do |data, index|
       params = data.transform_keys(&:to_sym).merge(index: index)
       Token.new(params)
     end
   end
 
   protected
+
+  @@alphabet = nil
 
   attr_reader :tokens
 

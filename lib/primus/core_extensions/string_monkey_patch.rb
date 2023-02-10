@@ -1,3 +1,5 @@
+require "benchmark"
+
 module Primus
   module CoreExtensions
     module StringMonkeyPatch

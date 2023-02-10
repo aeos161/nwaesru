@@ -5,6 +5,16 @@ RSpec.describe Primus::GematriaPrimus do
 
       expect(result.size).to eq(29)
     end
+
+    it "only loads the yaml file once" do
+      Primus::GematriaPrimus.class_variable_set(:@@alphabet, nil)
+      allow(Psych).to receive(:safe_load).and_call_original
+
+      Primus::GematriaPrimus.build
+      Primus::GematriaPrimus.build
+
+      expect(Psych).to have_received(:safe_load).once
+    end
   end
 
   describe "#size" do

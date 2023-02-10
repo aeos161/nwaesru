@@ -2,7 +2,7 @@ class Primus::Document::Translator
   attr_reader :dictionary
 
   def initialize(dictionary: nil, search_key: :rune)
-    @dictionary = dictionary || Primus::GematriaPrimus.build
+    @dictionary = dictionary || Primus::GematriaPrimus.instance
     @search_key = search_key || :rune
   end
 
