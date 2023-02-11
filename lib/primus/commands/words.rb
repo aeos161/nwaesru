@@ -1,4 +1,17 @@
 class Primus::Commands::Words < Primus::Commands::SubCommandBase
+  desc "sum", "Get the Gematria Primus sum of a word"
+  option :parse_runes, type: :boolean
+  def sum(cipher_text)
+    parser = options[:parse_runes] ? :rune : :letter
+    word_sums = Primus.sum(cipher_text, parser)
+    total = word_sums.sum
+    puts "Word: #{cipher_text}"
+    puts "Letters: #{word_sums.join(', ')}"
+    puts "Sum: #{total}"
+    puts "Prime: #{total.prime?}"
+    puts "Emirp: #{total.emirp?}"
+  end
+
   desc "generate", "Generate words"
   option :number_of_characters, type: :string, required: true, aliases: :n
   option :only_english_words, type: :boolean
