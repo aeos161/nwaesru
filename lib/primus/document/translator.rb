@@ -6,6 +6,8 @@ class Primus::Document::Translator
     @search_key = search_key || :rune
   end
 
+  def skip_sequence=(value); end
+
   def visit_word(word)
     tokens = word.map do |tk|
       token = dictionary.find_by(search_key => tk.lexeme)

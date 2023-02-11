@@ -9,11 +9,27 @@ module Primus
       true
     end
 
+    desc "brute", "brute force attempts"
+    subcommand "brute", Primus::Commands::Brute
+
     desc "words", "generate n-grams"
     subcommand "words", Primus::Commands::Words
 
-    desc "brute", "brute force attempts"
-    subcommand "brute", Primus::Commands::Brute
+    desc "decode", "decode a section of cipher text"
+    option :cipher, type: :string, required: true, repeatable: true
+    option :key, type: :string
+    option :skip, type: :numeric, repeatable: true
+    def decode(section)
+      document = Primus::LiberPrimus.chapter(page_numbers: Array(section))
+      Array(options[:cipher]).each do |cipher_name|
+        factory = Primus::Document::CipherFactory.new(name: cipher_name)
+        factory.key = options[:key]
+        factory.skip_sequence = options[:skip]
+        decoder = factory.find
+        document = document.accept(decoder)
+      end
+      puts document.to_s
+    end
   end
 end
 
