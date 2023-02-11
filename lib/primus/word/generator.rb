@@ -6,6 +6,8 @@ class Primus::Word::Generator
     @number_of_characters = number_of_characters
     @results = []
     @dictionary = dictionary || initialize_default_dictionary
+    @file_name = "./data/ngrams/english/length_#{number_of_characters}.yml"
+    @data = Psych.safe_load(File.read(@file_name))["data"] || []
   end
 
   def generate_candidate_strings
@@ -22,27 +24,35 @@ class Primus::Word::Generator
       expander = Primus::Word::Expander.new(method: :letter)
       expander.visit_word(word)
       expander.results
-    end.uniq
+    end.sort.uniq
   end
 
   def exclude_invalid_words
     @results = results.select do |word|
       parsed_word = Primus.parse(word).first
-      word.size == parsed_word.size
+      parsed_word.size == number_of_characters
     end
   end
 
   def limit_to_english_words
     @results.select do |word|
-      lemma = dictionary.lemma(word: word, language: "en", params: {})
-      lemma.error.nil?
-    end.tap do |word|
-      File.write("./dictionary_results", word + "\n", mode: "a")
-      sleep 2
+      word_found = data.include? word
+      unless word_found
+        sleep 1
+        lemma = dictionary.lemma(word: word, language: "en", params: {})
+        word_found = lemma.error.nil?
+        if word_found
+          @data << word
+          File.write(file_name, " - #{word}\n", mode: "a")
+        end
+      end
+      word_found
     end
   end
 
   protected
+
+  attr_reader :file_name, :data
 
   def initialize_default_dictionary
     id = ENV["OXFORD_APP_ID"]

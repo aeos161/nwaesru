@@ -14,7 +14,7 @@ class Primus::Commands::Words < Primus::Commands::SubCommandBase
 
   desc "generate", "Generate words"
   option :number_of_characters, type: :string, required: true, aliases: :n
-  option :only_english_words, type: :boolean
+  option :only_english, type: :boolean
   option :only_prime_sums, type: :boolean
   def generate
     n = options[:number_of_characters].to_i
@@ -25,7 +25,7 @@ class Primus::Commands::Words < Primus::Commands::SubCommandBase
     end
     generator.expand_strings_to_words
     generator.exclude_invalid_words
-    if options[:only_english_words]
+    if options[:only_english]
       generator.limit_to_english_words
     end
     candidates = generator.results
