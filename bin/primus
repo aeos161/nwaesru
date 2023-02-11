@@ -30,6 +30,14 @@ module Primus
       end
       puts document.to_s
     end
+
+    desc "sum", "represent the text a gematria primus sums"
+    def sum(section)
+      document = Primus::LiberPrimus.chapter(page_numbers: Array(section))
+      translator = Primus::Document::Translator.new
+      document = document.accept(translator)
+      puts document.words.map(&:sum).to_s
+    end
   end
 end
 

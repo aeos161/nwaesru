@@ -28,7 +28,7 @@ class Primus::Document::Decoder
 
   def skip?
     next_index = number_of_characters_processed + 1
-    true if skip_sequence.include? next_index
+    true if (skip_sequence || []).include? next_index
   end
 
   def process(character)
