@@ -1,6 +1,6 @@
 module Primus
   module CoreExtensions
-    module StringMonkeyPatch
+    module IntegerMonkeyPatch
       class << self
         def apply_patch
           const = find_const
@@ -13,21 +13,13 @@ module Primus
         private
 
         def find_const
-          Kernel.const_get("::String")
+          Kernel.const_get("::Integer")
         rescue NameError
         end
       end
 
-      def gp_sum
-        Primus.sum(self).sum
-      end
-
-      def to_gp(strategy = :letter)
-        Primus.parse(self, strategy)
-      end
-
-      def prime?
-        gp_sum.prime?
+      def emirp?
+        to_s.reverse.to_i.prime?
       end
     end
   end

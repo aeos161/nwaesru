@@ -45,6 +45,7 @@ module Primus
   end
 end
 
+require "primus/core_extensions/integer_monkey_patch"
 require "primus/core_extensions/string_monkey_patch"
 
 require "primus/page"
@@ -94,3 +95,4 @@ require "primus/commands/words"
 require "primus/commands/brute"
 
 Primus::CoreExtensions::StringMonkeyPatch.apply_patch
+Primus::CoreExtensions::IntegerMonkeyPatch.apply_patch
