@@ -1,6 +1,6 @@
 require "numeric_inverse/ext"
 
-require "linguo"
+require "oxford_dictionary"
 require "prime"
 require "psych"
 require "thor"

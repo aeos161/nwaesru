@@ -1,10 +1,11 @@
 class Primus::Word::Generator
-  attr_reader :alphabet, :number_of_characters, :results
+  attr_reader :alphabet, :dictionary, :number_of_characters, :results
 
-  def initialize(alphabet: nil, number_of_characters:)
+  def initialize(alphabet: nil, number_of_characters:, dictionary: nil)
     @alphabet = alphabet || Primus::GematriaPrimus.instance
     @number_of_characters = number_of_characters
     @results = []
+    @dictionary = dictionary || initialize_default_dictionary
   end
 
   def generate_candidate_strings
@@ -32,6 +33,20 @@ class Primus::Word::Generator
   end
 
   def limit_to_english_words
-    # TODO: use oxford dictionary api
+    @results.select do |word|
+      lemma = dictionary.lemma(word: word, language: "en", params: {})
+      lemma.error.nil?
+    end.tap do |word|
+      File.write("./dictionary_results", word + "\n", mode: "a")
+      sleep 2
+    end
+  end
+
+  protected
+
+  def initialize_default_dictionary
+    id = ENV["OXFORD_APP_ID"]
+    key = ENV["OXFORD_APP_KEY"]
+    OxfordDictionary.new(app_id: id, app_key: key)
   end
 end

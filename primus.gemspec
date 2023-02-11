@@ -10,8 +10,8 @@ Gem::Specification.new do |config|
   config.homepage = "https://rubygems.org/gems/primus"
   config.license = "MIT"
 
-  config.add_runtime_dependency "linguo"
-  config.add_runtime_dependency "thor"
+  config.add_runtime_dependency "oxford_dictionary", "~> 3.0"
+  config.add_runtime_dependency "thor", "~> 1.2"
 
   config.add_development_dependency "simplecov", "~> 0.2"
   config.add_development_dependency "bundler", "~> 2.1"
