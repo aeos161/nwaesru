@@ -89,6 +89,7 @@ require "primus/token/sentence_delimiter"
 require "primus/token/word_delimiter"
 require "primus/word"
 require "primus/word/expander"
+require "primus/word/generator"
 
 require "primus/commands/sub_command_base"
 require "primus/commands/words"
