@@ -78,6 +78,9 @@ require "primus/lexer"
 require "primus/liber_primus"
 require "primus/liber_primus/page"
 
+require "primus/ngram"
+require "primus/ngram/identity_map"
+
 require "primus/parser"
 
 require "primus/token"

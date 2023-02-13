@@ -4,10 +4,10 @@ class Primus::Word::Generator
   def initialize(alphabet: nil, number_of_characters:, dictionary: nil)
     @alphabet = alphabet || Primus::GematriaPrimus.instance
     @number_of_characters = number_of_characters
+    @identity_map =
+      Primus::Ngram::IdentityMap.new(number_of_characters: number_of_characters)
     @results = []
     @dictionary = dictionary || initialize_default_dictionary
-    @file_name = "./data/ngrams/english/length_#{number_of_characters}.yml"
-    @data = Psych.safe_load(File.read(@file_name))["data"] || []
   end
 
   def generate_candidate_strings
@@ -35,24 +35,21 @@ class Primus::Word::Generator
   end
 
   def limit_to_english_words
-    @results.select do |word|
-      word_found = data.include? word
-      unless word_found
+    @results = results.select do |word|
+      ngram = identity_map.find(word)
+      if ngram.nil?
         sleep 1
         lemma = dictionary.lemma(word: word, language: "en", params: {})
-        word_found = lemma.error.nil?
-        if word_found
-          @data << word
-          File.write(file_name, " - #{word}\n", mode: "a")
-        end
+        ngram = Primus::Ngram.new(ngram: word, valid: lemma.error.nil?)
+        identity_map.store(ngram)
       end
-      word_found
+      ngram.valid?
     end
   end
 
   protected
 
-  attr_reader :file_name, :data
+  attr_reader :identity_map
 
   def initialize_default_dictionary
     id = ENV["OXFORD_APP_ID"]

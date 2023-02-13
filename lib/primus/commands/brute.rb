@@ -1,6 +1,7 @@
 class Primus::Commands::Brute < Primus::Commands::SubCommandBase
   class_option :parse_runes, type: :boolean
 
+  # not ready for production
   desc "crib", "Generate candidate english words/phrases for cipher text"
   option :require_prime_sum, type: :boolean
   option :break_at, type: :numeric
@@ -11,6 +12,7 @@ class Primus::Commands::Brute < Primus::Commands::SubCommandBase
 
     @cipher_text = parse(cipher_text_input)
     assert_ngram_size_is_supported!
+    @unigrams = load_unigrams
     @bi_grams = load_bi_grams
     @tri_grams = load_tri_grams
 
@@ -70,17 +72,22 @@ class Primus::Commands::Brute < Primus::Commands::SubCommandBase
   end
 
   def assert_ngram_size_is_supported!
-    return if cipher_text.map(&:size).reject { |n| (2..3).cover? n }.none?
-    fail "Only 2 or 3 letter n-grams are currently supported"
+    return if cipher_text.map(&:size).reject { |n| (1..3).cover? n }.none?
+    fail "Only 1, 2, or 3 letter n-grams are currently supported"
+  end
+
+  def load_unigrams
+    path = "./data/ngrams/english/length_1.yml"
+    Psych.safe_load(File.read(path))["data"]
   end
 
   def load_bi_grams
-    path = "./data/lexicon/english_word_gp_bi_grams.yml"
+    path = "./data/ngrams/english/length_2.yml"
     Psych.safe_load(File.read(path))["data"]
   end
 
   def load_tri_grams
-    path = "./data/lexicon/english_word_gp_tri_grams.yml"
+    path = "./data/ngrams/english/length_3.yml"
     Psych.safe_load(File.read(path))["data"]
   end
 end
