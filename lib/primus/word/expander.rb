@@ -36,7 +36,7 @@ class Primus::Word::Expander
   end
 
   def extract_letters_from(token)
-    if method == :letter && token.respond_to?(:alt) && token.alt?
+    if method == :letter && token.respond_to?(:alt?) && token.alt?
       alt_token = token.dup
       alt_token.letter = token.alt_letter
       [token, alt_token].sort.cycle(results.size / 2)
