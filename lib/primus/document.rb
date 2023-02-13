@@ -51,6 +51,12 @@ class Primus::Document
     words.flat_map(&:tokens)
   end
 
+  def reverse
+    reverser = Primus::Document::WordReverser.new
+    reversed_words = accept(reverser)
+    Primus::Document.new(text: reversed_words.text.reverse)
+  end
+
   def accept(visitor)
     visited_text = text.map { |element| element.accept(visitor) }
     Primus::Document.new(text: visited_text)
