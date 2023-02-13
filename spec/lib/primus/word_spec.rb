@@ -85,4 +85,14 @@ RSpec.describe Primus::Word do
       expect(result).to eq(376)
     end
   end
+
+  describe "#reverse" do
+    it "reverses the word" do
+      word = create_word(%w(i n s t a r))
+
+      result = word.reverse
+
+      expect(result).to eq(create_word(%w(r a t s n i)))
+    end
+  end
 end

@@ -59,6 +59,10 @@ class Primus::Word
     map(&:to_i).sum(0)
   end
 
+  def reverse
+    Primus::Word.new(tokens: tokens.reverse)
+  end
+
   def accept(visitor)
     visitor.visit_word(self)
   end

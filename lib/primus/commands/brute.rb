@@ -47,8 +47,12 @@ class Primus::Commands::Brute < Primus::Commands::SubCommandBase
 
   desc "key", "Generate a key to satisfy cipher text"
   option :plain_text, type: :string, required: true, repeatable: true
+  option :reverse, type: :boolean
   def key(cipher_text)
     cipher_text = parse(cipher_text).first
+    if options[:reverse]
+      cipher_text = cipher_text.reverse
+    end
     plain_text_options = Primus.parse(options[:plain_text])
     plain_text_options.each do |plain_text|
       key = cipher_text - plain_text
