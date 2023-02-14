@@ -1,5 +1,5 @@
 class Primus::Commands::Brute < Primus::Commands::SubCommandBase
-  class_option :parse_runes, type: :boolean
+  class_option :parser, type: :string, default: :letter
 
   # not ready for production
   desc "crib", "Generate candidate english words/phrases for cipher text"
@@ -51,20 +51,25 @@ class Primus::Commands::Brute < Primus::Commands::SubCommandBase
   option :plain_text, type: :string, required: true, repeatable: true
   option :reverse, type: :boolean
   def key(cipher_text)
-    cipher_text = parse(cipher_text).first
-    if options[:reverse]
-      cipher_text = cipher_text.reverse
-    end
+    finder = Primus::Document::KeyFinder.
+             build(cipher_text, parser: options[:parser],
+                                reverse: options[:reverse])
     plain_text_options = Primus.parse(options[:plain_text])
     plain_text_options.each do |plain_text|
-      key = cipher_text - plain_text
-      puts "#{cipher_text.to_s(:letter)} to #{plain_text.to_s(:letter)} => Key: #{key.to_s(:letter)}"
+      key = finder.find(plain_text: plain_text)
+      print_key plain_text, key
     end
   end
 
   protected
 
   attr_reader :cipher_text
+
+  def print_key(plain_text, key)
+    print " - #{plain_text.to_s(:letter)} => #{key.to_s(:letter)}"
+    print " order:[#{key.map(&:index).join(", ")}]"
+    puts " value:[#{key.map(&:to_i).join(", ")}]"
+  end
 
   def parse(cipher_text)
     parser = options[:parse_runes] ? :rune : :letter
