@@ -1,4 +1,16 @@
 class Primus::Commands::Words < Primus::Commands::SubCommandBase
+  desc "scan", "Find instances of a word pattern"
+  option :pattern, type: :string, required: true
+  def scan(section)
+    pattern = options[:pattern].split("-").map(&:to_i)
+    document = Primus::LiberPrimus.chapter(page_numbers: Array(section))
+    results = document.scan(pattern)
+    results.each do |result|
+      first_location = result.first.first.location
+      puts "Line ##{first_location.line} - #{result.map(&:to_s).join("-")}"
+    end
+  end
+
   desc "sum", "Get the Gematria Primus sum of a word"
   option :parse_runes, type: :boolean
   def sum(cipher_text)

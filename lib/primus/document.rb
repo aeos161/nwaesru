@@ -57,6 +57,12 @@ class Primus::Document
     Primus::Document.new(text: reversed_words.text.reverse)
   end
 
+  def scan(pattern)
+    matcher = Primus::Document::PatternMatcher.new(pattern: pattern)
+    accept(matcher)
+    matcher.results
+  end
+
   def accept(visitor)
     visited_text = text.map { |element| element.accept(visitor) }
     Primus::Document.new(text: visited_text)

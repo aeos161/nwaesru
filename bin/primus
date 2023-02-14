@@ -15,7 +15,7 @@ module Primus
     desc "files", "perform file operations"
     subcommand "files", Primus::Commands::Files
 
-    desc "words", "generate n-grams"
+    desc "words", "work with words"
     subcommand "words", Primus::Commands::Words
 
     desc "decode", "decode a section of cipher text"
