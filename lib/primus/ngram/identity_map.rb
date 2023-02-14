@@ -14,6 +14,8 @@ class Primus::Ngram::IdentityMap
   end
 
   def store(ngram)
+    return if ngram.persisted?
+
     if ngram.valid?
       @valid_ngrams << ngram.to_s
       file_name = @valid_file_name
@@ -21,7 +23,8 @@ class Primus::Ngram::IdentityMap
       @invalid_ngrams << ngram.to_s
       file_name = @invalid_file_name
     end
-    File.write(file_name, " - #{ngram}\n", mode: "a")
+
+    File.write(file_name, " - \"#{ngram}\"\n", mode: "a")
   end
 
   protected
@@ -37,11 +40,11 @@ class Primus::Ngram::IdentityMap
 
   def find_valid_ngram(ngram)
     return unless @valid_ngrams.include? ngram
-    Primus::Ngram.new(ngram: ngram, valid: true)
+    Primus::Ngram.new(ngram: ngram, valid: true, persisted: true)
   end
 
   def find_invalid_ngram(ngram)
     return unless @invalid_ngrams.include? ngram
-    Primus::Ngram.new(ngram: ngram, valid: false)
+    Primus::Ngram.new(ngram: ngram, valid: false, persisted: true)
   end
 end
