@@ -12,6 +12,9 @@ module Primus
     desc "brute", "brute force attempts"
     subcommand "brute", Primus::Commands::Brute
 
+    desc "files", "perform file operations"
+    subcommand "files", Primus::Commands::Files
+
     desc "words", "generate n-grams"
     subcommand "words", Primus::Commands::Words
 

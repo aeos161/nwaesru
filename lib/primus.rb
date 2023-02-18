@@ -99,6 +99,7 @@ require "primus/word/generator"
 require "primus/commands/sub_command_base"
 require "primus/commands/words"
 require "primus/commands/brute"
+require "primus/commands/files"
 
 Primus::CoreExtensions::StringMonkeyPatch.apply_patch
 Primus::CoreExtensions::IntegerMonkeyPatch.apply_patch
