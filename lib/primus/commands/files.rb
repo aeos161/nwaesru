@@ -25,6 +25,15 @@ class Primus::Commands::Files < Primus::Commands::SubCommandBase
 
   desc "xor", "XOR two files"
   def xor(file_a, file_b)
-
+    File.open(file_a, "rb") do |file_a|
+      File.open(file_b, "rb") do |file_b|
+        bytes_a = file_a.read.bytes
+        bytes_b = file_b.read.bytes
+        result = bytes_a.enum_for(:each_with_index).map do |byte, index|
+          byte ^ bytes_b[index]
+        end
+        print result.pack("C*")
+      end
+    end
   end
 end
