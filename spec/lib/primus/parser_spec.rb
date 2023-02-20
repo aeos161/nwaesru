@@ -4,10 +4,10 @@ RSpec.describe Primus::Parser do
       tokens = [
         Primus::Token::Character.new(lexeme: "ᚫ", location: double),
         Primus::Token::Character.new(lexeme: "ᛄ", location: double),
-        Primus::Token::WordDelimiter::new(location: double),
+        Primus::Token::WordDelimiter::new(lexeme: "-", location: double),
         Primus::Token::Character.new(lexeme: "ᛟ", location: double),
         Primus::Token::Character.new(lexeme: "ᚱ", location: double),
-        Primus::Token::SentenceDelimiter.new(location: double),
+        Primus::Token::SentenceDelimiter.new(lexeme: ".", location: double),
       ]
       parser = Primus::Parser.new(tokens: tokens)
 
@@ -21,10 +21,10 @@ RSpec.describe Primus::Parser do
       tokens = [
         Primus::Token::Character.new(lexeme: "ᚫ", location: double),
         Primus::Token::Character.new(lexeme: "ᛄ", location: double),
-        Primus::Token::LineBreak::new(location: double),
+        Primus::Token::LineBreak::new(lexeme: "/", location: double),
         Primus::Token::Character.new(lexeme: "ᛟ", location: double),
         Primus::Token::Character.new(lexeme: "ᚱ", location: double),
-        Primus::Token::WordDelimiter::new(location: double),
+        Primus::Token::WordDelimiter::new(lexeme: ".", location: double),
       ]
       parser = Primus::Parser.new(tokens: tokens)
 
@@ -47,7 +47,7 @@ RSpec.describe Primus::Parser do
         Primus::Token::Character.new(lexeme: "b", location: double),
         Primus::Token::Character.new(lexeme: "1", location: double),
         Primus::Token::Character.new(lexeme: "2", location: double),
-        Primus::Token::LineBreak::new(location: double),
+        Primus::Token::LineBreak::new(lexeme: "/", location: double),
       ]
       parser = Primus::Parser.new(tokens: tokens)
 
@@ -61,7 +61,7 @@ RSpec.describe Primus::Parser do
           Primus::Token::Character.new(lexeme: "1", location: double),
           Primus::Token::Character.new(lexeme: "2", location: double),
         ]),
-        Primus::Token::LineBreak::new(location: double),
+        Primus::Token::LineBreak::new(lexeme: "/", location: double),
       ])
     end
 

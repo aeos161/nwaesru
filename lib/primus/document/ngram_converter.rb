@@ -30,7 +30,7 @@ class Primus::Document::NgramConverter
   def append(tokens, to:)
     tokens = [tokens[0], Primus::Token::Punctuation.new(lexeme: "."), tokens[1]]
     to << Primus::Word.new(tokens: tokens)
-    to << Primus::Token::WordDelimiter.new
+    to << Primus::Token::WordDelimiter.new(lexeme: "-")
     to
   end
 end

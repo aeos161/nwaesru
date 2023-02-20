@@ -27,20 +27,22 @@ module Primus
     numerator / denominator
   end
 
-  def self.sum(text, strategy = :letter)
+  def self.sum(text, strategy = :english)
     parse(text, strategy).map(&:sum)
   end
 
-  def self.parse(text, strategy = :letter)
+  def self.parse(text, strategy = :english)
     splitter = strategy == :rune ? "-" : " "
     text = text.respond_to?(:split) ? text.split(splitter) : text
     text.map { |word| to_word(word, strategy) }
   end
 
-  def self.to_word(text, strategy = :letter)
-    lexer = Primus::Lexer.new(data: text)
+  def self.to_word(text, strategy = :english)
+    factory = Primus::Lexer::Factory.new(strategy: strategy)
+    strategy = factory.build(data: text)
+    lexer = Primus::Lexer.new(strategy: strategy)
     lexer.tokenize
-    translator = Primus::Document::Translator.new(search_key: strategy)
+    translator = Primus::Document::Translator.new(strategy: strategy)
     translator.visit_word(Primus::Word.new(tokens: lexer.tokens))
   end
 end
@@ -77,6 +79,10 @@ require "primus/latin_alphabet"
 require "primus/latin_alphabet/token"
 
 require "primus/lexer"
+require "primus/lexer/english"
+require "primus/lexer/factory"
+require "primus/lexer/runic"
+
 require "primus/liber_primus"
 require "primus/liber_primus/page"
 
@@ -86,11 +92,13 @@ require "primus/ngram/identity_map"
 require "primus/parser"
 
 require "primus/token"
-require "primus/token/factory"
+require "primus/token/english"
+require "primus/token/runic"
 require "primus/token/character"
 require "primus/token/line_break"
 require "primus/token/location"
 require "primus/token/punctuation"
+require "primus/token/quotation_mark"
 require "primus/token/sentence_delimiter"
 require "primus/token/word_delimiter"
 require "primus/word"
