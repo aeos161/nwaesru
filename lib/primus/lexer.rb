@@ -19,7 +19,9 @@ class Primus::Lexer
     end
   end
 
-  def self.build(page:, starting_line: 0, starting_position: 0)
+  def self.build(page:, strategy: nil, starting_line: 0, starting_position: 0)
+    factory = Primus::Lexer::Factory.new(strategy: strategy || :runic)
+    strategy = factory.build
     new(data: page.data, line: starting_line, position: starting_position)
   end
 

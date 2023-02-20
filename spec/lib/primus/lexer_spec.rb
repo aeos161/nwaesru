@@ -3,7 +3,7 @@ RSpec.describe Primus::Lexer do
     it "loads the data for a page" do
       page = Primus::LiberPrimus::Page.new(data: "lexical data")
 
-      lexer = Primus::Lexer.build(page: page)
+      lexer = Primus::Lexer.build(page: page, strategy: :english)
 
       expect(lexer.data).to match_array(page.data.split("").to_enum)
     end

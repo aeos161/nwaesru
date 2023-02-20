@@ -77,6 +77,10 @@ require "primus/latin_alphabet"
 require "primus/latin_alphabet/token"
 
 require "primus/lexer"
+require "primus/lexer/english"
+require "primus/lexer/factory"
+require "primus/lexer/runic"
+
 require "primus/liber_primus"
 require "primus/liber_primus/page"
 
@@ -87,10 +91,12 @@ require "primus/parser"
 
 require "primus/token"
 require "primus/token/factory"
+require "primus/token/runic"
 require "primus/token/character"
 require "primus/token/line_break"
 require "primus/token/location"
 require "primus/token/punctuation"
+require "primus/token/quotation_mark"
 require "primus/token/sentence_delimiter"
 require "primus/token/word_delimiter"
 require "primus/word"
