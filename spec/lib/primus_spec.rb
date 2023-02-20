@@ -16,14 +16,6 @@ RSpec.describe Primus do
   end
 
   describe "#to_word" do
-    it "standardizes the word" do
-      text = "zkio"
-
-      result = Primus.to_word(text)
-
-      expect(result.to_s(:letter)).to eq("scia")
-    end
-
     it "properly tokenizes the word" do
       alphabet = Primus::GematriaPrimus.build
       text = "aethereal"

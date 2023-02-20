@@ -1,9 +1,9 @@
 class Primus::Document::Translator
   attr_reader :dictionary
 
-  def initialize(dictionary: nil, search_key: :rune)
+  def initialize(dictionary: nil, strategy: :runic)
     @dictionary = dictionary || Primus::GematriaPrimus.instance
-    @search_key = search_key || :rune
+    @strategy = strategy || :runic
   end
 
   def skip_sequence=(value); end
@@ -23,5 +23,10 @@ class Primus::Document::Translator
 
   protected
 
-  attr_reader :search_key
+  attr_reader :strategy
+
+  def search_key
+    return :rune if strategy == :runic
+    :letter
+  end
 end

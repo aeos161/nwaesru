@@ -1,8 +1,9 @@
 class Primus::Document::Builder
-  attr_reader :pages, :result
+  attr_reader :pages, :result, :strategy
 
-  def initialize(pages: [])
+  def initialize(pages: [], strategy: :runic)
     @pages = Array(pages)
+    @strategy = strategy
     @result = Primus::Document.new
     @first_word = Primus::Word.new
     @position = 0
@@ -18,7 +19,8 @@ class Primus::Document::Builder
 
   def build_chapter(pages)
     tokens = Array(pages).map do |page|
-      lexer = Primus::Lexer.build(page: page, starting_position: position)
+      lexer = Primus::Lexer.build(page: page, strategy: strategy,
+                                  starting_position: position)
       lexer.tokenize
       @position = lexer.position
       lexer.tokens
@@ -28,7 +30,8 @@ class Primus::Document::Builder
   end
 
   def build_page(page)
-    lexer = Primus::Lexer.build(page: page, starting_position: position)
+    lexer = Primus::Lexer.build(page: page, strategy: strategy,
+                                starting_position: position)
     lexer.tokenize
     parser = Primus::Parser.new(tokens: lexer.tokens, document: result,
                                 first_word: first_word)
@@ -37,12 +40,12 @@ class Primus::Document::Builder
     @first_word = parser.last_word
   end
 
-  def self.for_pages(page_numbers: [])
+  def self.for_pages(page_numbers: [], strategy: :runic)
     page_numbers = Array(page_numbers)
     pages = page_numbers.map do |page_number|
       Primus::LiberPrimus::Page.open(page_number: page_number)
     end
-    new(pages: pages)
+    new(pages: pages, strategy: strategy)
   end
 
   protected
