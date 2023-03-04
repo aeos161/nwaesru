@@ -1,66 +1,104 @@
 class Primus::Parser
-  attr_reader :tokens, :result, :last_word, :last_token
+  attr_reader :tokens, :result, :last_token
 
   def initialize(tokens: [], document: nil, first_word: nil)
-    @tokens = tokens
+    @tokens = tokens.to_enum
     @result = document || Primus::Document.new
-    @first_word = first_word || Primus::Word.new
-    @last_word = Primus::Word.new
+    @sentence = Primus::Sentence.new
+    @word = Primus::Word.new
     @last_token = nil
   end
 
   def parse
-    parse_tokens
+    while true
+      parse_tokens
+    end
+  rescue StopIteration
+    handle_end_of_document
   end
 
   protected
 
-  attr_reader :first_word
+  def end_of_word?(token)
+    token.is_a?(Primus::Token::WordDelimiter)
+  end
 
-  def word_boundary?(token)
-    token.delimiter? && !token.is_a?(Primus::Token::LineBreak)
+  def end_of_sentence?(token)
+    token.is_a?(Primus::Token::SentenceDelimiter)
   end
 
   def parse_tokens
-    word = first_word
-    tokens.each do |token|
-      parse_token(token, word)
-
-      if word_boundary? token
-        word = Primus::Word.new
-      end
-    end
-
-    handle_end_of_document(word)
-  end
-
-  def parse_token(token, word)
-    if word_boundary? token
-      add_word word
-      add_token token
+    token = tokens.next
+    if token.delimiter?
+      parse_delimiter token
     else
-      unless token.is_a?(Primus::Token::LineBreak)
-        word << token
-      end
+      parse_character token
     end
     @last_token = token
   end
 
-  def handle_end_of_document(word)
-    if word.blank? && !word_boundary?(last_token)
-      add_token last_token
+  def parse_character(token)
+    if token.is_a? Primus::Token::LineBreak
+      parse_line_break token
     else
-      add_word word
-      @last_word = word
+      @word << token
     end
   end
 
-  def add_word(word)
-    return if word.blank?
-    @result << word
+  def parse_delimiter(token)
+    case token
+    when ->(token) { end_of_word?(token) }
+      complete_current_word token
+    when ->(token) { end_of_sentence?(token) }
+      complete_current_sentence token
+    end
   end
 
-  def add_token(token)
+  def parse_line_break(token)
+    if last_token.nil? || last_token.delimiter?
+      @result << token
+    else
+      tokens.peek
+      @word << token
+    end
+  rescue StopIteration
+  end
+
+  def complete_current_sentence(token)
+    complete_current_word token
+    add_to_document @sentence
+    @sentence = Primus::Sentence.new
+  end
+
+  def complete_current_word(token = nil)
+    unless @word.blank?
+      add_to_sentence @word
+    end
+
+    unless token.nil?
+      add_to_sentence token
+    end
+
+    @word = Primus::Word.new
+  end
+
+  def handle_end_of_document
+    if !end_of_word?(last_token) && !end_of_sentence?(last_token)
+      complete_current_word
+    end
+
+    add_to_document @sentence
+
+    if last_token.is_a? Primus::Token::LineBreak
+      @result << last_token
+    end
+  end
+
+  def add_to_sentence(word)
+    @sentence << word
+  end
+
+  def add_to_document(token)
     @result << token
   end
 end

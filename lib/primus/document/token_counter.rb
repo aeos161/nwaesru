@@ -20,6 +20,11 @@ class Primus::Document::TokenCounter
     end
   end
 
+  def visit_sentence(sentence)
+    sentence.text.flat_map { |element| element.accept(self) }
+    #Primus::Sentence.new(text: text)
+  end
+
   def visit_word(word)
     tokens = word.tokens.dup
     apply_left_over_token tokens
@@ -54,6 +59,8 @@ class Primus::Document::TokenCounter
       else
         @result[tks[0].index] += 1
       end
+    rescue TypeError
+      # Ignore type with no index
     end
   end
 

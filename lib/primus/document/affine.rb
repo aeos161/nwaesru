@@ -8,6 +8,11 @@ class Primus::Document::Affine
     @magnitude = magnitude
   end
 
+  def visit_sentence(sentence)
+    text = sentence.map { |w| w.accept(self) }
+    Primus::Sentence.new(text: text)
+  end
+
   def visit_word(word)
     assert_key_and_modulus_are_co_prime!
     tokens = word.map { |char| process(character: char) }

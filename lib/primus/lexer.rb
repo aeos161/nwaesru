@@ -1,6 +1,4 @@
 class Primus::Lexer
-  attr_reader #:line
-
   def initialize(strategy:)
     @strategy = strategy
     @current_token = nil
@@ -22,7 +20,9 @@ class Primus::Lexer
     until strategy.complete? do
       strategy.extract_lexeme
       @current_token = strategy.create_token
-      increment_position
+      unless @current_token.is_a? Primus::Token::LineBreak
+        increment_position
+      end
       increment_line
     end
   end

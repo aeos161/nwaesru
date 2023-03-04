@@ -16,7 +16,9 @@ class Primus::Document
   end
 
   def [](index)
-    tokens.detect { |tk| tk.location.position == index }
+    tokens.detect do |tk|
+      tk.location&.position == index
+    end
   end
 
   def each(&block)
@@ -27,6 +29,10 @@ class Primus::Document
     visitor = Primus::Document::Printer.new(format: format)
     accept(visitor)
     visitor.to_s
+  end
+
+  def sentence_count
+    sentences.size
   end
 
   def word_count
@@ -43,8 +49,12 @@ class Primus::Document
     Primus.index_of_coincidence(document: self, length: length)
   end
 
+  def sentences
+    @sentences ||= text.select { |w| w.is_a? Primus::Sentence }
+  end
+
   def words
-    text.select { |w| w.is_a? Primus::Word }
+    @words ||= sentences.flat_map(&:words)
   end
 
   def tokens

@@ -10,6 +10,10 @@ class Primus::Document::Printer
     @data.join.rstrip
   end
 
+  def visit_sentence(sentence)
+    sentence.text.each { |tx| tx.accept(self) }
+  end
+
   def visit_word(word)
     @data << word.to_s(format)
   end

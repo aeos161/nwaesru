@@ -14,6 +14,11 @@ class Primus::Document::PatternMatcher
     @matching
   end
 
+  def visit_sentence(sentence)
+    text = sentence.text.map { |element| element.accept(self) }
+    Primus::Sentence.new(text: text)
+  end
+
   def visit_word(word)
     if matching?
       track_match(word)

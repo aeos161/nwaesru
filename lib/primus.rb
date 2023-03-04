@@ -91,6 +91,8 @@ require "primus/ngram/identity_map"
 
 require "primus/parser"
 
+require "primus/sentence"
+
 require "primus/token"
 require "primus/token/english"
 require "primus/token/runic"
@@ -101,6 +103,7 @@ require "primus/token/punctuation"
 require "primus/token/quotation_mark"
 require "primus/token/sentence_delimiter"
 require "primus/token/word_delimiter"
+
 require "primus/word"
 require "primus/word/expander"
 require "primus/word/generator"
