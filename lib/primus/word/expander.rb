@@ -15,6 +15,7 @@ class Primus::Word::Expander
   end
 
   def visit_token(token)
+    return if token.is_a? Primus::Token::LineBreak
     expand_results_for(token)
     letters = extract_letters_from(token)
     results.each do |word|

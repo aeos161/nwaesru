@@ -11,6 +11,11 @@ class Primus::Document::Decoder
     @key = key
   end
 
+  def visit_sentence(sentence)
+    new_text = sentence.text.map { |tx| tx.accept(self) }
+    Primus::Sentence.new(text: new_text)
+  end
+
   def visit_word(word)
     tokens = word.map { |character| process(character) }
     Primus::Word.new(tokens: tokens)

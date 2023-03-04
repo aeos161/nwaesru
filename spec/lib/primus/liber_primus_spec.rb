@@ -25,7 +25,7 @@ RSpec.describe Primus::LiberPrimus do
 
       result = chapter.to_s(:rune)
 
-      expect(result).to eq(actual_text)
+      expect(result.gsub("/", "")).to eq(actual_text)
     end
   end
 

@@ -6,7 +6,7 @@ class Primus::Token::LineBreak < Primus::Token
   end
 
   def delimiter?
-    true
+    false
   end
 
   def line_break?

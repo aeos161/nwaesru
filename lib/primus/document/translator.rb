@@ -8,6 +8,11 @@ class Primus::Document::Translator
 
   def skip_sequence=(value); end
 
+  def visit_sentence(sentence)
+    text = sentence.map { |w| w.accept(self) }
+    Primus::Sentence.new(text: text)
+  end
+
   def visit_word(word)
     tokens = word.map do |tk|
       token = dictionary.find_by(search_key => tk.lexeme)

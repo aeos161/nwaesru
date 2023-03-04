@@ -7,9 +7,9 @@ RSpec.describe Primus::Document::NgramConverter do
         alphabet.find_by(rune: "ᚳ"), alphabet.find_by(rune: "ᚪ"),
         alphabet.find_by(rune: "ᛏ")
       ])
-      document = Primus::Document.new(text: [
+      document = Primus::Document.new(text: [Primus::Sentence.new(text: [
         word1, Primus::Token::WordDelimiter.new, word2
-      ])
+      ])])
       converter = Primus::Document::NgramConverter.new(
         document: document, length: 2
       )
