@@ -22,11 +22,10 @@ class Primus::Document::TokenCounter
 
   def visit_sentence(sentence)
     sentence.text.flat_map { |element| element.accept(self) }
-    #Primus::Sentence.new(text: text)
   end
 
   def visit_word(word)
-    tokens = word.tokens.dup
+    tokens = word.tokens.dup.reject(&:line_break?)
     apply_left_over_token tokens
     capture_new_left_over_token tokens
     count tokens

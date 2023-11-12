@@ -16,6 +16,14 @@ RSpec.describe Primus::Lexer::English do
       expect(result).to eq("a")
     end
 
+    it "handles a single alternate character" do
+      lexer = Primus::Lexer::English.new(data: "z")
+
+      result = lexer.extract_lexeme
+
+      expect(result).to eq("z")
+    end
+
     it "handles a bi gram" do
       lexer = Primus::Lexer::English.new(data: "ae")
 
@@ -41,6 +49,15 @@ RSpec.describe Primus::Lexer::English do
       result = lexer.create_token
 
       expect(result).to eq(Primus::Token::Character.new(lexeme: "a"))
+    end
+
+    it "tokenizes an alternate character" do
+      lexer = Primus::Lexer::English.new
+      lexer.current_lexeme = "z"
+
+      result = lexer.create_token
+
+      expect(result).to eq(Primus::Token::Character.new(lexeme: "z"))
     end
 
     it "tokenizes a bigram character" do

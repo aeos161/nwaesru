@@ -79,6 +79,10 @@ class Primus::GematriaPrimus
   end
 
   def build_finder(method_name, value)
-    Proc.new { |tk| tk.send(method_name) == value }
+    if method_name == :letter
+      Proc.new { |tk| tk.letter == value || tk.alt_letter == value }
+    else
+      Proc.new { |tk| tk.send(method_name) == value }
+    end
   end
 end

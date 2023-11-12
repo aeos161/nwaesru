@@ -6,8 +6,4 @@ class Primus::Token::Character < Primus::Token
   def ==(token)
     lexeme == token.lexeme && literal == token.literal
   end
-
-  def delimiter?
-    false
-  end
 end

@@ -32,4 +32,14 @@ RSpec.describe Primus do
       ])
     end
   end
+
+  describe "#sum" do
+    it "properly calculates the gematria sum" do
+      text = "aethereal"
+
+      result = Primus.sum(text)
+
+      expect(result.first).to eq(366)
+    end
+  end
 end

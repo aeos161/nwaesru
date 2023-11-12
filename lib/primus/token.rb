@@ -17,6 +17,14 @@ class Primus::Token
     literal.to_s
   end
 
+  def delimiter?
+    false
+  end
+
+  def line_break?
+    false
+  end
+
   def accept(visitor)
     visitor.visit_token(self)
   end
