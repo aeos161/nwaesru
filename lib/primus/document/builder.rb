@@ -37,7 +37,6 @@ class Primus::Document::Builder
                                 first_word: first_word)
     parser.parse
     @position = lexer.position
-    #@first_word = parser.last_word
   end
 
   def self.for_pages(page_numbers: [], strategy: :runic)

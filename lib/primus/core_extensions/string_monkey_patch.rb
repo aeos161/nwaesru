@@ -22,7 +22,7 @@ module Primus
         Primus.sum(self).sum
       end
 
-      def to_gp(strategy = :letter)
+      def to_gp(strategy = :english)
         Primus.parse(self, strategy)
       end
 

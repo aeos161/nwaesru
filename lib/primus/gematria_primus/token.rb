@@ -76,6 +76,10 @@ class Primus::GematriaPrimus::Token
     true unless alt_letter.nil?
   end
 
+  def line_break?
+    false
+  end
+
   def factors(token)
     letters = alphabet.reject { |tk| tk >= self }
     res = letters.size.downto(1).flat_map { |n| letters.combination(n).to_a }

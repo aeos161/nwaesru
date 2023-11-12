@@ -14,16 +14,15 @@ class Primus::Document::Translator
   end
 
   def visit_word(word)
-    tokens = word.map do |tk|
-      token = dictionary.find_by(search_key => tk.lexeme)
-      token.location = tk.location
-      token
-    end
+    tokens = word.map { |tk| visit_token(tk) }
     Primus::Word.new(tokens: tokens)
   end
 
   def visit_token(token)
-    token
+    return token if token.line_break? || token.delimiter?
+    tk = dictionary.find_by(search_key => token.lexeme)
+    tk.location = token.location
+    tk
   end
 
   protected

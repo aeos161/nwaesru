@@ -28,7 +28,7 @@ class Primus::Document::Decoder
   protected
 
   def decodable?(character)
-    !character.index.nil?
+    character.respond_to?(:index) && !character.index.nil?
   end
 
   def skip?
