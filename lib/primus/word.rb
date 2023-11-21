@@ -59,6 +59,10 @@ class Primus::Word
     map(&:to_i).sum(0)
   end
 
+  def squish
+    Primus::Word.new(tokens: tokens.reject(&:line_break?))
+  end
+
   def reverse
     Primus::Word.new(tokens: tokens.reverse)
   end

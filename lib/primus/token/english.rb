@@ -4,7 +4,7 @@ class Primus::Token::English
   PUNCTUATION = [".", ",", "'", ";", ":", "-"].freeze
   QUOTATION_MARK = ["\""].freeze
   WORD_DELIMITER = [" "].freeze
-  LINE_DELIMITER = ["/"].freeze
+  LINE_DELIMITER = ["\n"].freeze
 
   def initialize(lexeme:, line: 0, position: 0)
     @lexeme = lexeme
@@ -25,7 +25,7 @@ class Primus::Token::English
     when alpha? || numeric?
       create_character_token
     else
-      fail "Unknown Token: #{lexeme}"
+      fail "Unknown Token: '#{lexeme}'"
     end
   end
 

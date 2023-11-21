@@ -1,4 +1,4 @@
-class Primus::Lexer::English
+class Primus::Lexer::Latin
   attr_accessor :current_lexeme
 
   attr_reader :data, :tokens, :line, :position
@@ -59,16 +59,4 @@ class Primus::Lexer::English
   def increment_pointer(n)
     @pointer += n
   end
-
-  #def replaceable_tokens
-  #  { ing: :ng, ia: :io, z: :s, k: :c, v: :u, qu: :cw }
-  #end
-
-  #def standardize(text)
-  #  text = text.downcase
-  #  replaceable_tokens.each do |alt, replacement|
-  #    text = text.gsub(alt.to_s, replacement.to_s)
-  #  end
-  #  text
-  #end
 end

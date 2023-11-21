@@ -1,7 +1,7 @@
-RSpec.describe Primus::Lexer::English do
+RSpec.describe Primus::Lexer::Latin do
   describe "#initialize" do
     it "standardizes the case of the data" do
-      lexer = Primus::Lexer::English.new(data: "AB")
+      lexer = Primus::Lexer::Latin.new(data: "AB")
 
       expect(lexer.data).to match_array(["a", "b"])
     end
@@ -9,7 +9,7 @@ RSpec.describe Primus::Lexer::English do
 
   describe "#extract_lexeme" do
     it "handles a single character" do
-      lexer = Primus::Lexer::English.new(data: "a")
+      lexer = Primus::Lexer::Latin.new(data: "a")
 
       result = lexer.extract_lexeme
 
@@ -17,7 +17,7 @@ RSpec.describe Primus::Lexer::English do
     end
 
     it "handles a single alternate character" do
-      lexer = Primus::Lexer::English.new(data: "z")
+      lexer = Primus::Lexer::Latin.new(data: "z")
 
       result = lexer.extract_lexeme
 
@@ -25,7 +25,7 @@ RSpec.describe Primus::Lexer::English do
     end
 
     it "handles a bi gram" do
-      lexer = Primus::Lexer::English.new(data: "ae")
+      lexer = Primus::Lexer::Latin.new(data: "ae")
 
       result = lexer.extract_lexeme
 
@@ -33,7 +33,7 @@ RSpec.describe Primus::Lexer::English do
     end
 
     it "handles a tri gram" do
-      lexer = Primus::Lexer::English.new(data: "ing")
+      lexer = Primus::Lexer::Latin.new(data: "ing")
 
       result = lexer.extract_lexeme
 
@@ -43,7 +43,7 @@ RSpec.describe Primus::Lexer::English do
 
   describe "#create_token" do
     it "tokenizes a character" do
-      lexer = Primus::Lexer::English.new
+      lexer = Primus::Lexer::Latin.new
       lexer.current_lexeme = "a"
 
       result = lexer.create_token
@@ -52,7 +52,7 @@ RSpec.describe Primus::Lexer::English do
     end
 
     it "tokenizes an alternate character" do
-      lexer = Primus::Lexer::English.new
+      lexer = Primus::Lexer::Latin.new
       lexer.current_lexeme = "z"
 
       result = lexer.create_token
@@ -61,7 +61,7 @@ RSpec.describe Primus::Lexer::English do
     end
 
     it "tokenizes a bigram character" do
-      lexer = Primus::Lexer::English.new
+      lexer = Primus::Lexer::Latin.new
       lexer.current_lexeme = "ae"
 
       result = lexer.create_token
@@ -70,7 +70,7 @@ RSpec.describe Primus::Lexer::English do
     end
 
     it "tokenizes a trigram character" do
-      lexer = Primus::Lexer::English.new
+      lexer = Primus::Lexer::Latin.new
       lexer.current_lexeme = "ing"
 
       result = lexer.create_token
@@ -79,7 +79,7 @@ RSpec.describe Primus::Lexer::English do
     end
 
     it "tokenizes a number" do
-      lexer = Primus::Lexer::English.new
+      lexer = Primus::Lexer::Latin.new
       lexer.current_lexeme = "7"
 
       result = lexer.create_token
@@ -88,7 +88,7 @@ RSpec.describe Primus::Lexer::English do
     end
 
     it "tokenizes a word delimeter" do
-      lexer = Primus::Lexer::English.new
+      lexer = Primus::Lexer::Latin.new
       lexer.current_lexeme =  " "
 
       result = lexer.create_token
@@ -97,7 +97,7 @@ RSpec.describe Primus::Lexer::English do
     end
 
     it "tokenizes the end of a sentence" do
-      lexer = Primus::Lexer::English.new
+      lexer = Primus::Lexer::Latin.new
       lexer.current_lexeme = "."
 
       result = lexer.create_token
@@ -106,7 +106,7 @@ RSpec.describe Primus::Lexer::English do
     end
 
     it "tokenizes an apostrophe" do
-      lexer = Primus::Lexer::English.new
+      lexer = Primus::Lexer::Latin.new
       lexer.current_lexeme = "'"
 
       result = lexer.create_token
@@ -115,7 +115,7 @@ RSpec.describe Primus::Lexer::English do
     end
 
     it "tokenizes a quotation mark" do
-      lexer = Primus::Lexer::English.new
+      lexer = Primus::Lexer::Latin.new
       lexer.current_lexeme = '"'
 
       result = lexer.create_token
@@ -124,22 +124,22 @@ RSpec.describe Primus::Lexer::English do
     end
 
     it "tokenizes a line break" do
-      lexer = Primus::Lexer::English.new
-      lexer.current_lexeme = "/"
+      lexer = Primus::Lexer::Latin.new
+      lexer.current_lexeme = "\n"
 
       result = lexer.create_token
 
-      expect(result).to eq(Primus::Token::LineBreak.new(lexeme: "/"))
+      expect(result).to eq(Primus::Token::LineBreak.new(lexeme: "\n"))
     end
 
     context "when the lexeme is not recognized" do
       it "raises an unknown token error" do
-        lexer = Primus::Lexer::English.new
+        lexer = Primus::Lexer::Latin.new
         lexer.current_lexeme = "ᚫ"
 
         expect {
           lexer.create_token
-        }.to raise_error("Unknown Token: ᚫ")
+        }.to raise_error("Unknown Token: 'ᚫ'")
       end
     end
   end

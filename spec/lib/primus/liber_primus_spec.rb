@@ -1,37 +1,34 @@
 RSpec.describe Primus::LiberPrimus do
   describe ".page" do
-    it "builds the page" do
-      document = build_document(page_numbers: 56)
+    it "builds the page from runic characters" do
+      actual_text = File.open("spec/fixtures/files/page56.txt").read
+      actual_text = actual_text.lstrip.rstrip
 
-      result = Primus::LiberPrimus.page(page_number: 56)
+      result = Primus::LiberPrimus.page(page_number: 56, strategy: :runic)
 
-      expect(result).to eq(document)
+      expect(result.to_s(:rune)).to eq(actual_text)
+    end
+
+    it "builds the page from latin characters" do
+      actual_text = File.open("spec/fixtures/files/page56_latin.txt").read
+      actual_text = actual_text.lstrip.rstrip
+
+      result = Primus::LiberPrimus.page(page_number: 56, strategy: :latin)
+
+      expect(result.to_s(:latin)).to eq(actual_text)
     end
   end
 
   describe ".chapter" do
-    it "builds the chapter" do
-      document = build_document(page_numbers: 8..14)
-
-      result = Primus::LiberPrimus.chapter(page_numbers: 8..14)
-
-      expect(result).to eq(document)
-    end
-
     it "correctly builds the expected pages" do
-      chapter = Primus::LiberPrimus.chapter(page_numbers: 8..14)
+      chapter = Primus::LiberPrimus.chapter(page_numbers: 8..14,
+                                            strategy: :runic)
       actual_text = File.open("spec/fixtures/files/chapter12.txt").read
       actual_text = actual_text.lstrip.rstrip
 
       result = chapter.to_s(:rune)
 
-      expect(result.gsub("/", "")).to eq(actual_text)
+      expect(result).to eq(actual_text)
     end
-  end
-
-  def build_document(page_numbers:)
-    builder = Primus::Document::Builder.for_pages(page_numbers: page_numbers)
-    builder.build
-    builder.result
   end
 end

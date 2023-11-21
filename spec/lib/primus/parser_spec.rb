@@ -17,14 +17,14 @@ RSpec.describe Primus::Parser do
       expect(result.word_count).to eq(2)
     end
 
-    it "keeps line breaks outside of words" do
+    it "keeps exeternal line breaks outside of words" do
       tokens = [
-        Primus::Token::LineBreak::new(lexeme: "/", location: double),
+        Primus::Token::LineBreak::new(lexeme: "\n", location: double),
         Primus::Token::Character.new(lexeme: "a", location: double),
         Primus::Token::Character.new(lexeme: "b", location: double),
         Primus::Token::Character.new(lexeme: "1", location: double),
         Primus::Token::Character.new(lexeme: "2", location: double),
-        Primus::Token::LineBreak::new(lexeme: "/", location: double),
+        Primus::Token::LineBreak::new(lexeme: "\n", location: double),
       ]
       parser = Primus::Parser.new(tokens: tokens)
 
@@ -32,7 +32,7 @@ RSpec.describe Primus::Parser do
       result = parser.result
 
       expect(result.text).to eq([
-        Primus::Token::LineBreak::new(lexeme: "/", location: double),
+        Primus::Token::LineBreak::new(lexeme: "\n", location: double),
         Primus::Sentence.new(text: [
           Primus::Word.new(tokens: [
             Primus::Token::Character.new(lexeme: "a", location: double),
@@ -41,7 +41,7 @@ RSpec.describe Primus::Parser do
             Primus::Token::Character.new(lexeme: "2", location: double),
           ])
         ]),
-        Primus::Token::LineBreak::new(lexeme: "/", location: double),
+        Primus::Token::LineBreak::new(lexeme: "\n", location: double),
       ])
     end
 
@@ -49,7 +49,7 @@ RSpec.describe Primus::Parser do
       tokens = [
         Primus::Token::Character.new(lexeme: "ᚫ", location: double),
         Primus::Token::Character.new(lexeme: "ᛄ", location: double),
-        Primus::Token::LineBreak::new(lexeme: "/", location: double),
+        Primus::Token::LineBreak::new(lexeme: "\n", location: double),
         Primus::Token::Character.new(lexeme: "ᛟ", location: double),
         Primus::Token::Character.new(lexeme: "ᚱ", location: double),
       ]
@@ -63,7 +63,7 @@ RSpec.describe Primus::Parser do
           Primus::Word.new(tokens: [
             Primus::Token::Character.new(lexeme: "ᚫ", location: double),
             Primus::Token::Character.new(lexeme: "ᛄ", location: double),
-            Primus::Token::LineBreak::new(lexeme: "/", location: double),
+            Primus::Token::LineBreak::new(lexeme: "\n", location: double),
             Primus::Token::Character.new(lexeme: "ᛟ", location: double),
             Primus::Token::Character.new(lexeme: "ᚱ", location: double),
           ])

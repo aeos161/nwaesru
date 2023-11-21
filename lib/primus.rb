@@ -27,17 +27,17 @@ module Primus
     numerator / denominator
   end
 
-  def self.sum(text, strategy = :english)
+  def self.sum(text, strategy = :latin)
     parse(text, strategy).map(&:sum)
   end
 
-  def self.parse(text, strategy = :english)
+  def self.parse(text, strategy = :latin)
     splitter = strategy == :rune ? "-" : " "
     text = text.respond_to?(:split) ? text.split(splitter) : text
     text.map { |word| to_word(word, strategy) }
   end
 
-  def self.to_word(text, strategy = :english)
+  def self.to_word(text, strategy = :latin)
     factory = Primus::Lexer::Factory.new(strategy: strategy)
     strategy = factory.build(data: text)
     lexer = Primus::Lexer.new(strategy: strategy)
@@ -79,7 +79,7 @@ require "primus/latin_alphabet"
 require "primus/latin_alphabet/token"
 
 require "primus/lexer"
-require "primus/lexer/english"
+require "primus/lexer/latin"
 require "primus/lexer/factory"
 require "primus/lexer/runic"
 

@@ -80,6 +80,10 @@ class Primus::GematriaPrimus::Token
     false
   end
 
+  def accept(visitor)
+    visitor.visit_token(self)
+  end
+
   def factors(token)
     letters = alphabet.reject { |tk| tk >= self }
     res = letters.size.downto(1).flat_map { |n| letters.combination(n).to_a }

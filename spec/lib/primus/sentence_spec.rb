@@ -52,4 +52,44 @@ RSpec.describe Primus::Sentence do
       expect(sentence.words).to match_array([word])
     end
   end
+
+  describe "#squish" do
+    it "removes new lines in words" do
+      sentence = Primus::Sentence.new(text: [
+        Primus::Word.new(tokens: [
+          Primus::GematriaPrimus::Token.new(rune: "ᛟ", value: 83),
+          Primus::Token::LineBreak.new,
+          Primus::GematriaPrimus::Token.new(rune: "ᚱ", value: 11),
+        ])
+      ])
+
+      result = sentence.squish
+
+      expect(result.text).to match_array([
+        Primus::Word.new(tokens: [
+          Primus::GematriaPrimus::Token.new(rune: "ᛟ", value: 83),
+          Primus::GematriaPrimus::Token.new(rune: "ᚱ", value: 11),
+        ])
+      ])
+    end
+  end
+
+  describe "#sum" do
+    it "sums all the words" do
+      sentence = Primus::Sentence.new(text: [
+        Primus::Word.new(tokens: [
+          Primus::GematriaPrimus::Token.new(rune: "ᛟ", value: 83),
+          Primus::GematriaPrimus::Token.new(rune: "ᚱ", value: 11),
+        ]),
+        Primus::Token::SentenceDelimiter::new(lexeme: "᛭", location: double),
+        Primus::Word.new(tokens: [
+          Primus::GematriaPrimus::Token.new(rune: "ᛇ", value: 41),
+        ])
+      ])
+
+      result = sentence.sum
+
+      expect(result).to match_array([94, 41])
+    end
+  end
 end

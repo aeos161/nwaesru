@@ -15,7 +15,7 @@ class Primus::Document::PatternMatcher
   end
 
   def visit_sentence(sentence)
-    text = sentence.text.map { |element| element.accept(self) }
+    text = sentence.squish.text.map { |element| element.accept(self) }
     Primus::Sentence.new(text: text)
   end
 
