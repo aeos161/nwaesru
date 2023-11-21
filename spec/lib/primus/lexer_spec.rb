@@ -3,7 +3,7 @@ RSpec.describe Primus::Lexer do
     it "loads the data for a page" do
       page = Primus::LiberPrimus::Page.new(data: "lexical data")
 
-      lexer = Primus::Lexer.build(page: page, strategy: :english)
+      lexer = Primus::Lexer.build(page: page, strategy: :latin)
 
       expect(lexer.data).to match_array(page.data.split("").to_enum)
     end
@@ -28,7 +28,7 @@ RSpec.describe Primus::Lexer do
     end
 
     it "tokenizes an entire enlish sentence" do
-      strategy = Primus::Lexer::English.new(data: "good luck.")
+      strategy = Primus::Lexer::Latin.new(data: "good luck.")
       lexer = Primus::Lexer.new(strategy: strategy)
 
       lexer.tokenize
@@ -48,7 +48,7 @@ RSpec.describe Primus::Lexer do
     end
 
     it "tracks the line and position of each token" do
-      strategy = Primus::Lexer::Runic.new(data: "ᚫᛄ-ᛟᛋᚱ./ᚫᛄ-ᛟᛋᚱ")
+      strategy = Primus::Lexer::Runic.new(data: "ᚫᛄ-ᛟᛋᚱ.\nᚫᛄ-ᛟᛋᚱ")
       lexer = Primus::Lexer.new(strategy:  strategy)
 
       lexer.tokenize

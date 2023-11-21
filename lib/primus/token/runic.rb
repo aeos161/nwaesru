@@ -2,8 +2,8 @@ class Primus::Token::Runic
   BI_GRAM = ["᛫", "᛬"].freeze
   PUNCTUATION = ["᛭", "᛫᛬", "᛬᛫", ".", ",", "'"].freeze
   QUOTATION_MARK = ["\""].freeze
-  WORD_DELIMITER = ["-"].freeze
-  LINE_DELIMITER = ["/"].freeze
+  WORD_DELIMITER = ["-", " "].freeze
+  LINE_DELIMITER = ["\n"].freeze
 
   def initialize(lexeme:, line: 0, position: 0)
     @lexeme = lexeme

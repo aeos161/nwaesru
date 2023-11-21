@@ -5,8 +5,8 @@ class Primus::Lexer::Factory
 
   def build(data: "", line: 0, position: 0)
     case strategy.to_sym
-    when :english
-      Primus::Lexer::English.new(data: data, line: line, position: position)
+    when :latin
+      Primus::Lexer::Latin.new(data: data, line: line, position: position)
     when :runic
       Primus::Lexer::Runic.new(data: data, line: line, position: position)
     else

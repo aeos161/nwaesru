@@ -23,7 +23,7 @@ class Primus::Document::Builder
                                   starting_position: position)
       lexer.tokenize
       @position = lexer.position
-      lexer.tokens
+      [lexer.tokens, Primus::Token::LineBreak.new].flatten
     end
     parser = Primus::Parser.new(tokens: tokens.flatten, document: result)
     parser.parse
@@ -42,7 +42,8 @@ class Primus::Document::Builder
   def self.for_pages(page_numbers: [], strategy: :runic)
     page_numbers = Array(page_numbers)
     pages = page_numbers.map do |page_number|
-      Primus::LiberPrimus::Page.open(page_number: page_number)
+      Primus::LiberPrimus::Page.open(page_number: page_number,
+                                     character_set: strategy)
     end
     new(pages: pages, strategy: strategy)
   end

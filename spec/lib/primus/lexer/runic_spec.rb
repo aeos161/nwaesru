@@ -83,11 +83,11 @@ RSpec.describe Primus::Lexer::Runic do
 
     it "tokenizes a line break" do
       lexer = Primus::Lexer::Runic.new
-      lexer.current_lexeme = "/"
+      lexer.current_lexeme = "\n"
 
       result = lexer.create_token
 
-      expect(result).to eq(Primus::Token::LineBreak.new(lexeme: "/"))
+      expect(result).to eq(Primus::Token::LineBreak.new(lexeme: "\n"))
     end
 
     context "when the lexeme is not recognized" do

@@ -38,10 +38,10 @@ class Primus::Parser
   end
 
   def parse_character(token)
-    if token.is_a? Primus::Token::LineBreak
+    if token.line_break?
       parse_line_break token
     else
-      @word << token
+      add_to_word token
     end
   end
 
@@ -55,11 +55,11 @@ class Primus::Parser
   end
 
   def parse_line_break(token)
-    if last_token.nil? || last_token.delimiter?
-      @result << token
+    if @word.blank? && @sentence.blank?
+      add_to_document token
     else
       tokens.peek
-      @word << token
+      add_to_word token
     end
   rescue StopIteration
   end
@@ -92,6 +92,10 @@ class Primus::Parser
     if last_token.is_a? Primus::Token::LineBreak
       @result << last_token
     end
+  end
+
+  def add_to_word(token)
+    @word << token
   end
 
   def add_to_sentence(word)

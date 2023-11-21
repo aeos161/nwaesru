@@ -78,7 +78,7 @@ RSpec.describe Primus::Word do
 
   describe "#sum" do
     it "sums the token values" do
-      word = create_word(%w(d i u i n i t y))
+      word = create_word(%w(d i v i n i t y))
 
       result = word.sum
 
@@ -93,6 +93,25 @@ RSpec.describe Primus::Word do
       result = word.reverse
 
       expect(result).to eq(create_word(%w(r a t s n i)))
+    end
+  end
+
+  describe "#squish" do
+    it "removes new lines in the word" do
+      word = Primus::Word.new(tokens: [
+        Primus::GematriaPrimus::Token.new(rune: "ᛇ", value: 41),
+        Primus::Token::LineBreak.new,
+        Primus::GematriaPrimus::Token.new(rune: "ᛟ", value: 83),
+        Primus::GematriaPrimus::Token.new(rune: "ᚱ", value: 11),
+      ])
+
+      new_word = word.squish
+
+      expect(new_word.tokens).to match_array([
+        Primus::GematriaPrimus::Token.new(rune: "ᛇ", value: 41),
+        Primus::GematriaPrimus::Token.new(rune: "ᛟ", value: 83),
+        Primus::GematriaPrimus::Token.new(rune: "ᚱ", value: 11),
+      ])
     end
   end
 end

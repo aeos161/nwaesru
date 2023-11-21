@@ -31,6 +31,7 @@ class Primus::Document::Affine
   end
 
   def process(character:)
+    return character unless character.respond_to? :index
     return character if character.index.nil?
     decode(character)
   end

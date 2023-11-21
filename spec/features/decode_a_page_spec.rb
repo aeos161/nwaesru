@@ -70,36 +70,44 @@ RSpec.describe "decode a page" do
   end
 
   def page56_decoded_text
-    Primus::LiberPrimus::Page.open(page_number: 56, encoded: false).to_s
+    Primus::LiberPrimus::Page.open(page_number: 56, character_set: :latin).to_s
   end
 
   def page57_decoded_text
-    Primus::LiberPrimus::Page.open(page_number: 57, encoded: false).to_s
+    Primus::LiberPrimus::Page.open(page_number: 57, character_set: :latin).to_s
   end
 
   def warning_decoded_text
-    Primus::LiberPrimus::Page.open(page_number: "warning", encoded: false).to_s
+    Primus::LiberPrimus::Page.open(
+      page_number: "warning", character_set: :latin
+    ).to_s
   end
 
   def know_this_decoded_text
     Primus::LiberPrimus::Page.open(
-      page_number: "know_this", encoded: false
+      page_number: "know_this", character_set: :latin
     ).to_s
   end
 
   def welcome_decoded_text
-    a = Primus::LiberPrimus::Page.open(page_number: "welcome", encoded: false)
-    b = Primus::LiberPrimus::Page.open(page_number: "welcome_2", encoded: false)
-    a.to_s + " " + b.to_s
+    a = Primus::LiberPrimus::Page.open(page_number: "welcome",
+                                       character_set: :latin)
+    b = Primus::LiberPrimus::Page.open(page_number: "welcome_2",
+                                       character_set: :latin)
+    a.to_s + "\n" + b.to_s
   end
 
   def page107_decoded_text
-    a = Primus::LiberPrimus::Page.open(page_number: 107, encoded: false).to_s
-    b = Primus::LiberPrimus::Page.open(page_number: 167, encoded: false).to_s
-    a + b
+    a = Primus::LiberPrimus::Page.open(
+      page_number: 107, character_set: :latin
+    ).to_s
+    b = Primus::LiberPrimus::Page.open(
+      page_number: 167, character_set: :latin
+    ).to_s
+    a + "\n" + b
   end
 
   def page229_decoded_text
-    Primus::LiberPrimus::Page.open(page_number: 229, encoded: false).to_s
+    Primus::LiberPrimus::Page.open(page_number: 229, character_set: :latin).to_s
   end
 end
