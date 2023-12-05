@@ -3,12 +3,17 @@ class Primus::Lexer::Latin
 
   attr_reader :data, :tokens, :line, :position
 
-  def initialize(data: "", line: 0, position: 0)
+  def initialize(data: "", line: 0, position: 0, track_delimiters: false)
     @data = data.split("").map(&:downcase)
     @pointer = 0
     @line = line || 0
     @position = position || 0
     @tokens = []
+    @track_delimiters = track_delimiters
+  end
+
+  def tracking_delimiters?
+    true if @track_delimiters
   end
 
   def complete?
@@ -24,9 +29,9 @@ class Primus::Lexer::Latin
   def create_token
     factory = Primus::Token::English.new(lexeme: current_lexeme, line: line,
                                          position: position)
-    token = factory.create_token
-    @tokens << token
-    token
+    @current_token = factory.create_token
+    @tokens << @current_token
+    @current_token
   end
 
   def increment_line
@@ -34,6 +39,7 @@ class Primus::Lexer::Latin
   end
 
   def increment_position
+    return if @current_token.delimiter? && !tracking_delimiters?
     @position += 1
   end
 
