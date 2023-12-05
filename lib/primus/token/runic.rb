@@ -5,10 +5,11 @@ class Primus::Token::Runic
   WORD_DELIMITER = ["-", " "].freeze
   LINE_DELIMITER = ["\n"].freeze
 
-  def initialize(lexeme:, line: 0, position: 0)
+  def initialize(lexeme:, line: 0, position: 0, track_delimiters: false)
     @lexeme = lexeme
     @line = line
     @position = position
+    @track_delimiters = track_delimiters
   end
 
   def create_token
@@ -33,6 +34,10 @@ class Primus::Token::Runic
   private
 
   attr_reader :lexeme, :line, :position
+
+  def position_is_trackable?
+    true
+  end
 
   def rune?
     (5792..5872).cover? lexeme.ord
@@ -69,22 +74,22 @@ class Primus::Token::Runic
   def create_punctuation_token
     case lexeme
     when "᛭"
-      Primus::Token::SentenceDelimiter.new(lexeme: lexeme)
+      Primus::Token::SentenceDelimiter.new(lexeme: lexeme, location: location)
     when "."
-      Primus::Token::SentenceDelimiter.new(lexeme: lexeme)
+      Primus::Token::SentenceDelimiter.new(lexeme: lexeme, location: location)
     when ","
-      Primus::Token::SentenceDelimiter.new(lexeme: lexeme)
+      Primus::Token::SentenceDelimiter.new(lexeme: lexeme, location: location)
     else
-      Primus::Token::Punctuation.new(lexeme: lexeme)
+      Primus::Token::Punctuation.new(lexeme: lexeme, location: location)
     end
   end
 
   def create_quotation_mark_token
-    Primus::Token::QuotationMark.new(lexeme: lexeme)
+    Primus::Token::QuotationMark.new(lexeme: lexeme, location: location)
   end
 
   def create_word_delimeter_token
-    Primus::Token::WordDelimiter.new(lexeme: lexeme)
+    Primus::Token::WordDelimiter.new(lexeme: lexeme, location: location)
   end
 
   def create_line_break_token

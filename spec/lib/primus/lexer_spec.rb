@@ -48,8 +48,9 @@ RSpec.describe Primus::Lexer do
     end
 
     it "tracks the line and position of each token" do
-      strategy = Primus::Lexer::Runic.new(data: "ᚫᛄ-ᛟᛋᚱ.\nᚫᛄ-ᛟᛋᚱ")
-      lexer = Primus::Lexer.new(strategy:  strategy)
+      strategy = Primus::Lexer::Runic.new(data: "ᚫᛄ-ᛟᛋᚱ.\nᚫᛄ-ᛟᛋᚱ",
+                                          track_delimiters: false)
+      lexer = Primus::Lexer.new(strategy: strategy)
 
       lexer.tokenize
       last_token = lexer.tokens.last
@@ -57,6 +58,34 @@ RSpec.describe Primus::Lexer do
       expect(last_token.location).to eq(
         Primus::Token::Location.new(line: 1, position: 9)
       )
+    end
+
+    context "when told to track delimiters" do
+      it "tracks the line and position of white space" do
+        strategy = Primus::Lexer::Runic.new(data: "ᚫᛄ-ᛟᛋᚱ.\nᚫᛄ-ᛟᛋᚱ",
+                                            track_delimiters: true)
+        lexer = Primus::Lexer.new(strategy: strategy)
+
+        lexer.tokenize
+        white_space = lexer.tokens[10]
+
+        expect(white_space.location).to eq(
+          Primus::Token::Location.new(line: 1, position: 9)
+        )
+      end
+
+      it "tracks the line and position of punctuation" do
+        strategy = Primus::Lexer::Runic.new(data: "ᚫᛄ-ᛟᛋᚱ\nᚫᛄ-ᛟᛋᚱ.",
+                                            track_delimiters: true)
+        lexer = Primus::Lexer.new(strategy: strategy)
+
+        lexer.tokenize
+        punctuation = lexer.tokens[13]
+
+        expect(punctuation.location).to eq(
+          Primus::Token::Location.new(line: 1, position: 12)
+        )
+      end
     end
 
     context "a line and position are passed in" do

@@ -20,23 +20,27 @@ class Primus::Lexer
     until strategy.complete? do
       strategy.extract_lexeme
       @current_token = strategy.create_token
-      unless @current_token.is_a? Primus::Token::LineBreak
-        increment_position
-      end
+      increment_position
       increment_line
     end
   end
 
-  def self.build(page:, strategy: nil, starting_line: 0, starting_position: 0)
+  def self.build(page:, strategy: nil, starting_line: 0, starting_position: 0,
+                 track_delimiters: false)
     factory = Primus::Lexer::Factory.new(strategy: strategy || :runic)
     strategy = factory.build(data: page.data, line: starting_line,
-                             position: starting_position)
+                             position: starting_position,
+                             track_delimiters: track_delimiters)
     new(strategy: strategy)
   end
 
   protected
 
   attr_reader :strategy, :current_token
+
+  def tracking_delimiters?
+    true if @track_delimiters
+  end
 
   def new_line?
     current_token.is_a? Primus::Token::LineBreak
@@ -52,7 +56,7 @@ class Primus::Lexer
   end
 
   def increment_position
-    return if delimiter?
+    return if new_line?
     strategy.increment_position
   end
 end
