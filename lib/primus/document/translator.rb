@@ -19,8 +19,7 @@ class Primus::Document::Translator
   end
 
   def visit_token(token)
-    return token if token.line_break? || token.delimiter?
-    tk = dictionary.find_by(search_key => token.lexeme)
+    tk = translate(token)
     tk.location = token.location
     tk
   end
@@ -28,6 +27,14 @@ class Primus::Document::Translator
   protected
 
   attr_reader :strategy
+
+  def translate(token)
+    if token.line_break? || token.delimiter?
+      token
+    else
+      dictionary.find_by(search_key => token.lexeme)
+    end
+  end
 
   def search_key
     return :rune if strategy == :runic
