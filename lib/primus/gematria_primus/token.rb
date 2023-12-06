@@ -41,21 +41,27 @@ class Primus::GematriaPrimus::Token
     return self if token.nil?
     shift = token.respond_to?(:index) ? token.index : token.to_i
     shifted_index = (index + shift) % alphabet.size
-    alphabet.find_by(index: shifted_index)
+    new_token = alphabet.find_by(index: shifted_index)
+    new_token.location = location
+    new_token
   end
 
   def >>(token)
     return self if token.nil?
     shift = token.respond_to?(:index) ? token.index : token.to_i
     shifted_index = (index - shift) % alphabet.size
-    alphabet.find_by(index: shifted_index.abs)
+    new_token = alphabet.find_by(index: shifted_index.abs)
+    new_token.location = location
+    new_token
   end
 
   def ^(token)
     return self if token.nil?
     shift = token.respond_to?(:index) ? token.index : token.to_i
     xor_index = (index ^ shift) % alphabet.size
-    alphabet.find_by(index: xor_index)
+    new_token = alphabet.find_by(index: xor_index)
+    new_token.location = location
+    new_token
   end
 
   def to_i
