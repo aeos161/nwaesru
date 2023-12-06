@@ -28,7 +28,8 @@ RSpec.describe "decode a page" do
   end
 
   it "can decode a vigenere cipher" do
-    document = Primus::LiberPrimus.page(page_number: ["welcome", "welcome_2"])
+    document = Primus::LiberPrimus.page(page_number: ["welcome", "welcome_2"],
+                                        track_delimiters: true)
     key = "diuinity"
     skip_sequence = [49, 75, 85, 133, 160, 161, 251, 422, 444, 466, 515]
     vigenere = Primus::Document::Vigenere.new(key: key)

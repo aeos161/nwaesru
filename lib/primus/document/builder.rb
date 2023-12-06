@@ -1,9 +1,10 @@
 class Primus::Document::Builder
   attr_reader :pages, :result, :strategy
 
-  def initialize(pages: [], strategy: :runic)
+  def initialize(pages: [], strategy: :runic, track_delimiters: false)
     @pages = Array(pages)
     @strategy = strategy
+    @track_delimiters = track_delimiters
     @result = Primus::Document.new
     @first_word = Primus::Word.new
     @position = 0
@@ -20,7 +21,8 @@ class Primus::Document::Builder
   def build_chapter(pages)
     tokens = Array(pages).map do |page|
       lexer = Primus::Lexer.build(page: page, strategy: strategy,
-                                  starting_position: position)
+                                  starting_position: position,
+                                  track_delimiters: track_delimiters)
       lexer.tokenize
       @position = lexer.position
       [lexer.tokens, Primus::Token::LineBreak.new].flatten
@@ -31,7 +33,8 @@ class Primus::Document::Builder
 
   def build_page(page)
     lexer = Primus::Lexer.build(page: page, strategy: strategy,
-                                starting_position: position)
+                                starting_position: position,
+                                track_delimiters: track_delimiters)
     lexer.tokenize
     parser = Primus::Parser.new(tokens: lexer.tokens, document: result,
                                 first_word: first_word)
@@ -39,16 +42,17 @@ class Primus::Document::Builder
     @position = lexer.position
   end
 
-  def self.for_pages(page_numbers: [], strategy: :runic)
+  def self.for_pages(page_numbers: [], strategy: :runic,
+                     track_delimiters: false)
     page_numbers = Array(page_numbers)
     pages = page_numbers.map do |page_number|
       Primus::LiberPrimus::Page.open(page_number: page_number,
                                      character_set: strategy)
     end
-    new(pages: pages, strategy: strategy)
+    new(pages: pages, strategy: strategy, track_delimiters: track_delimiters)
   end
 
   protected
 
-  attr_reader :position, :first_word
+  attr_reader :position, :first_word, :track_delimiters
 end
