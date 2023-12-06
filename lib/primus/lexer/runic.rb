@@ -27,8 +27,10 @@ class Primus::Lexer::Runic
   end
 
   def create_token
-    factory = Primus::Token::Runic.new(lexeme: current_lexeme, line: line,
-                                       position: position)
+    factory = Primus::Token::Runic.new(
+      lexeme: current_lexeme, line: line, position: position,
+      track_delimiters: @track_delimiters
+    )
     @current_token = factory.create_token
     @tokens << @current_token
     @current_token

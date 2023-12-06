@@ -35,8 +35,12 @@ class Primus::Token::Runic
 
   attr_reader :lexeme, :line, :position
 
+  def delimiter?
+    punctuation? || quotation_mark? || white_space?
+  end
+
   def position_is_trackable?
-    true
+    true unless delimiter? && !@track_delimiters
   end
 
   def rune?
@@ -97,6 +101,10 @@ class Primus::Token::Runic
   end
 
   def location
-    Primus::Token::Location.new(line: line, position: position)
+    if position_is_trackable?
+      Primus::Token::Location.new(line: line, position: position)
+    else
+      Primus::Token::NoLocation.new(line: line)
+    end
   end
 end
