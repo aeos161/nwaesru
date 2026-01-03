@@ -92,4 +92,23 @@ RSpec.describe Primus::Sentence do
       expect(result).to match_array([94, 41])
     end
   end
+
+  describe "#reverse" do
+    it "reverses the words in the sentence" do
+      sentence = Primus::Sentence.new(text: [
+        Primus::Word.new(tokens: [
+          Primus::GematriaPrimus::Token.new(rune: "ᛟ"),
+          Primus::GematriaPrimus::Token.new(rune: "ᚱ"),
+        ]),
+        Primus::Token::SentenceDelimiter::new(lexeme: "᛭"),
+        Primus::Word.new(tokens: [
+          Primus::GematriaPrimus::Token.new(rune: "ᛇ"),
+        ])
+      ])
+
+      result = sentence.reverse
+
+      expect(result.to_s).to eq("ᛇ᛭ᚱᛟ")
+    end
+  end
 end

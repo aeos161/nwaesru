@@ -52,6 +52,12 @@ class Primus::Sentence
     text.select { |w| w.is_a? Primus::Word }
   end
 
+  def reverse
+    reverser = Primus::Document::WordReverser.new
+    reversed_text = text.map { |t| t.accept(reverser) }
+    Primus::Sentence.new(text: reversed_text.reverse)
+  end
+
   def accept(visitor)
     visitor.visit_sentence(self)
   end
