@@ -1,0 +1,33 @@
+# Sandi Metz's numeric rules, mapped onto RuboCop's built-in Metrics cops:
+# https://thoughtbot.com/blog/sandi-metz-rules-for-developers
+#
+# Merge this into your project's RuboCop config. Easiest way: add this to
+# your main .rubocop.yml (adjust the relative path to wherever you put
+# this file):
+#
+#   inherit_from: rubocop-sandi-metz.yml
+#
+# Or just copy the three blocks below directly into your existing config.
+#
+# Note: Sandi Metz's fourth rule -- a controller should instantiate only
+# one object, and a view should only reference that one instance
+# variable -- has no direct RuboCop cop. There's no config to add for it;
+# it's covered in the ruby-clean-code skill as guidance (use a
+# presenter/facade when a page needs more than one thing) and isn't
+# mechanically enforced the way the other three are.
+
+Metrics/ClassLength:
+  Max: 100
+
+Metrics/MethodLength:
+  Max: 5
+  # Treat a multi-line array/hash/heredoc literal as a single line, so a
+  # method isn't penalized for one long literal spanning several lines.
+  CountAsOne:
+    - array
+    - hash
+    - heredoc
+
+Metrics/ParameterLists:
+  Max: 4
+  CountKeywordArgs: true
