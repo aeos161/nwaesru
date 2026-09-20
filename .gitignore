@@ -1,3 +1,5 @@
 *.gem
+.claude/
 coverage
 spec/features/investigation_spec.rb
+
