@@ -51,13 +51,22 @@ RSpec.describe Primus::Lexer do
 
       lexer.tokenize
       tokens = lexer.transcription.tokens.map { |token|
-        [token.lexeme, token.kind, token.source_location.rune_index]
+        [token.lexeme, token.source_location.rune_index]
       }
 
       expect(tokens).to eq(
-        [["ᚠ", :rune, 0], ["?", :unrecognized, nil],
-         ["ᚡ", :unrecognized, nil], ["🙂", :unrecognized, nil]],
+        [["ᚠ", 0], ["?", nil], ["ᚡ", nil], ["🙂", nil]],
       )
+    end
+
+    it "marks runes outside the GP alphabet as unrecognized source text" do
+      page = Primus::Page.new(data: "ᚡ🙂")
+      lexer = Primus::Lexer.build(page: page)
+
+      lexer.tokenize
+      kinds = lexer.transcription.tokens.map(&:kind)
+
+      expect(kinds).to eq([:unrecognized, :unrecognized])
     end
 
     it "preserves Latin case and punctuation during reconstruction" do
