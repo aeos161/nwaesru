@@ -7,8 +7,9 @@ Document), including source and lossless/compatibility specs. The
 [lossless prerequisite](lossless-input.md) has merged; its proposal and
 historical status text are not the current API contract. This revision is
 planning only: no source changes, test implementation, or test-writer
-handoff. Line-order semantics below still require a choice before tests
-are frozen. No further prerequisite refactor is justified by this review.
+handoff. The user approved retaining terminal empty groups (convention B),
+so double reversal must restore original token order and bytes. The plan
+is approved for test-writer handoff. No further prerequisite refactor is justified by this review.
 
 ## Goal
 
@@ -33,9 +34,8 @@ provenance while keeping current token order separate from source order.
   line-slot state, or history. Keep Document public API, existing `reverse`,
   and nested visitors unchanged.
 - Within-line and entire-sequence reversals are involutions: applying twice
-  restores token identity order and exact current bodies. Line-order
-  involution is conditional on the selected convention below, not yet an
-  approved universal acceptance criterion.
+  restores token identity order and exact current bodies. Line-order reversal has the same guarantee under the approved
+  terminal-empty-group convention B.
 - Reparse current tokens directly through Parser with explicit strategy and
   compatibility options. Never render and re-lex a transformation or rebuild
   it through Document::Builder, which would restore original page bodies.
@@ -98,7 +98,7 @@ Five-line methods are a heuristic, not grounds for a prerequisite refactor.
 Broad Law of Demeter cleanup remains deferred. Existing Parser, Builder,
 Document, source capture, and cipher visitors need no planned changes.
 
-### Operation semantics and unresolved newline choice
+### Operation semantics and approved newline convention
 
 Recommended scope remains every page occurrence independently, preserving
 page order. No chapter-wide or page-order reversal is included.
@@ -142,7 +142,8 @@ unchanged break order is an involution without hidden state. It changes
 ordinary terminal-newline expectations, explicitly shown above. Break
 style order remains fixed even though leading/trailing placement can change.
 
-**Recommendation, awaiting decision: B.** It gives a predictable stateless
+**Approved decision: B.** The user selected terminal empty groups and
+requires double reversal to restore the original. It gives a predictable stateless
 reversal over all permitted layouts and composes naturally. If preserving
 final-newline placement is the intended research behavior, choose A and
 explicitly accept non-involution instead. A third choice is to reject
@@ -150,7 +151,8 @@ ambiguous layouts, but restricting the domain limits lossless research
 inputs and needs its own precise domain specification; it is not recommended.
 Do not silently pick either convention, reconstruct groups from original
 line numbers, fabricate breaks, or add line-slot/history metadata to make
-A appear invertible. Both A and B remain choices, not approved requirements.
+A appear invertible. A is retained above only to explain the rejected alternative; B is the
+approved requirement for tests and implementation.
 
 For current body `ᚠ-ᚢ.\nᚦ,ᚩ\n`:
 
@@ -158,7 +160,7 @@ For current body `ᚠ-ᚢ.\nᚦ,ᚩ\n`:
 | --- | --- |
 | Within-line tokens | `.ᚢ-ᚠ\nᚩ,ᚦ\n` |
 | Line order A | `ᚦ,ᚩ\nᚠ-ᚢ.\n` |
-| Line order B (recommended, unapproved) | `\nᚦ,ᚩ\nᚠ-ᚢ.` |
+| Line order B (approved) | `\nᚦ,ᚩ\nᚠ-ᚢ.` |
 | Entire sequence | `\nᚩ,ᚦ\n.ᚢ-ᚠ` |
 | Within-line followed by line order A | `ᚩ,ᚦ\n.ᚢ-ᚠ\n` |
 | Within-line followed by line order B | `\nᚩ,ᚦ\n.ᚢ-ᚠ` |
@@ -196,8 +198,8 @@ This is a future test plan, not tests written or run in this reconciliation.
 Use literal expectations plus object identity and full field assertions;
 existing equality/rendering alone cannot establish losslessness.
 
-1. Resolve A/B and the recommended page-local/all-mark scope before
-   test-writer handoff. Replace conditional expected outputs consistently.
+1. Use approved convention B and the page-local/all-mark scope for
+   test-writer handoff. A examples are historical alternatives, not tests.
 2. Add projection/operation specs for empty input, empty pages, `A`, `A\n`,
    `\nA`, `\n\nA`, `A\n\n`, `\n`, lone CR, CRLF, and mixed break styles.
    Pin all chosen groups and break identities, then each literal reversal.
@@ -216,8 +218,7 @@ existing equality/rendering alone cannot establish losslessness.
    original line numbers after an earlier entire-sequence reversal.
 6. Reuse an operation on A, B, then A; compare literal A results and token
    identities. Verify external composition, input nonmutation, and double
-   reversal guarantees. Under A, explicitly pin the non-involution; under
-   B, pin full involution including leading/trailing empty groups.
+   reversal guarantees. Pin full involution under B, including leading/trailing empty groups.
 7. Reparse transformed `ᚠ,ᚢ` after entire reversal: fresh sentences render
    `ᚢ,` and `ᚠ`; the source document stays `ᚠ,ᚢ`. Check translated token
    values and source locations independently. Reparse Latin with explicit
@@ -252,14 +253,13 @@ existing equality/rendering alone cannot establish losslessness.
   requirements but is not expanded or implemented here; original line
   extraction and current line traversal remain distinct research choices.
 
-## Open questions
+## Decisions for test-writer handoff
 
-1. Choose line-order A (terminal newline retained, non-involutive) or the
-   recommended B (terminal empty groups retained, involutive). This changes
-   ordinary outputs, not just an obscure edge case.
-2. Confirm recommended page-local scope, all-mark reversal, and atomic
-   lexemes. Full-sequence reversal moves breaks; line-order preserves their
-   ordinal identity/order under the selected convention.
+The user approved convention B: retain terminal empty groups and require
+all three reversals applied twice to restore original token order and
+exact current bodies. Proceed with the proposed page-local scope,
+all-mark reversal, and atomic lexemes. Full-sequence reversal moves
+breaks; line-order reversal preserves their ordinal identity/order.
 
 The merged constructors, occurrence representation, ownership, reconstruction,
 and explicit Parser entry point have now been reviewed; they are no longer
