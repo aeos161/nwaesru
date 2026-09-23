@@ -1,4 +1,4 @@
-RSpec.describe Primus::Transcription do
+RSpec.describe "transcription transformations" do
   %w[ReverseTokensWithinLines ReverseLineOrder
      ReverseEntireSequence].each do |name|
     context "with #{name}" do
