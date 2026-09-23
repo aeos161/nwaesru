@@ -39,13 +39,16 @@ class Primus::Document::Decoder
   def process(character)
     return character unless decodable? character
     unless skip?
-      character = decode(character)
+      decoded = decode(character)
+      decoded.location = character.location
+      decoded.source_location = character.source_location
+      character = decoded
     end
     increment_characters_processed
     character
   end
 
-  def decode(character)
+  def decode(_character)
     raise NoMethodError.new("must implement #decode")
   end
 

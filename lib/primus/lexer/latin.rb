@@ -1,10 +1,11 @@
 class Primus::Lexer::Latin
   attr_accessor :current_lexeme
 
-  attr_reader :data, :tokens, :line, :position
+  attr_reader :data, :tokens, :line, :position, :raw_source
 
   def initialize(data: "", line: 0, position: 0, track_delimiters: false)
-    @data = data.split("").map(&:downcase)
+    @raw_source = data
+    @data = data.chars.map(&:downcase)
     @pointer = 0
     @line = line || 0
     @position = position || 0
@@ -54,7 +55,7 @@ class Primus::Lexer::Latin
   end
 
   def next_lexeme(iteration = 2)
-    lexeme = data[pointer..pointer + iteration].join
+    lexeme = data[pointer..(pointer + iteration)].join
     if valid_n_gram? lexeme
       lexeme
     else
@@ -62,7 +63,7 @@ class Primus::Lexer::Latin
     end
   end
 
-  def increment_pointer(n)
-    @pointer += n
+  def increment_pointer(amount)
+    @pointer += amount
   end
 end

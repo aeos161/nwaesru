@@ -3,7 +3,7 @@ class Primus::GematriaPrimus::Token
 
   attr_reader :index, :rune, :alt_letter, :value, :frequency
 
-  attr_accessor :location, :letter
+  attr_accessor :location, :letter, :source_location
 
   @@alphabet = nil
 
@@ -43,6 +43,7 @@ class Primus::GematriaPrimus::Token
     shifted_index = (index + shift) % alphabet.size
     new_token = alphabet.find_by(index: shifted_index)
     new_token.location = location
+    new_token.source_location = source_location
     new_token
   end
 
@@ -52,6 +53,7 @@ class Primus::GematriaPrimus::Token
     shifted_index = (index - shift) % alphabet.size
     new_token = alphabet.find_by(index: shifted_index.abs)
     new_token.location = location
+    new_token.source_location = source_location
     new_token
   end
 
@@ -61,6 +63,7 @@ class Primus::GematriaPrimus::Token
     xor_index = (index ^ shift) % alphabet.size
     new_token = alphabet.find_by(index: xor_index)
     new_token.location = location
+    new_token.source_location = source_location
     new_token
   end
 
@@ -94,7 +97,7 @@ class Primus::GematriaPrimus::Token
     letters = alphabet.reject { |tk| tk >= self }
     res = letters.size.downto(1).flat_map { |n| letters.combination(n).to_a }
     res.
-      select { |combo| combo.map(&:to_i).sum == value }.
+      select { |combo| combo.sum(&:to_i) == value }.
       select { |combo| combo.include? token }
   end
 

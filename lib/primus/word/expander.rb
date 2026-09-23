@@ -15,7 +15,7 @@ class Primus::Word::Expander
   end
 
   def visit_token(token)
-    return if token.is_a? Primus::Token::LineBreak
+    return if token.is_a?(Primus::Token::LineBreak) && method != :rune
     expand_results_for(token)
     letters = extract_letters_from(token)
     results.each do |word|
@@ -29,9 +29,8 @@ class Primus::Word::Expander
     return unless method == :letter
     return unless token.respond_to? :alt?
     return unless token.alt?
-    expanded = []
-    results.each do |word|
-      expanded << Primus::Word.new(tokens: word.tokens.dup)
+    expanded = results.map do |word|
+      Primus::Word.new(tokens: word.tokens.dup)
     end
     @results = (results + expanded).sort
   end

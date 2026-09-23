@@ -14,15 +14,15 @@ module Primus
     counter = Primus::Document::TokenCounter.new(length: length || 1)
     document.accept(counter)
     tokens = counter.result
-    if length == 1
-      numerator = tokens.reject(&:zero?).sum { |count| count * (count - 1) }
-    else
-      numerator = tokens.sum do |row|
-        row.reject(&:zero?).sum { |count| count * (count - 1) }
-      end
-    end
+    numerator = if length == 1
+                  tokens.reject(&:zero?).sum { |count| count * (count - 1) }
+                else
+                  tokens.sum do |row|
+                    row.reject(&:zero?).sum { |count| count * (count - 1) }
+                  end
+                end
     total_tokens = counter.size
-    c = (alphabet.size ** length).to_f
+    c = (alphabet.size**length).to_f
     denominator = (total_tokens * (total_tokens - 1)) / c
     numerator / denominator
   end
@@ -33,7 +33,7 @@ module Primus
 
   def self.parse(text, strategy = :latin)
     splitter = strategy == :rune ? "-" : " "
-    text = text.respond_to?(:split) ? text.split(splitter) : text
+    text = text.split(splitter) if text.respond_to?(:split)
     text.map { |word| to_word(word, strategy) }
   end
 
@@ -51,6 +51,10 @@ require "primus/core_extensions/integer_monkey_patch"
 require "primus/core_extensions/string_monkey_patch"
 
 require "primus/page"
+require "primus/transcription"
+require "primus/transcription/token"
+require "primus/transcription/source_location"
+require "primus/transcription/page_boundary"
 
 require "primus/document"
 require "primus/document/decoder"
@@ -79,6 +83,7 @@ require "primus/latin_alphabet"
 require "primus/latin_alphabet/token"
 
 require "primus/lexer"
+require "primus/lexer/source_scan"
 require "primus/lexer/latin"
 require "primus/lexer/factory"
 require "primus/lexer/runic"
@@ -90,6 +95,7 @@ require "primus/ngram"
 require "primus/ngram/identity_map"
 
 require "primus/parser"
+require "primus/parser/compatibility"
 
 require "primus/sentence"
 
