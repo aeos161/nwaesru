@@ -1,58 +1,44 @@
 class Primus::Document::Builder
-  attr_reader :pages, :result, :strategy
+  attr_reader :pages, :result, :strategy, :transcription
 
   def initialize(pages: [], strategy: :runic, track_delimiters: false)
     @pages = Array(pages)
     @strategy = strategy
     @track_delimiters = track_delimiters
     @result = Primus::Document.new
-    @first_word = Primus::Word.new
-    @position = 0
   end
 
   def build
-    if Array(pages).one?
-      build_page(pages.first)
-    else
-      build_chapter(pages)
-    end
-  end
-
-  def build_chapter(pages)
-    tokens = Array(pages).map do |page|
+    sources = pages.each_with_index.map do |page, occurrence|
       lexer = Primus::Lexer.build(page: page, strategy: strategy,
-                                  starting_position: position,
-                                  track_delimiters: track_delimiters)
+                                  occurrence: occurrence)
       lexer.tokenize
-      @position = lexer.position
-      [lexer.tokens, Primus::Token::LineBreak.new].flatten
+      lexer.transcription
     end
-    parser = Primus::Parser.new(tokens: tokens.flatten, document: result)
+    @transcription = Primus::Transcription.compose(sources)
+    parser = Primus::Parser.new(transcription: transcription,
+                                strategy: strategy,
+                                track_delimiters: @track_delimiters)
     parser.parse
+    @result = parser.result
   end
 
   def build_page(page)
-    lexer = Primus::Lexer.build(page: page, strategy: strategy,
-                                starting_position: position,
-                                track_delimiters: track_delimiters)
-    lexer.tokenize
-    parser = Primus::Parser.new(tokens: lexer.tokens, document: result,
-                                first_word: first_word)
-    parser.parse
-    @position = lexer.position
+    @pages = [page]
+    build
+  end
+
+  def build_chapter(chapter_pages)
+    @pages = Array(chapter_pages)
+    build
   end
 
   def self.for_pages(page_numbers: [], strategy: :runic,
                      track_delimiters: false)
-    page_numbers = Array(page_numbers)
-    pages = page_numbers.map do |page_number|
+    pages = Array(page_numbers).map do |page_number|
       Primus::LiberPrimus::Page.open(page_number: page_number,
                                      character_set: strategy)
     end
     new(pages: pages, strategy: strategy, track_delimiters: track_delimiters)
   end
-
-  protected
-
-  attr_reader :position, :first_word, :track_delimiters
 end

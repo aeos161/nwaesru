@@ -8,10 +8,8 @@ class Primus::Token::Location
   end
 
   def ==(other)
-    return true if other.nil?
-    line == other.line &&
-    position == other.position &&
-    length == other.length
+    other.is_a?(Primus::Token::Location) &&
+      line == other.line && position == other.position && length == other.length
   end
 
   def -(other)

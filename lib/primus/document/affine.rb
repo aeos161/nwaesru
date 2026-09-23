@@ -1,7 +1,7 @@
 class Primus::Document::Affine
   attr_reader :alphabet, :key, :modulus, :magnitude
 
-  def initialize(alphabet: nil, key:, modulus: nil, magnitude:)
+  def initialize(key:, magnitude:, alphabet: nil, modulus: nil)
     @alphabet = alphabet || Primus::GematriaPrimus.build
     @modulus = modulus || @alphabet.size
     @key = key
@@ -38,6 +38,9 @@ class Primus::Document::Affine
 
   def decode(character)
     index = (key.inv(modulus) * (character.index - magnitude)) % modulus
-    alphabet.find_by(index: index)
+    token = alphabet.find_by(index: index)
+    token.location = character.location
+    token.source_location = character.source_location
+    token
   end
 end

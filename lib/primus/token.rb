@@ -1,11 +1,12 @@
 class Primus::Token
   attr_reader :lexeme, :literal
-  attr_accessor :location
+  attr_accessor :location, :source_location
 
-  def initialize(lexeme: "", literal: nil, location: nil)
+  def initialize(lexeme: "", literal: nil, location: nil, source_location: nil)
     @lexeme = lexeme
     @literal = literal
     @location = location
+    @source_location = source_location
   end
 
   def ==(token)

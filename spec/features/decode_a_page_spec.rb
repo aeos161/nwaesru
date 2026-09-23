@@ -7,7 +7,7 @@ RSpec.describe "decode a page" do
     translation = document.accept(Primus::Document::Translator.new)
     result = translation.accept(totient)
 
-    expect(result.to_s).to eq(page56_decoded_text)
+    expect(result.to_s).to eq(decoded_fixture(56))
   end
 
   it "can decode an atbash cipher" do
@@ -16,7 +16,7 @@ RSpec.describe "decode a page" do
     translation = document.accept(Primus::Document::Translator.new)
     result = translation.accept(Primus::Document::Atbash.new)
 
-    expect(result.to_s).to eq(warning_decoded_text)
+    expect(result.to_s).to eq(decoded_fixture("warning"))
   end
 
   it "can translate runes" do
@@ -24,10 +24,10 @@ RSpec.describe "decode a page" do
 
     result = document.accept(Primus::Document::Translator.new)
 
-    expect(result.to_s).to eq(know_this_decoded_text)
+    expect(result.to_s).to eq(decoded_fixture("know_this"))
   end
 
-  it "can decode a vigenere cipher" do
+  it "decodes the welcome pages with vigenere" do
     document = Primus::LiberPrimus.page(page_number: ["welcome", "welcome_2"])
     key = "diuinity"
     skip_sequence = [48, 74, 84, 132, 159, 160, 250, 421, 443, 465, 514]
@@ -37,10 +37,12 @@ RSpec.describe "decode a page" do
     translation = document.accept(Primus::Document::Translator.new)
     result = translation.accept(vigenere)
 
-    expect(result.to_s).to eq(welcome_decoded_text)
+    expect(result.to_s).to eq(
+      "#{decoded_fixture("welcome")}\n#{decoded_fixture("welcome_2")}",
+    )
   end
 
-  it "can decode a vigenere cipher" do
+  it "decodes pages 107 and 167 with vigenere" do
     document = Primus::LiberPrimus.page(page_number: [107, 167])
     key = "firfumferenfe"
     skip_sequence = [49, 58]
@@ -50,64 +52,29 @@ RSpec.describe "decode a page" do
     translation = document.accept(Primus::Document::Translator.new)
     result = translation.accept(vigenere)
 
-    expect(result.to_s).to eq(page107_decoded_text)
+    expect(result.to_s).to eq(
+      "#{decoded_fixture(107)}\n#{decoded_fixture(167)}",
+    )
   end
 
-  it "can do a direct rune to letter translation" do
+  it "translates page 229 directly" do
     document = Primus::LiberPrimus.page(page_number: 229)
 
     result = document.accept(Primus::Document::Translator.new)
 
-    expect(result.to_s).to eq(page229_decoded_text)
+    expect(result.to_s).to eq(decoded_fixture(229))
   end
 
-  it "can do a direct rune to letter translation" do
+  it "translates page 57 directly" do
     document = Primus::LiberPrimus.page(page_number: 57)
 
     result = document.accept(Primus::Document::Translator.new)
 
-    expect(result.to_s).to eq(page57_decoded_text)
+    expect(result.to_s).to eq(decoded_fixture(57))
   end
 
-  def page56_decoded_text
-    Primus::LiberPrimus::Page.open(page_number: 56, character_set: :latin).to_s
-  end
-
-  def page57_decoded_text
-    Primus::LiberPrimus::Page.open(page_number: 57, character_set: :latin).to_s
-  end
-
-  def warning_decoded_text
-    Primus::LiberPrimus::Page.open(
-      page_number: "warning", character_set: :latin
-    ).to_s
-  end
-
-  def know_this_decoded_text
-    Primus::LiberPrimus::Page.open(
-      page_number: "know_this", character_set: :latin
-    ).to_s
-  end
-
-  def welcome_decoded_text
-    a = Primus::LiberPrimus::Page.open(page_number: "welcome",
-                                       character_set: :latin)
-    b = Primus::LiberPrimus::Page.open(page_number: "welcome_2",
-                                       character_set: :latin)
-    a.to_s + "\n" + b.to_s
-  end
-
-  def page107_decoded_text
-    a = Primus::LiberPrimus::Page.open(
-      page_number: 107, character_set: :latin
-    ).to_s
-    b = Primus::LiberPrimus::Page.open(
-      page_number: 167, character_set: :latin
-    ).to_s
-    a + "\n" + b
-  end
-
-  def page229_decoded_text
-    Primus::LiberPrimus::Page.open(page_number: 229, character_set: :latin).to_s
+  def decoded_fixture(page_number)
+    path = "data/decoded/liber_primus/page_#{page_number}.yml"
+    Psych.safe_load(File.read(path))["body"].rstrip
   end
 end

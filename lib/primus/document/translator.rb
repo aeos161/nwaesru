@@ -21,6 +21,7 @@ class Primus::Document::Translator
   def visit_token(token)
     tk = translate(token)
     tk.location = token.location
+    tk.source_location = token.source_location
     tk
   end
 
