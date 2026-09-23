@@ -1,8 +1,8 @@
 class Primus::Parser
   attr_reader :result, :tokens, :last_token
 
-  def initialize(tokens: [], transcription: nil, document: nil,
-                 policy: :compatibility, strategy: :runic,
+  def initialize(tokens: [], transcription: nil, policy: :compatibility,
+                 strategy: :runic,
                  track_delimiters: false)
     unless policy == :compatibility
       raise ArgumentError, "Unknown policy: #{policy}"
@@ -11,7 +11,7 @@ class Primus::Parser
     @input_tokens = tokens
     @strategy = strategy
     @track_delimiters = track_delimiters
-    @result = document || Primus::Document.new
+    @result = Primus::Document.new
   end
 
   def parse

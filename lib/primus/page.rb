@@ -10,6 +10,7 @@ class Primus::Page
     @source_body = source_body || data
     @artifact_bytes = artifact_bytes
     @source_path = source_path
+    validate_body!
   end
 
   def ==(page)
@@ -37,11 +38,23 @@ class Primus::Page
       raise ArgumentError,
             "#{path}: invalid UTF-8"
     end
-    body = Psych.safe_load(artifact)&.fetch("body", nil)
+    parsed = Psych.safe_load(artifact)
+    body = parsed["body"] if parsed.is_a?(Hash)
     unless body.is_a?(String)
       raise ArgumentError,
             "#{path}: body must be a String"
     end
     [body, artifact]
+  end
+
+  private
+
+  def validate_body!
+    label = source_path || "in-memory page"
+    valid_utf8 = source_body.is_a?(String)
+    valid_utf8 &&= source_body.dup.force_encoding(Encoding::UTF_8).valid_encoding?
+    unless valid_utf8
+      raise ArgumentError, "#{label}: body must be valid UTF-8 text"
+    end
   end
 end
