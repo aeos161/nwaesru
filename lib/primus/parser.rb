@@ -1,108 +1,118 @@
 class Primus::Parser
-  attr_reader :tokens, :result, :last_token
+  attr_reader :result, :tokens, :last_token
 
-  def initialize(tokens: [], document: nil, first_word: nil)
-    @tokens = tokens.to_enum
+  def initialize(tokens: [], transcription: nil, document: nil,
+                 policy: :compatibility, strategy: :runic,
+                 track_delimiters: false)
+    unless policy == :compatibility
+      raise ArgumentError, "Unknown policy: #{policy}"
+    end
+    @source = transcription
+    @input_tokens = tokens
+    @strategy = strategy
+    @track_delimiters = track_delimiters
     @result = document || Primus::Document.new
-    @sentence = Primus::Sentence.new
-    @word = Primus::Word.new
-    @last_token = nil
   end
 
   def parse
-    while true
-      parse_tokens
-    end
-  rescue StopIteration
-    handle_end_of_document
-  end
-
-  protected
-
-  def end_of_word?(token)
-    token.is_a?(Primus::Token::WordDelimiter)
-  end
-
-  def end_of_sentence?(token)
-    token.is_a?(Primus::Token::SentenceDelimiter)
-  end
-
-  def parse_tokens
-    token = tokens.next
-    if token.delimiter?
-      parse_delimiter token
-    else
-      parse_character token
-    end
-    @last_token = token
-  end
-
-  def parse_character(token)
-    if token.line_break?
-      parse_line_break token
-    else
-      add_to_word token
-    end
-  end
-
-  def parse_delimiter(token)
-    case token
-    when ->(token) { end_of_word?(token) }
-      complete_current_word token
-    when ->(token) { end_of_sentence?(token) }
-      complete_current_sentence token
-    end
-  end
-
-  def parse_line_break(token)
-    if @word.blank? && @sentence.blank?
-      add_to_document token
-    else
-      tokens.peek
-      add_to_word token
-    end
-  rescue StopIteration
-  end
-
-  def complete_current_sentence(token)
-    complete_current_word token
-    add_to_document @sentence
+    @result = Primus::Document.new
     @sentence = Primus::Sentence.new
+    @word = Primus::Word.new
+    @tokens = projected_tokens
+    tokens.each_with_index { |token, index| consume(token, index) }
+    finish
+    result
   end
 
-  def complete_current_word(token = nil)
-    unless @word.blank?
-      add_to_sentence @word
-    end
+  private
 
-    unless token.nil?
-      add_to_sentence token
-    end
+  def projected_tokens
+    return @input_tokens if @source.nil?
+    converter = Primus::Parser::Compatibility.new(
+      strategy: @strategy, track_delimiters: @track_delimiters,
+    )
+    view_sources.map { |source|
+      source ? converter.token_for(source) : synthetic_break
+    }
+  end
 
+  def view_sources
+    @source.pages.each_with_index.flat_map do |_page, occurrence|
+      sources = sources_for(occurrence)
+      if intermediate_page?(occurrence)
+        sources.pop while trailing_space?(sources.last)
+        sources + [nil]
+      else
+        sources
+      end
+    end
+  end
+
+  def sources_for(occurrence)
+    @source.tokens.select do |token|
+      token.source_location.occurrence == occurrence
+    end
+  end
+
+  def trailing_space?(token)
+    token && [:whitespace, :line_break].include?(token.kind)
+  end
+
+  def intermediate_page?(occurrence)
+    occurrence < @source.pages.size - 1
+  end
+
+  def synthetic_break
+    Primus::Token::LineBreak.new
+  end
+
+  def consume(token, index)
+    @last_token = token
+    if token.is_a?(Primus::Token::SentenceDelimiter)
+      complete_sentence(token)
+    elsif token.is_a?(Primus::Token::WordDelimiter)
+      complete_word(token)
+    elsif token.line_break?
+      consume_line_break(token, index)
+    elsif token.delimiter?
+      complete_word
+      @sentence << token
+    else
+      @word << token
+    end
+  end
+
+  def consume_line_break(token, index)
+    if @word.blank? && @sentence.blank?
+      result << token
+    elsif index == tokens.length - 1
+      complete_word
+      flush_sentence
+      result << token
+    else
+      @word << token
+    end
+  end
+
+  def complete_word(delimiter = nil)
+    @sentence << @word if @word.tokens.any?
+    @sentence << delimiter if delimiter
     @word = Primus::Word.new
   end
 
-  def handle_end_of_document
-    if !end_of_word?(last_token) && !end_of_sentence?(last_token)
-      complete_current_word
-    end
-
-    add_to_document @sentence
-
-    if last_token.is_a? Primus::Token::LineBreak
-      @result << last_token
-    end
+  def complete_sentence(delimiter)
+    complete_word
+    @sentence << delimiter
+    flush_sentence
   end
 
-  def add_to_word(token)
-    @word << token
+  def flush_sentence
+    result << @sentence if @sentence.text.any?
+    @sentence = Primus::Sentence.new
   end
 
-  def add_to_sentence(word)
-    @sentence << word
-  end
-
-  def add_to_document(token)
-    @result << token
+  def finish
+    complete_word
+    flush_sentence
   end
 end
