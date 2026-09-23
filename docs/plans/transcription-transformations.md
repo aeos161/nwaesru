@@ -2,101 +2,266 @@
 
 ## Status and dependency
 
-Follow-on design record requested separately by the user. Begin implementation only after [lossless Transcription and Document compatibility](lossless-input.md) are complete and merged. Invoke planner for a fresh review of the resulting code and resolve the open semantics before test-writer handoff. File/class names and tests below preserve the current proposals; they are not a claim that the prerequisite API already exists. No implementation or test-writer handoff has occurred.
+Reconciled against merged `381cd90` (Add lossless transcription beneath
+Document), including source and lossless/compatibility specs. The
+[lossless prerequisite](lossless-input.md) has merged; its proposal and
+historical status text are not the current API contract. This revision is
+planning only: no source changes, test implementation, or test-writer
+handoff. Line-order semantics below still require a choice before tests
+are frozen. No further prerequisite refactor is justified by this review.
 
 ## Goal
 
-Provide standalone transformations over a Transcription without adding operations or execution history to the source model. A transformed result can be explicitly parsed into a fresh Document while retaining original source provenance.
+Provide three standalone, page-local reversals over Transcription, with
+explicit reparsing into fresh Document views. Preserve original source
+provenance while keeping current token order separate from source order.
 
 ## Acceptance criteria
 
-- The agreed interface is `transformation.call(transcription)`: return a new Transcription, leave input unchanged, and preserve token identity, raw lexemes, source references and original coordinates.
-- Each operation owns its parameters and rules. Calls have no retained input-specific state. Operations compose externally, for example `second.call(first.call(input))`.
-- Transcription remains a thin ordered content/page boundary/source-reference model; no reversal methods, dispatch, registry, line-slot history, or chain history are added.
-- Keep existing Document visitors for the nested model. Do not force a visitor, decorator, or inheritance hierarchy on flat source transformations. Document public API and existing `reverse` are unchanged.
-- Implement named standalone line-order, within-line token, and entire-sequence reversal operations under reviewed semantics. Names below are illustrative.
-- Token-within-line and entire-sequence reversal applied twice restore token order and bytes. Do not claim line-order involution until the empty/unterminated-line ambiguity below is resolved.
-- Reparse results explicitly to obtain fresh word/sentence views. Never render and re-lex to transform tokens; that can merge symbols and destroy provenance.
+- `operation.call(transcription)` returns a distinct Transcription and
+  leaves input arrays, tokens, source locations, page bodies, and artifacts
+  unchanged. Preserve every original token object exactly once, including
+  marks, whitespace, unrecognized text, and atomic multi-character tokens.
+- Results own new `tokens`, `pages`, and `boundaries` arrays. Page, boundary,
+  lexical token, and source-location objects are shared read-only by the
+  operations. No promise of deep immutability is added to the existing API.
+- Preserve page order, empty occurrences, repeated page occurrences, and
+  original boundary objects. No token moves between occurrences.
+- Each operation owns its rules and any parameters; retain no input-specific
+  state between calls. Compose externally: `second.call(first.call(input))`.
+- Transcription stays thin. Add no operation methods, dispatcher, registry,
+  line-slot state, or history. Keep Document public API, existing `reverse`,
+  and nested visitors unchanged.
+- Within-line and entire-sequence reversals are involutions: applying twice
+  restores token identity order and exact current bodies. Line-order
+  involution is conditional on the selected convention below, not yet an
+  approved universal acceptance criterion.
+- Reparse current tokens directly through Parser with explicit strategy and
+  compatibility options. Never render and re-lex a transformation or rebuild
+  it through Document::Builder, which would restore original page bodies.
 
 ## Approach
 
-### Production code proposals
+### Merged API and ownership contract
+
+| Actual implementation | Consequence for transformations |
+| --- | --- |
+| `Transcription.new(pages: [], tokens: [], boundaries: [])` stores supplied arrays directly; readers expose them | Construct directly with fresh arrays; do not use in-place array reversal on input. |
+| `Transcription#source_bodies` maps `pages.map(&:source_body)` | These are original extracted bodies, even after token rearrangement. This is not a current-output renderer. |
+| `Transcription.compose` flattens page/token arrays and creates boundaries numbered `1...pages.size` | It does not rebase token occurrence IDs. Do not compose independently lexed default-occurrence-zero pages or call compose to construct operation results. |
+| `PageBoundary.new(occurrence:)` identifies the following page occurrence | Boundaries are a separate array, not tokens or separators embedded in a stream. Preserve their identity/order and contribute no text. |
+| A page occurrence is its index in `pages`; tokens carry `source_location.occurrence` | Enumerate page indices, including those with no tokens. Do not group by page number or page object equality: repeated pages may be the very same object. |
+| `Transcription::Token.new(lexeme:, kind:, source_location:)` has readers | Lexemes and tokens are not frozen. Share them without mutation; do not freeze caller-owned objects as a side effect. |
+| SourceLocation has readers for page number, occurrence, byte/character spans, line, column, rune index | Preserve the original object and all fields. Spans are zero-based and end-exclusive; rune index exists for GP runes only. Never rewrite these as current coordinates. |
+
+Page/source strings and exposed arrays are also mutable in the merged
+implementation. The contract is nonmutation by these operations, not
+isolation from arbitrary later caller mutation of a shared token or page.
+Fresh result arrays prevent clearing or reordering one result's collection
+from changing the input collection. Deep freezing/copying would change
+ownership or identity expectations and is outside this plan.
+
+Supported input is the well-formed shape emitted by Document::Builder:
+occurrences are globally numbered by page index, every token belongs to
+one such index, and boundary occurrences are `1...pages.size`. Empty and
+zero-page inputs are valid. Lexer.build accepts `occurrence:`; Builder
+supplies it before composition. General normalization/validation of manually
+malformed transcriptions is not part of these operations.
+
+For current per-page bytes, enumerate every page index, select matching
+tokens from the **current** `tokens` array in its existing order, and join
+`lexeme`. This uses available APIs, needs no new Transcription renderer,
+and yields an empty string for an empty occurrence. Joining all lexemes
+alone loses page separation. Original bodies remain in `source_bodies`;
+original YAML bytes and paths remain on the shared pages as `artifact_bytes`
+and `source_path`. Do not regenerate them from transformed contents.
+
+Original physical line membership is `source_location.line`; the current
+line projection comes from current `kind == :line_break` positions. These
+can disagree after rearrangement. Current offsets, if needed for display,
+are derived separately and never written back to provenance.
+
+### Files and responsibilities
 
 | Proposed file/class | Responsibility |
 | --- | --- |
-| `lib/primus/transcription/line_projection.rb` | Separate read-only projection of current line-content groups and break references, per page. Original line coordinates remain distinct. No projection state is stored on Transcription. |
-| `lib/primus/transformations/reverse_line_order.rb` | `ReverseLineOrder#call(transcription)` owns reviewed page/line ordering rules and supported parameters. Uses line projection. |
-| `lib/primus/transformations/reverse_tokens_within_lines.rb` | `ReverseTokensWithinLines#call(transcription)` reverses content within projected lines. |
-| `lib/primus/transformations/reverse_entire_sequence.rb` | `ReverseEntireSequence#call(transcription)` reverses page-local lexical tokens including line-break tokens. |
+| `lib/primus/transcription/line_projection.rb` / `Primus::Transcription::LineProjection` | Separate read-only projection of one occurrence's current content groups and line-break references. No cached state attached to Transcription. |
+| `lib/primus/transformations/reverse_tokens_within_lines.rb` | `Primus::Transformations::ReverseTokensWithinLines#call` reverses each content group. |
+| `lib/primus/transformations/reverse_line_order.rb` | `Primus::Transformations::ReverseLineOrder#call` reverses content groups under the chosen convention. |
+| `lib/primus/transformations/reverse_entire_sequence.rb` | `Primus::Transformations::ReverseEntireSequence#call` reverses all lexical tokens per occurrence. |
+| `lib/primus.rb` | Declare the new Transformations namespace and require the additions in dependency order, following the current explicit loader. |
 
-Use a shared Ruby call contract rather than an obligatory abstract base class. Parameters belong on operation construction, input on `call`. Recheck actual prerequisite constructors, token ownership, exact reconstruction and parser APIs before implementation. Add requires in `lib/primus.rb` as needed; do not change the loader or Document interface to dispatch these operations.
+Use ordinary objects with a common call contract, not an abstract base class
+or visitor hierarchy. Keep page selection/result assembly small and local;
+extract a shared helper only if implementation reveals meaningful duplication.
+Five-line methods are a heuristic, not grounds for a prerequisite refactor.
+Broad Law of Demeter cleanup remains deferred. Existing Parser, Builder,
+Document, source capture, and cipher visitors need no planned changes.
 
-### Operation semantics proposed for review
+### Operation semantics and unresolved newline choice
 
+Recommended scope remains every page occurrence independently, preserving
+page order. No chapter-wide or page-order reversal is included.
 
-**Recommended initial scope:** operate independently within every page occurrence; preserve page order and boundary records. Do not expose a whole-chapter reversal yet. This prevents a reversal from silently reassigning text between pages or turning page boundaries into source text. A later explicitly named page-order operation can be added if research requires it.
+**Within-line tokens:** reverse all non-line-break tokens in each current
+line, including punctuation, spaces, tabs, and unknown characters. Breaks
+stay between their original ordinal content groups; groups can change
+length but token counts do not. Never reverse characters inside a lexeme.
+This behavior does not depend on whether a terminal empty group is retained.
 
-**`ReverseTokensWithinLines#call`:** derive current lines; reverse all non-line-break tokens within each line, including whitespace and punctuation. Line-break tokens stay in their existing slots. No token's raw lexeme is reversed internally.
+**Entire sequence:** reverse every lexical token in an occurrence, including
+line-break tokens. A trailing break becomes leading. CRLF, recognized
+punctuation pairs, and Latin digraph/trigraph tokens remain atomic.
 
-**`ReverseLineOrder#call`:** reverse line-content groups while leaving line-break tokens in their existing ordinal slots. Thus a final newline stays final, mixed newline styles keep their slot order, and an unterminated final line does not accidentally fuse with its neighbor. Source coordinates belong to tokens, so after rearrangement a line-break token need not share original line membership with its newly preceding contents.
+**Line order:** reverse content groups, interleaving the original break
+objects in their original ordinal order. “Fixed break slots” means ordinal
+separator order, not fixed byte offsets or absolute token-array indices.
+There is a real semantic choice about terminal empty content groups:
 
-Define line contents as follows: an empty page has zero lines; a newline-terminated page has no extra phantom line after the terminal break; consecutive breaks create empty content lines. For example, `A\n\n` has content groups `[A, empty]` and two breaks. An unterminated final nonempty group is a line. These conventions preserve tokens, but do not alone guarantee reversible line grouping: `\nA` reverses to `A\n`, whose reparsed line view no longer includes the formerly leading empty line. Resolve this in the separate line projection and transformation contract: one option is a uniform split convention that includes terminal empty content groups (changing ordinary terminal-newline reversal expectations); another is the illustrated byte-defined convention, which is non-involutive for this edge case. Do not add hidden line-slot metadata/history to Transcription or silently add a newline to fix it. The examples below are provisional under the illustrated convention until this choice is reviewed.
+| Input | A: omit terminal empty group | B: include terminal empty group |
+| --- | --- | --- |
+| empty | empty (zero groups) | empty (zero groups; explicit special case) |
+| `A` | `A` | `A` |
+| `A\n` | `A\n` | `\nA` |
+| `\nA` | `A\n` | `A\n` |
+| `A\nB\n` | `B\nA\n` | `\nB\nA` |
+| `A\n\n` | `\nA\n` | `\n\nA` |
+| `\n` | `\n` | `\n` |
+| `A\r\nB\nC` | `C\r\nB\nA` | `C\r\nB\nA` |
 
-**`ReverseEntireSequence#call`:** reverse all lexical tokens within a page, including line-break tokens. A terminal newline becomes leading. CRLF and recognized punctuation/Latin n-grams remain atomic tokens. This is intentionally different from reversing line contents with separator slots fixed.
+A is the prior provisional “physical lines” convention. It preserves a
+terminal newline but is non-involutive: `\nA` becomes `A\n`, then stays
+`A\n`. Likewise `A\n\n` becomes `\nA\n`, then `A\n\n`, whereas the
+unterminated `\n\nA` also maps to `A\n\n`. The transformation is not
+injective; retaining token identity and source coordinates does not supply
+a stateless current-line rule that reverses every composition correctly.
 
-Example current body `ᚠ-ᚢ.\nᚦ,ᚩ\n`:
+B retains empty groups on both sides of breaks: any nonempty page with
+N breaks has N+1 content groups. Reversing these groups and interleaving
+unchanged break order is an involution without hidden state. It changes
+ordinary terminal-newline expectations, explicitly shown above. Break
+style order remains fixed even though leading/trailing placement can change.
 
-| Operation | Exact resulting body (`\n` denotes one LF) |
+**Recommendation, awaiting decision: B.** It gives a predictable stateless
+reversal over all permitted layouts and composes naturally. If preserving
+final-newline placement is the intended research behavior, choose A and
+explicitly accept non-involution instead. A third choice is to reject
+ambiguous layouts, but restricting the domain limits lossless research
+inputs and needs its own precise domain specification; it is not recommended.
+Do not silently pick either convention, reconstruct groups from original
+line numbers, fabricate breaks, or add line-slot/history metadata to make
+A appear invertible. Both A and B remain choices, not approved requirements.
+
+For current body `ᚠ-ᚢ.\nᚦ,ᚩ\n`:
+
+| Operation | Exact resulting body |
 | --- | --- |
-| `ReverseTokensWithinLines` | `.ᚢ-ᚠ\nᚩ,ᚦ\n` |
-| `ReverseLineOrder` | `ᚦ,ᚩ\nᚠ-ᚢ.\n` |
-| `ReverseEntireSequence` | `\nᚩ,ᚦ\n.ᚢ-ᚠ` |
+| Within-line tokens | `.ᚢ-ᚠ\nᚩ,ᚦ\n` |
+| Line order A | `ᚦ,ᚩ\nᚠ-ᚢ.\n` |
+| Line order B (recommended, unapproved) | `\nᚦ,ᚩ\nᚠ-ᚢ.` |
+| Entire sequence | `\nᚩ,ᚦ\n.ᚢ-ᚠ` |
+| Within-line followed by line order A | `ᚩ,ᚦ\n.ᚢ-ᚠ\n` |
+| Within-line followed by line order B | `\nᚩ,ᚦ\n.ᚢ-ᚠ` |
 
-Transform token sequences directly; do not render and re-lex, which could merge Latin symbols or lose original identities. Reparse the resulting transcription to recompute word/sentence structure. No operation promises sensible English punctuation.
+The last B example equals entire-sequence output because its breaks are
+identical. They are not generally equivalent: for `A\r\nB\nC`, line order
+(with either convention) yields `C\r\nB\nA`, while entire sequence yields
+`C\nB\r\nA`. Preserve break identities even when their lexemes match.
 
+### Explicit reparsing and compatibility
 
-### Migration and verification
+Use `Primus::Parser.new(transcription: result, policy: :compatibility,
+strategy: :runic, track_delimiters: false)` (choose `:latin` when appropriate),
+then `parse`, which returns a fresh Document and updates `parser.result`.
+Repeated `parse` on the same Parser also creates fresh graphs. There is no
+Transcription `parse`, `reparse`, or strategy attribute. Callers retain the
+chosen strategy/options outside the source model. `Primus.parse` is the
+existing text-to-words helper, not the Transcription reparse API.
 
-1. Review merged Transcription code and resolve page/line semantics with the user.
-2. Add separate line projection only for these operations, then implement standalone operations against the agreed call contract.
-3. Test literal output/provenance and reuse, followed by external composition and explicit reparsing into Document.
-4. Run focused transformation specs and existing known decoding/Document compatibility regressions. Existing `Document#reverse` remains separate.
+Parser selects tokens by occurrence while preserving their current order;
+it does not consume `boundaries` directly. It removes trailing whitespace
+and break tokens from intermediate pages in its view and inserts a synthetic
+LF with no source location. The printer applies final `rstrip`. Thus parsed
+rendering is not an exact transformed-body oracle. Physical lines can still
+continue inside one parsed Word. Preserve these compatibility behaviors.
+Compatibility creates new interpreted tokens and attaches the original
+source-location object; legacy position/line tracking is separate and must
+not be mistaken for new authoritative source coordinates. Synthetic page
+breaks do not claim source positions. Reordering punctuation can alter word
+and sentence membership without altering source provenance.
 
-## Proposed test matrix
+## Proposed verification and migration
 
-Pin literal output, exact counts and source fields; object equality or delegation assertions alone cannot establish preservation. Existing WordReverser delegation tests do not establish the semantics of these new operations. Never generate expected output with the implementation being tested.
+This is a future test plan, not tests written or run in this reconciliation.
+Use literal expectations plus object identity and full field assertions;
+existing equality/rendering alone cannot establish losslessness.
 
-| Spec target | Required behaviors and independent examples |
-| --- | --- |
-| New `transcription/line_projection_spec.rb` | Empty, `A`, `A\n`, `A\n\n`, `\n`, and mixed CRLF/LF cases pin exact content groups and break tokens. Physical lines do not depend on commas or word delimiters. |
-| New `transformations/reverse_line_order_spec.rb`, `reverse_tokens_within_lines_spec.rb`, `reverse_entire_sequence_spec.rb` | Assert all three literal rune examples above. For `A\r\nB\nC`, line-order reversal → `C\r\nB\nA`; whole sequence → `C\nB\r\nA`. For `A\n\n`, line-order reversal → `\nA\n`. Include punctuation pairs, spaces, quotes, single/empty lines, and two pages. Pin page order and original token coordinates. Double reversal restores original token order/bytes for token reversal operations; include `\nA` as the unresolved line-order regression before claiming the same for every line layout. Parsing transformed output never mutates either transcription. |
-| Shared transformation contract examples in transformation specs | Each `call(input)` returns a distinct Transcription with unchanged input bytes/order and original token source fields. Reuse the same operation on A, then B, then A; both A results agree. For `ᚠ-ᚢ.\nᚦ,ᚩ\n`, external within-line reversal followed by line-order reversal yields `ᚩ,ᚦ\n.ᚢ-ᚠ\n` under the provisional line convention. Pin the literal output and preservation fields; do not merely assert delegation. No history is attached to results. |
-| Parser integration example | Parse source, call a standalone operation, then parse its result into a new Document. Pin new punctuation grouping and translated text independently; original document/transcription remain unchanged. No chain runner is required. |
-| Latin atomic-token example | Under prerequisite `ThING` tokens `Th`, `ING`, sequence reversal yields `INGTh`, not character-reversed `GNIhT`. The two original source spans remain unchanged. |
-| Existing Document compatibility | `Document#reverse`, visitor calls, word-oriented `tokens`, and all known decoded outputs remain compatible; do not silently route them through a new transformation. |
+1. Resolve A/B and the recommended page-local/all-mark scope before
+   test-writer handoff. Replace conditional expected outputs consistently.
+2. Add projection/operation specs for empty input, empty pages, `A`, `A\n`,
+   `\nA`, `\n\nA`, `A\n\n`, `\n`, lone CR, CRLF, and mixed break styles.
+   Pin all chosen groups and break identities, then each literal reversal.
+3. Verify every token identity occurs exactly once, including punctuation
+   pairs, quotes, whitespace, unknown Unicode, and Latin `ThING` tokens
+   `Th`, `ING`. Entire reversal gives `INGTh` with original spans `[2,5)`
+   then `[0,2)`; never character-reversed `GNIhT`. Add an adjacency case
+   where re-lexing would merge formerly separate Latin tokens.
+4. Use repeated page objects with an empty middle page. Verify page indices,
+   boundary identity/order, unchanged original source_bodies/artifacts, and
+   separately reconstructed current bodies. Confirm fresh result arrays;
+   clearing one result's array must not change input arrays.
+5. Assert all SourceLocation fields unchanged (including byte versus
+   character spans and page-local rune indices). Verify current order can
+   be nonmonotonic in original coordinates. Operations must not depend on
+   original line numbers after an earlier entire-sequence reversal.
+6. Reuse an operation on A, B, then A; compare literal A results and token
+   identities. Verify external composition, input nonmutation, and double
+   reversal guarantees. Under A, explicitly pin the non-involution; under
+   B, pin full involution including leading/trailing empty groups.
+7. Reparse transformed `ᚠ,ᚢ` after entire reversal: fresh sentences render
+   `ᚢ,` and `ᚠ`; the source document stays `ᚠ,ᚢ`. Check translated token
+   values and source locations independently. Reparse Latin with explicit
+   `:latin`; pin case-preserving lexical output separately from interpreted
+   lowercase mappings. Include multi-page synthetic separator behavior.
+8. Run focused new specs plus existing `lexer_lossless_spec.rb`,
+   `parser_lossless_spec.rb`, `document/builder_lossless_spec.rb`,
+   `features/transcription_compatibility_spec.rb`, Document reversal/visitor
+   regressions, and seven `features/decode_a_page_spec.rb` controls; then
+   the full suite. No plaintext expectation changes are implied.
 
 ## Edge cases
 
-- Empty pages, repeated pages and page occurrences, single lines, blank lines, missing final breaks, leading/trailing breaks.
-- CRLF is atomic; mixed newline styles preserve bytes under explicitly reviewed placement rules.
-- Marks, spaces, quotes and multi-character lexical tokens are moved as tokens; no glyph reflection or internal lexeme reversal.
-- Current order may have nonmonotonic original coordinates. Never use source positions as current traversal counters.
-- `\nA` becoming `A\n` exposes ambiguous line regrouping; no hidden metadata or fabricated newline may repair it implicitly.
+- Zero pages versus one empty page; repeated page number/object with distinct
+  occurrence IDs; a page with only line breaks or whitespace.
+- CRLF covers two characters but is one token; lone CR is also a break.
+- New token adjacency must not trigger normalization or lexical merging.
+- Parser trims only its compatibility view; source and transformed lexical
+  bodies must survive reparsing/rendering unchanged.
+- Shared objects are not deeply immutable; no operation may mutate or freeze
+  them. Source-body equality cannot prove current-order correctness.
 
 ## Out of scope
 
-- Building the Transcription prerequisite or changing Document public API.
-- Chain runner, checkpoint/hash checking, execution history, registry, scoring, key search, or automatic pipeline generation. A later runner owns those responsibilities.
-- Geometric glyph reflection, Atbash-as-layout, page-order reversal, chapter-wide reversal, or arbitrary reading routes.
-- New cipher algorithms/skip rules or broad rewriting of Document visitors.
+- Implementation or test-writer invocation during this reconciliation.
+- New Document APIs, changes to existing reverse/visitors, or broad cleanup.
+- A new source renderer, deep immutability, malformed-input normalization,
+  compose rebasing, or changing original source coordinate semantics.
+- Chapter/page-order reversal, glyph reflection, geometric routes, and ciphers.
+- Chain runner, hashes, checkpoints, history, registry, scoring, and searches.
+  The [page-54/55 research plan](page-54-55-research.md) motivates provenance
+  requirements but is not expanded or implemented here; original line
+  extraction and current line traversal remain distinct research choices.
 
 ## Open questions
 
-1. Approve page-local scope with unchanged page order and all-mark reversal.
-2. Approve atomic multi-character lexemes, fixed newline slots for line-order reversal, and moving newline tokens for full-sequence reversal.
-3. Resolve `\nA` → `A\n`: choose a documented non-involutive convention or revise line splitting/terminal-empty-group semantics, updating every provisional example consistently. Do not add hidden state to Transcription.
-4. Revalidate constructors and exact source/provenance access against the completed prerequisite before writing implementation tests.
+1. Choose line-order A (terminal newline retained, non-involutive) or the
+   recommended B (terminal empty groups retained, involutive). This changes
+   ordinary outputs, not just an obscure edge case.
+2. Confirm recommended page-local scope, all-mark reversal, and atomic
+   lexemes. Full-sequence reversal moves breaks; line-order preserves their
+   ordinal identity/order under the selected convention.
 
-## Follow-up
-
-After this separate work, freshly review the [decoding-chain milestone](page-54-55-research.md). Chain orchestration, hashing, checkpoints and history are not implemented by this plan.
+The merged constructors, occurrence representation, ownership, reconstruction,
+and explicit Parser entry point have now been reviewed; they are no longer
+open API-discovery tasks. No broader chain/hash decision is required to
+review this plan.
