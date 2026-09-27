@@ -8,6 +8,7 @@ require "thor"
 module Primus
   module Commands; end
   module Processor; end
+  module Transformations; end
 
   def self.index_of_coincidence(document:, length: 1, alphabet: nil)
     alphabet ||= Primus::GematriaPrimus::build
@@ -55,6 +56,12 @@ require "primus/transcription"
 require "primus/transcription/token"
 require "primus/transcription/source_location"
 require "primus/transcription/page_boundary"
+require "primus/transcription/line_projection"
+
+require "primus/transformations/page_mapper"
+require "primus/transformations/reverse_tokens_within_lines"
+require "primus/transformations/reverse_line_order"
+require "primus/transformations/reverse_entire_sequence"
 
 require "primus/document"
 require "primus/document/decoder"
