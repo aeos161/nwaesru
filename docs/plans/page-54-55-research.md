@@ -1,10 +1,30 @@
 # Final plan: Liber Primus page 55 and pages 54–55
 
+The approved harness vocabulary is Experiment (`ActiveModel::Model`) for
+saved definition/preconditions, Observation for actual output, Assessment for
+evaluation against the declared expectation. The approved LogEntry describes one attempt, separate from scientific
+output; Store owns history lookup/review. Runner exposes `log_entry`, not
+an ExperimentLog or a history collection.
+Runner takes an Experiment and `output_path`, executes as a nil-returning
+command, and exposes domain readers. Invalid preconditions produce model
+errors and no Observation; failed-attempt history is separate. Follow-on
+plaintext/hash evaluation extends Assessment behavior, not model validation.
+The page-57 plan governs the concrete API; this record adds no implementation
+scope before its existing gate.
+
 ## Goal and status
 
 Develop and test a bounded set of explanations for page 55, treating pages 54–55 as a possible shared decoding unit. Prioritize self-reference and reversal hypotheses motivated by the user's observations and reported historical mechanisms.
 
-This plan records the agreed research direction and code requirements. The first implementation milestone is one reproducible, explicitly configured deciphering chain with trustworthy hash checkpoints. No implementation or search has been completed under this plan. Open research parameters remain explicit; a completed experiment need not produce a decipherment.
+This document records deferred research direction, not the current software
+acceptance scope. The current milestone is the [page-57 experiment
+harness](page-57-experiment-harness.md): definitions outside RSpec, input and
+configuration validation, saved runs/artifacts, plaintext comparison and
+intentional reruns. Lossless input (`381cd90`) and transcription reversals
+(`e24b2d7`) have merged. Page 56 follows as a separate harness experiment;
+synthetic hash validation is third; real page-55 target-hash experiments
+follow. No research search has been completed under this plan. Open research
+parameters remain explicit; a completed experiment need not decipher a page.
 
 ## Evidence and motivation
 
@@ -174,7 +194,10 @@ Ruby's standard `Digest::SHA512` supplies SHA-512. BLAKE2b availability through 
 
 The repository specifies Ruby 2.7.4; the inspected tool shell instead ran Ruby 2.6.10 with LibreSSL 3.3.6 and lacked BLAKE2b. Establish the actual project runtime before choosing dependencies. An unavailable algorithm is an error/unsupported result, never a mismatch.
 
-## 11. Implementation approach: constituent parts
+## 11. Later implementation approach: constituent parts
+
+This section records the broader destination, not acceptance criteria for
+the current page-57 harness milestone. Re-plan against merged code at each step.
 
 Extend the existing document visitors and sequential CLI foundation. Static inspection found localized correctness gaps, not evidence that a separate architectural refactor must precede this work. Proposed responsibilities below need not map one-to-one to new classes.
 
@@ -195,15 +218,22 @@ Extend the existing document visitors and sequential CLI foundation. Static insp
 - `lib/primus/document/cipher_factory.rb`: unconditionally assigns `skip_sequence`, but Atbash's Affine superclass lacks that setter. Verify and correct supported operation dispatch.
 - `lib/primus/document/vigenere.rb`: stores direction but always subtracts; String keys split into individual characters rather than GP symbols. Validate supported directions and use explicit, unambiguous symbol encoding.
 - `lib/primus/document/decoder.rb` and `totient_shift.rb`: preserve independently initialized stream state and the known skip-without-key-consumption behavior.
-- `lib/primus/document/affine.rb` and `totient_shift.rb`: new output tokens currently lose location metadata. Preserve provenance across supported transformations.
-- `lib/primus/token/location.rb` and `document/builder.rb`: locations lack page identity and chapter assembly introduces line breaks. Represent original page boundaries separately from presentation choices.
+- `lib/primus/document/affine.rb` and `totient_shift.rb`: known-control output provenance is now preserved by merged lossless-input work. Verify it through future orchestration without repeating the old fix.
+- `lib/primus/transcription/source_location.rb` and `document/builder.rb`: merged source coordinates now include page identity/occurrence and explicit transcription boundaries. Parser still inserts compatibility-view line breaks; these are distinct from source boundaries.
 - `lib/primus/liber_primus/page.rb` and `document/printer.rb`: both strip trailing whitespace. Keep a separate exact source/serialization path rather than treating their rendered output as original bytes.
 - `lib/primus/document.rb` and `document/word_reverser.rb`: existing reversal includes nested structure and delimiters. Define and test the chosen reversal semantics explicitly.
 - `spec/features/decode_a_page_spec.rb`: use existing page 56/57 and other solutions as controls for the new runner, not just isolated decoder behavior.
 
 Do not reuse the unfinished `Brute#crib` command as the chain orchestrator. Avoid introducing a general plugin framework, distributed executor, or database before a concrete need emerges.
 
-## 12. Acceptance criteria for the first implementation milestone
+## 12. Deferred broader chain-and-hash acceptance criteria
+
+These are deferred research capabilities, not a mandatory next implementation
+bundle. Only [page-57-experiment-harness.md](page-57-experiment-harness.md)
+defines current implementation scope. Persistence and explicit byte policy
+start there; general chains and multiple hash algorithms are not required.
+The former synthetic two-cipher next-step requirement is superseded by the
+separate synthetic hash experiment after page 56.
 
 - A Ruby caller can supply one finite, explicit chain whose stages have independent parameters; the CLI can invoke the same behavior.
 - The runner records the original candidate and every intermediate output, including exact hash-input bytes or a lossless artifact reference and serialization policy.
@@ -221,11 +251,24 @@ No page-55 decipherment is required to complete this software milestone. The 201
 
 ## 13. Delivery sequence
 
-1. **Explicit chain and hash checkpoints:** establish runtime/dependencies; preserve inputs and provenance; implement independent operation configuration, serialization, verified hash adapters, and structured record/replay. Address relevant existing correctness gaps through focused tests.
-2. **Known and layered controls:** complete the first milestone with pages 57/56 and the synthetic two-cipher example before interpreting any new search output.
-3. **Key sources and self-consistency:** add the justified corpus shortlist, explicit GP encoding, and line-initial consistency checks. Keep finding a self-consistent key separate from checking a supplied candidate.
-4. **Bounded experiment generation:** compare configurations A/B/C, one-to-three-stage chains, specified reversals and keys. Set concrete candidate/runtime/storage caps before execution.
-5. **Improved ranking and constraint search:** add only where initial experiments justify it; preserve encrypted intermediate states and negative results.
+1. **Page 57 harness (current):** implement the saved definition, validation,
+   run, artifacts/records, plaintext oracle and review lifecycle in the
+   [active plan](page-57-experiment-harness.md). RSpec verifies the harness.
+2. **Page 56 experiment:** fresh planning after page 57 merges; use the same
+   lifecycle and enhance only for its known totient/Latin recipe. See the
+   [bounded follow-on](page-56-harness-experiment.md).
+3. **Synthetic hash experiment:** fresh planning after page 56 merges; prove
+   a hash expectation over controlled bytes with an independent oracle. See
+   [the third milestone](synthetic-hash-experiment.md). A two-cipher example
+   is not a prerequisite.
+4. **Page 55 target-hash experiments:** separately declare algorithm, exact
+   serialization and target interpretation; these remain hypotheses, unlike
+   the synthetic oracle. Add verified algorithm support only as required.
+5. **Broader research, when justified:** independent chains/checkpoints,
+   bounded key sources and self-consistency, experiment generation, then
+   ranking/constraint search. Set candidate/runtime/storage caps and re-plan
+   each change against merged code. Preserve negative results and encrypted
+   intermediate states; do not turn this list into one implementation PR.
 
 Candidate deduplication must account for representation, source boundaries, relevant continuation state, and remaining allowed work. Equal rendered text alone does not prove two candidates have identical future behavior. Preserve alternative histories when they matter to interpretation.
 
@@ -233,7 +276,7 @@ Candidate deduplication must account for representation, source boundaries, rele
 
 Test empty input, non-rune punctuation, multi-character transliterations, ambiguous/invalid keys, newline variants, page-boundary resets, skip positions after reversal, repeated stateful stages, unavailable hash support, operation failures, and chains returning to an earlier state. Reject unsupported options rather than ignoring them.
 
-Resolve during detailed implementation planning: the original BLAKE-512 dependency and version, precise supported Ruby/OpenSSL environment, initial serializer names/policies, chain configuration format, record/artifact storage format, and match-stop behavior. None changes the agreed first milestone. Research key lists, broader operation combinations, and search budgets remain separate open choices.
+Resolve during detailed implementation planning: the original BLAKE-512 dependency and version, precise supported Ruby/OpenSSL environment, initial serializer names/policies, chain configuration format, record/artifact storage format, and match-stop behavior. General chain/hash choices are later decisions; the current page-57 plan specifies its own definition, byte-policy and record format. Research key lists, broader operation combinations, and search budgets remain separate open choices.
 
 ## 15. Out of scope for the initial software delivery
 

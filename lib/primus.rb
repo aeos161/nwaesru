@@ -1,4 +1,5 @@
 require "numeric_inverse/ext"
+require "active_model"
 
 require "oxford_dictionary"
 require "prime"
@@ -126,6 +127,14 @@ require "primus/commands/sub_command_base"
 require "primus/commands/words"
 require "primus/commands/brute"
 require "primus/commands/files"
+require "primus/experiment"
+require "primus/experiment/observation"
+require "primus/experiment/assessment"
+require "primus/experiment/evaluator"
+require "primus/experiment/log_entry"
+require "primus/experiment/store"
+require "primus/experiment/runner"
+require "primus/commands/experiments"
 
 Primus::CoreExtensions::StringMonkeyPatch.apply_patch
 Primus::CoreExtensions::IntegerMonkeyPatch.apply_patch
