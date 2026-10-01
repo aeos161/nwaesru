@@ -1,0 +1,16 @@
+schema_version: 1
+id: page-57-latin
+title: Transform page 57 from runes to Latin characters
+purpose: Compare the direct GP transliteration with independent plaintext.
+input:
+  page_number: 57
+  path: data/encoded/liber_primus/page_57.yml
+  sha256: c7055db0173e43eb231608812f5d52569e4c0817934b1a65427cebf332759fff
+operation: runes_to_latin
+output:
+  policy: gp-latin-compatibility-v1
+expectation:
+  kind: plaintext
+  path: spec/fixtures/experiments/page_57_wrong.txt
+  sha256: 8810ad581e59f2bc3928b261707a71308f7e139eb04820366dc4d5c18d980225
+  provenance: Deliberately different test oracle

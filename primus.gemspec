@@ -10,6 +10,7 @@ Gem::Specification.new do |config|
   config.homepage = "https://rubygems.org/gems/primus"
   config.license = "MIT"
 
+  config.add_runtime_dependency "activemodel", "~> 7.1.6"
   config.add_runtime_dependency "oxford_dictionary", "~> 3.0"
   config.add_runtime_dependency "thor", "~> 1.2"
 
@@ -20,4 +21,5 @@ Gem::Specification.new do |config|
   config.add_development_dependency "psych", "~> 4.0"
   config.add_development_dependency "rake", "~> 13.0"
   config.add_development_dependency "rspec", "~> 3.10"
+  config.add_development_dependency "shoulda-matchers", "~> 5.3.0"
 end

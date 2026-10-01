@@ -15,6 +15,9 @@ module Primus
     desc "files", "perform file operations"
     subcommand "files", Primus::Commands::Files
 
+    desc "experiments", "validate, run, and review saved experiments"
+    subcommand "experiments", Primus::Commands::Experiments
+
     desc "words", "work with words"
     subcommand "words", Primus::Commands::Words
 
