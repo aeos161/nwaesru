@@ -5,6 +5,17 @@ require "json"
 
 RSpec.describe "Primus::Commands::Experiments" do
   describe "validate" do
+    it "accepts the tracked page 56 totient definition" do
+      definition = "experiments/definitions/page-56-totient-latin.yml"
+
+      _stdout, _stderr, status = Open3.capture3(
+        RbConfig.ruby, "-Ilib", "bin/primus", "experiments", "validate",
+        definition
+      )
+
+      expect(status).to be_success
+    end
+
     it "accepts a valid saved page 57 definition" do
       definition = "spec/fixtures/experiments/page_57_valid.yml"
 
@@ -40,6 +51,19 @@ RSpec.describe "Primus::Commands::Experiments" do
   end
 
   describe "run" do
+    it "matches the page 56 experiment through the command" do
+      Dir.mktmpdir do |output_path|
+        definition = "spec/fixtures/experiments/page_56_valid.yml"
+
+        stdout, _stderr, _status = Open3.capture3(
+          RbConfig.ruby, "-Ilib", "bin/primus", "experiments", "run",
+          definition, "--output-path", output_path
+        )
+
+        expect(stdout).to match(/matched \(match\)/)
+      end
+    end
+
     it "writes an attempt to the requested output directory" do
       Dir.mktmpdir do |output_path|
         definition = "spec/fixtures/experiments/page_57_valid.yml"
@@ -112,6 +136,23 @@ RSpec.describe "Primus::Commands::Experiments" do
   end
 
   describe "review" do
+    it "reports a saved page 56 match by its own ID" do
+      Dir.mktmpdir do |output_path|
+        definition = "spec/fixtures/experiments/page_56_valid.yml"
+        Open3.capture3(
+          RbConfig.ruby, "-Ilib", "bin/primus", "experiments", "run",
+          definition, "--output-path", output_path
+        )
+
+        stdout, _stderr, _status = Open3.capture3(
+          RbConfig.ruby, "-Ilib", "bin/primus", "experiments", "review",
+          "page-56-totient-latin", "--output-path", output_path
+        )
+
+        expect(stdout).to match(/page-56-totient-latin.*matched match/)
+      end
+    end
+
     it "reports the saved attempt by ID" do
       Dir.mktmpdir do |output_path|
         definition = "spec/fixtures/experiments/page_57_valid.yml"

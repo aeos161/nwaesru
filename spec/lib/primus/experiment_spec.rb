@@ -1,6 +1,22 @@
+require "tempfile"
+
 RSpec.describe "Primus::Experiment" do
   def fixture(name)
     "spec/fixtures/experiments/#{name}"
+  end
+
+  def page_56_variant
+    definition = Psych.safe_load(File.read(fixture("page_56_valid.yml")))
+    yield definition
+    load_temp_definition(definition)
+  end
+
+  def load_temp_definition(definition)
+    Tempfile.create(["experiment-variant", ".yml"]) do |file|
+      file.write(Psych.dump(definition))
+      file.flush
+      Primus::Experiment.load(path: file.path)
+    end
   end
 
   describe ".load" do
@@ -93,10 +109,101 @@ RSpec.describe "Primus::Experiment" do
       expect(experiment).not_to be_valid
     end
 
-    it "rejects an unsupported page number" do
+    it "rejects a page number cross-wired with the page 57 recipe" do
       experiment = Primus::Experiment.load(
         path: fixture("page_57_wrong_page.yml"),
       )
+
+      expect(experiment).not_to be_valid
+    end
+
+    it "accepts the page 56 totient recipe" do
+      experiment = Primus::Experiment.load(path: fixture("page_56_valid.yml"))
+
+      expect(experiment).to be_valid
+    end
+
+    it "rejects a page 56 recipe with the page 57 identity" do
+      experiment = Primus::Experiment.load(path: fixture("page_56_valid.yml"))
+      experiment.id = "page-57-latin"
+
+      expect(experiment).not_to be_valid
+    end
+
+    it "rejects a page 56 recipe with the page 57 operation" do
+      experiment = Primus::Experiment.load(path: fixture("page_56_valid.yml"))
+      experiment.operation = "runes_to_latin"
+
+      expect(experiment).not_to be_valid
+    end
+
+    it "rejects a page 56 recipe with the page 57 input path" do
+      experiment = Primus::Experiment.load(path: fixture("page_56_valid.yml"))
+      experiment.input["path"] = "data/encoded/liber_primus/page_57.yml"
+
+      expect(experiment).not_to be_valid
+    end
+
+    it "rejects page 56 without recipe parameters" do
+      experiment = page_56_variant { |definition|
+        definition.delete("parameters")
+      }
+
+      expect(experiment).not_to be_valid
+    end
+
+    it "rejects page 56 parameters that are not a mapping" do
+      experiment = page_56_variant { |definition|
+        definition["parameters"] = [29, 2, 56]
+      }
+
+      expect(experiment).not_to be_valid
+    end
+
+    it "rejects a missing prime start parameter" do
+      experiment = page_56_variant { |definition|
+        definition.fetch("parameters").delete("prime_start")
+      }
+
+      expect(experiment).not_to be_valid
+    end
+
+    it "rejects an unknown page 56 parameter" do
+      experiment = page_56_variant { |definition|
+        definition.fetch("parameters")["direction"] = "add"
+      }
+
+      expect(experiment).not_to be_valid
+    end
+
+    it "rejects a string modulus" do
+      experiment = page_56_variant { |definition|
+        definition.fetch("parameters")["modulus"] = "29"
+      }
+
+      expect(experiment).not_to be_valid
+    end
+
+    it "rejects a floating point prime start" do
+      experiment = page_56_variant { |definition|
+        definition.fetch("parameters")["prime_start"] = 2.0
+      }
+
+      expect(experiment).not_to be_valid
+    end
+
+    it "rejects a different skip sequence" do
+      experiment = page_56_variant { |definition|
+        definition.fetch("parameters")["skip_sequence"] = [55]
+      }
+
+      expect(experiment).not_to be_valid
+    end
+
+    it "rejects cipher parameters on the page 57 recipe" do
+      definition = Psych.safe_load(File.read(fixture("page_57_valid.yml")))
+      definition["parameters"] = {}
+      experiment = load_temp_definition(definition)
 
       expect(experiment).not_to be_valid
     end

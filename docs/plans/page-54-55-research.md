@@ -12,6 +12,15 @@ plaintext/hash evaluation extends Assessment behavior, not model validation.
 The page-57 plan governs the concrete API; this record adds no implementation
 scope before its existing gate.
 
+## Delivery status — 2026-10-01
+
+Page 57 is implemented at `45cab84` and present on local main. The active
+bounded software plan is now [page 56](page-56-harness-experiment.md),
+reconciled against that implementation. References below to page 57 as
+current and page 56 awaiting fresh planning describe the earlier research
+roadmap; they do not reinstate those gates. Broader chains/search remain
+deferred, and synthetic hash planning still follows page-56 completion.
+
 ## Goal and status
 
 Develop and test a bounded set of explanations for page 55, treating pages 54–55 as a possible shared decoding unit. Prioritize self-reference and reversal hypotheses motivated by the user's observations and reported historical mechanisms.

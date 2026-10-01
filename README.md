@@ -12,14 +12,21 @@ gem install primus
 
 ## Documentation
 
-### Page 57 Latin experiment
+### Page 56 and 57 Latin experiments
 
-The saved definition is `experiments/definitions/page-57-latin.yml`. Its
-expected text is extracted from the existing decoded page 57 YAML body using
-`rstrip`; the definition records the source YAML digest. The expected text is
-independent of the transformation being tested.
+The saved definitions are `experiments/definitions/page-56-totient-latin.yml`
+and `experiments/definitions/page-57-latin.yml`. Their expected texts are
+extracted independently from the existing decoded YAML bodies using `rstrip`;
+each definition records its source YAML digest. Page 56 subtracts successive
+prime totients modulo 29 from GP runes, skipping GP ordinal 56 without
+consuming a prime. Each run starts with prime 2 and preserves the hexadecimal
+passage as text. Page 57 directly transliterates the GP runes.
 
 ```shell
+bundle exec ruby -Ilib bin/primus experiments validate experiments/definitions/page-56-totient-latin.yml
+bundle exec ruby -Ilib bin/primus experiments run experiments/definitions/page-56-totient-latin.yml --output-path experiments/runs
+bundle exec ruby -Ilib bin/primus experiments run experiments/definitions/page-56-totient-latin.yml --output-path experiments/runs --rerun --reason "Check repeatability"
+bundle exec ruby -Ilib bin/primus experiments review page-56-totient-latin --output-path experiments/runs
 bundle exec ruby -Ilib bin/primus experiments validate experiments/definitions/page-57-latin.yml
 bundle exec ruby -Ilib bin/primus experiments run experiments/definitions/page-57-latin.yml
 bundle exec ruby -Ilib bin/primus experiments review page-57-latin

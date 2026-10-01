@@ -1,0 +1,22 @@
+schema_version: 1
+id: page-56-totient-latin
+title: Decode page 56 with the prime-totient shift
+purpose: Compare the known page 56 prime-totient decoding with independent plaintext.
+input:
+  page_number: 56
+  path: data/encoded/liber_primus/page_56.yml
+  sha256: 05ef023a9165ed3300712bfacec538863e7e82b7a4b0327bde0abb9182e71e7e
+operation: totient_shift_to_latin
+# Subtract prime minus one modulo 29 in canonical GP order. The skipped
+# zero-based GP ordinal consumes no prime; each execution starts at prime 2.
+parameters:
+  modulus: 29
+  prime_start: 2
+  skip_sequence: [56]
+output:
+  policy: gp-latin-compatibility-v1
+expectation:
+  kind: plaintext
+  path: experiments/expected/page-56-totient-latin.txt
+  sha256: be341e15b67a3363b429319e23fd8ef4d172b9aea879016402bdd477348e7868
+  provenance: data/decoded/liber_primus/page_56.yml body with rstrip; source SHA-256 45bda9f7ae9018cc4257b0acaaf30e95a8366f06acf7a4a52b137b555a590b64
