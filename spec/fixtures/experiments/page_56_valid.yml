@@ -1,0 +1,20 @@
+schema_version: 1
+id: page-56-totient-latin
+title: Decode page 56 with the prime-totient shift
+purpose: Compare the known page 56 prime-totient decoding with independent plaintext.
+input:
+  page_number: 56
+  path: data/encoded/liber_primus/page_56.yml
+  sha256: 05ef023a9165ed3300712bfacec538863e7e82b7a4b0327bde0abb9182e71e7e
+operation: totient_shift_to_latin
+parameters:
+  modulus: 29
+  prime_start: 2
+  skip_sequence: [56]
+output:
+  policy: gp-latin-compatibility-v1
+expectation:
+  kind: plaintext
+  path: spec/fixtures/experiments/page_56_expected.txt
+  sha256: be341e15b67a3363b429319e23fd8ef4d172b9aea879016402bdd477348e7868
+  provenance: data/decoded/liber_primus/page_56.yml body with rstrip

@@ -70,27 +70,48 @@ class Primus::Experiment::Runner
 
   def produce_observation
     page = Primus::LiberPrimus::Page.new(
-      number: 57, data: @experiment.source_body.rstrip,
+      number: @experiment.input.fetch("page_number"),
+      data: @experiment.source_body.rstrip,
       source_body: @experiment.source_body,
       artifact_bytes: @experiment.input_bytes,
-      source_path: @experiment.input_path
+      source_path: @experiment.input_path,
     )
     builder = Primus::Document::Builder.new(pages: [page], strategy: :runic,
                                             track_delimiters: false)
     original = builder.build
     translated = original.accept(Primus::Document::Translator.new)
+    derived = derive(translated)
     Primus::Experiment::Observation.new(
-      output_bytes: translated.to_s(:letter),
-      provenance: provenance_for(translated),
+      output_bytes: derived.to_s(:letter),
+      provenance: provenance_for(derived),
     )
+  end
+
+  def derive(translated)
+    return translated if @experiment.operation == "runes_to_latin"
+
+    parameters = @experiment.parameters
+    primes = Prime.each.lazy.drop_while { |prime|
+      prime < parameters.fetch("prime_start")
+    }
+    shift = Primus::Document::TotientShift.new(
+      modulus: parameters.fetch("modulus"), key: primes,
+    )
+    shift.skip_sequence = parameters.fetch("skip_sequence")
+    translated.accept(shift)
   end
 
   def provenance_for(document)
     document.tokens.select { |token|
-      token.respond_to?(:rune) && token.source_location
+      token.respond_to?(:index) && !token.index.nil? &&
+        token.source_location&.rune_index
     }.each_with_index.map do |token, ordinal|
       source = token.source_location
-      { "ordinal" => ordinal, "rune" => token.rune, "latin" => token.letter,
+      original_rune = @experiment.source_body.byteslice(
+        source.byte_start...source.byte_end,
+      )
+      { "ordinal" => ordinal, "rune" => original_rune,
+        "decoded_rune" => token.rune, "latin" => token.letter,
         **Primus::Transcription::SourceLocation::ATTRIBUTES.to_h do |name|
           [name.to_s, source.public_send(name)]
         end }

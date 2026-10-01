@@ -8,10 +8,16 @@ class Primus::Experiment
 
   class LoadError < StandardError; end
 
-  ID = "page-57-latin".freeze
-  SOURCE = "data/encoded/liber_primus/page_57.yml".freeze
+  RECIPES = {
+    "page-57-latin" => [57, "data/encoded/liber_primus/page_57.yml",
+                        "runes_to_latin"],
+    "page-56-totient-latin" => [56, "data/encoded/liber_primus/page_56.yml",
+                                "totient_shift_to_latin"],
+  }.freeze
+  TOTIENT_PARAMETERS = { "modulus" => 29, "prime_start" => 2,
+                         "skip_sequence" => [56] }.freeze
   ROOT_KEYS = %w[schema_version id title purpose input operation output
-                 expectation].freeze
+                 expectation parameters].freeze
   NESTED_KEYS = {
     "input" => %w[page_number path sha256],
     "output" => %w[policy],
@@ -19,7 +25,7 @@ class Primus::Experiment
   }.freeze
 
   attr_accessor :schema_version, :id, :title, :purpose, :input, :operation,
-                :output, :expectation
+                :output, :expectation, :parameters
   attr_reader :definition_path, :definition_bytes, :definition_data,
               :input_bytes, :source_body, :expected_bytes
 
@@ -91,10 +97,9 @@ class Primus::Experiment
   private
 
   def validate_definition
-    required = { schema_version: 1, id: ID, operation: "runes_to_latin" }
-    required.each { |field, value|
-      reject(field, "must be #{value}") unless public_send(field) == value
-    }
+    reject(:schema_version, "must be 1") unless schema_version == 1
+    validate_recipe
+    validate_parameters
     unless title.is_a?(String) && !title.strip.empty?
       reject(:title,
              "is required")
@@ -108,8 +113,7 @@ class Primus::Experiment
   end
 
   def validate_mappings
-    expected = { input: { "page_number" => 57, "path" => SOURCE },
-                 output: { "policy" => "gp-latin-compatibility-v1" },
+    expected = { output: { "policy" => "gp-latin-compatibility-v1" },
                  expectation: { "kind" => "plaintext" } }
     expected.each do |field, fields|
       value = public_send(field)
@@ -125,6 +129,37 @@ class Primus::Experiment
     unless provenance.is_a?(String) && !provenance.strip.empty?
       reject(:expectation,
              "provenance is required")
+    end
+  end
+
+  def validate_recipe
+    recipe = RECIPES[id]
+    unless recipe && input.is_a?(Hash) &&
+        input["page_number"].instance_of?(Integer) &&
+        recipe == [input["page_number"], input["path"], operation]
+      reject(:base, "unsupported page, path, ID, or operation combination")
+    end
+    reject(:input, "must be a mapping") unless input.is_a?(Hash)
+  end
+
+  def validate_parameters
+    if id == "page-56-totient-latin"
+      valid = parameters.is_a?(Hash) &&
+        parameters.keys.sort == TOTIENT_PARAMETERS.keys.sort &&
+        parameters.all? { |key, value| parameter_matches?(key, value) }
+      reject(:parameters, "must match the page 56 recipe") unless valid
+    elsif !parameters.nil? || definition_data.key?("parameters")
+      reject(:parameters, "are unsupported for this recipe")
+    end
+  end
+
+  def parameter_matches?(key, value)
+    expected = TOTIENT_PARAMETERS[key]
+    if expected.is_a?(Array)
+      value.is_a?(Array) && value == expected &&
+        value.first.instance_of?(Integer)
+    else
+      value.instance_of?(Integer) && value == expected
     end
   end
 
@@ -170,8 +205,7 @@ class Primus::Experiment
     @source_body = body["body"] if body.is_a?(Hash) &&
       body["body"].is_a?(String)
     unless source_body.is_a?(String) && source_body.match?(/[ᚠ-ᛟ]/)
-      reject(:input,
-             "body must contain page 57 runes")
+      reject(:input, "body must contain GP runes")
     end
     verify_digest(input, source_digest, :input)
   rescue Psych::Exception, SystemCallError => error

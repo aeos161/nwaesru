@@ -1,5 +1,21 @@
 # Page 57 experiment harness
 
+## Implementation status — 2026-10-01
+
+The page-57 harness is implemented in `45cab84`, now present on local
+`main`; `origin/main` was still `e24b2d7` at inspection. Prior completion
+reported 351 examples, zero failures, 12 pending and a matching CLI result
+with 95 rune provenance entries. This documentation pass did not rerun tests.
+The original planning record below is retained as history: its red-phase,
+missing-production-code, dependency-installation and 75-example rewrite
+instructions are superseded by the implementation. ActiveModel 7.1.6 and
+Shoulda Matchers 5.3.0 are already in the resolved bundle.
+
+The current actionable second milestone is the reconciled
+[page-56 plan](page-56-harness-experiment.md), based on the actual code.
+No new page-57 implementation or stale merge gate is implied by the
+historical wording below. Synthetic hash planning still follows page 56.
+
 ## Goal
 
 Define “transform from runes to Latin characters” as a saved research

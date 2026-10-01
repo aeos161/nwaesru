@@ -15,11 +15,11 @@ RSpec.describe "Primus::Experiment::Runner" do
     JSON.parse(File.read(path))
   end
 
-  def source_coordinates(body)
-    matches = body.enum_for(:scan, /[\u16a0-\u16ff]/).map { Regexp.last_match }
+  def source_coordinates(body, page_number: 57)
+    matches = body.enum_for(:scan, /[ᚠ-ᛟᛠᛡ]/).map { Regexp.last_match }
     matches.each_with_index.map do |match, ordinal|
       prefix = body[0...match.begin(0)]
-      [ordinal, match[0], 57, 0, *source_spans(prefix, match), ordinal]
+      [ordinal, match[0], page_number, 0, *source_spans(prefix, match), ordinal]
     end
   end
 
@@ -49,6 +49,19 @@ RSpec.describe "Primus::Experiment::Runner" do
           "character_start" => 0, "character_end" => 1,
           "line" => 0, "column" => 0, "rune_index" => 0
         )
+      end
+    end
+
+    it "adds the decoded rune to page 57 provenance without changing it" do
+      Dir.mktmpdir do |output_path|
+        experiment = Primus::Experiment.load(path: fixture("page_57_valid.yml"))
+        runner = Primus::Experiment::Runner.new(experiment: experiment,
+                                                output_path: output_path)
+
+        runner.run
+        first = provenance(output_path).first
+
+        expect(first).to include("rune" => "ᛈ", "decoded_rune" => "ᛈ")
       end
     end
 
@@ -88,6 +101,115 @@ RSpec.describe "Primus::Experiment::Runner" do
           "byte_start" => 35, "byte_end" => 38,
           "rune_index" => 11
         )
+      end
+    end
+
+    it "saves the original and decoded first page 56 rune at its source" do
+      Dir.mktmpdir do |output_path|
+        experiment = Primus::Experiment.load(path: fixture("page_56_valid.yml"))
+        runner = Primus::Experiment::Runner.new(experiment: experiment,
+                                                output_path: output_path)
+
+        runner.run
+        first = provenance(output_path).first
+
+        expect(first).to include(
+          "ordinal" => 0, "rune" => "ᚫ", "decoded_rune" => "ᚪ",
+          "latin" => "a", "page_number" => 56,
+          "byte_start" => 0, "byte_end" => 3, "rune_index" => 0
+        )
+      end
+    end
+
+    it "numbers only the page 56 GP symbols across the hexadecimal block" do
+      Dir.mktmpdir do |output_path|
+        experiment = Primus::Experiment.load(path: fixture("page_56_valid.yml"))
+        runner = Primus::Experiment::Runner.new(experiment: experiment,
+                                                output_path: output_path)
+
+        runner.run
+        ordinals = provenance(output_path).map do |symbol|
+          symbol.fetch("ordinal")
+        end
+
+        expect(ordinals).to eq((0...85).to_a)
+      end
+    end
+
+    it "retains source coordinates for every page 56 GP symbol" do
+      Dir.mktmpdir do |output_path|
+        experiment = Primus::Experiment.load(path: fixture("page_56_valid.yml"))
+        runner = Primus::Experiment::Runner.new(experiment: experiment,
+                                                output_path: output_path)
+        body = Psych.safe_load(
+          File.read("data/encoded/liber_primus/page_56.yml"),
+        ).fetch("body")
+        expected = source_coordinates(body, page_number: 56)
+
+        runner.run
+        actual = provenance(output_path).map do |symbol|
+          symbol.values_at("ordinal", "rune", "page_number", "occurrence",
+                           "byte_start", "byte_end", "character_start",
+                           "character_end", "line", "column", "rune_index")
+        end
+
+        expect(actual).to eq(expected)
+      end
+    end
+
+    it "retains the original skip-boundary runes and next decoded letters" do
+      Dir.mktmpdir do |output_path|
+        experiment = Primus::Experiment.load(path: fixture("page_56_valid.yml"))
+        runner = Primus::Experiment::Runner.new(experiment: experiment,
+                                                output_path: output_path)
+
+        runner.run
+        boundary = provenance(output_path)[56..57].map do |symbol|
+          symbol.values_at("ordinal", "rune", "latin", "rune_index")
+        end
+
+        expect(boundary).to eq([[56, "ᚠ", "f", 56], [57, "ᚫ", "e", 57]])
+      end
+    end
+
+    it "keeps earlier page 56 provenance unchanged on an explicit rerun" do
+      Dir.mktmpdir do |output_path|
+        experiment = Primus::Experiment.load(path: fixture("page_56_valid.yml"))
+        runner = Primus::Experiment::Runner.new(experiment: experiment,
+                                                output_path: output_path)
+        runner.run
+        first = runner.observation
+        original = JSON.generate(first.provenance)
+
+        runner.run(rerun: true, reason: "Check page 56 provenance")
+
+        expect(JSON.generate(first.provenance)).to eq(original)
+      end
+    end
+
+    it "restarts the page 56 cipher after a page 57 execution" do
+      Dir.mktmpdir do |output_path|
+        first_experiment = Primus::Experiment.load(
+          path: fixture("page_56_valid.yml"),
+        )
+        first = Primus::Experiment::Runner.new(experiment: first_experiment,
+                                               output_path: output_path)
+        first.run
+        original = first.observation.output_bytes
+        middle_experiment = Primus::Experiment.load(
+          path: fixture("page_57_valid.yml"),
+        )
+        Primus::Experiment::Runner.new(experiment: middle_experiment,
+                                       output_path: output_path).run
+        last_experiment = Primus::Experiment.load(
+          path: fixture("page_56_valid.yml"),
+        )
+        last = Primus::Experiment::Runner.new(experiment: last_experiment,
+                                              output_path: output_path)
+
+        last.run(rerun: true, reason: "Check fresh cipher state")
+
+        expect(last.observation.output_bytes).to eq(original)
       end
     end
 
