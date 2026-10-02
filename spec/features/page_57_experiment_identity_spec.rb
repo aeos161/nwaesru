@@ -111,7 +111,7 @@ RSpec.describe "page 57 execution identity" do
   def saved_input_snapshots(output_path)
     saved_records(output_path).map do |record|
       path = record.fetch("artifacts").dig("input.yml", "path")
-      path && File.binread(path)
+      path && Digest::SHA256.hexdigest(File.binread(path))
     end
   end
 
@@ -387,7 +387,7 @@ RSpec.describe "page 57 execution identity" do
       run_experiment(repository, output_path)
       snapshots = saved_input_snapshots(output_path)
 
-      expect(snapshots).to eq([original])
+      expect(snapshots).to eq([Digest::SHA256.hexdigest(original)])
     end
   end
 end
