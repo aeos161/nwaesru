@@ -102,6 +102,12 @@ RSpec.describe "page 57 execution identity" do
     saved_records(output_path).map { |record| record.fetch("status") }
   end
 
+  def saved_stages(output_path)
+    saved_records(output_path).flat_map do |record|
+      record.fetch("errors").map { |error| error.fetch("stage") }
+    end
+  end
+
   it "rejects modified executable code before transformation" do
     Dir.mktmpdir do |directory|
       repository = File.join(directory, "repo")
@@ -113,7 +119,7 @@ RSpec.describe "page 57 execution identity" do
 
       run_experiment(repository, output_path)
 
-      expect(saved_statuses(output_path)).to eq(["invalid"])
+      expect(saved_stages(output_path)).to include("code")
     end
   end
 
@@ -141,7 +147,7 @@ RSpec.describe "page 57 execution identity" do
 
       run_experiment(repository, output_path)
 
-      expect(saved_statuses(output_path)).to eq(["invalid"])
+      expect(saved_stages(output_path)).to include("code")
     end
   end
 
@@ -156,7 +162,7 @@ RSpec.describe "page 57 execution identity" do
 
       run_experiment(repository, output_path)
 
-      expect(Dir.glob("#{output_path}/**/record.json").size).to eq(2)
+      expect(saved_statuses(output_path)).to eq(["matched", "matched"])
     end
   end
 
@@ -174,7 +180,7 @@ RSpec.describe "page 57 execution identity" do
 
       run_experiment(repository, output_path)
 
-      expect(saved_statuses(output_path)).to eq(["invalid"])
+      expect(saved_stages(output_path)).to include("integrity")
     end
   end
 
@@ -189,7 +195,7 @@ RSpec.describe "page 57 execution identity" do
 
       run_experiment(repository, output_path)
 
-      expect(Dir.glob("#{output_path}/**/record.json").size).to eq(2)
+      expect(saved_statuses(output_path)).to eq(["matched", "matched"])
     end
   end
 
@@ -223,7 +229,7 @@ RSpec.describe "page 57 execution identity" do
 
       run_experiment(repository, output_path)
 
-      expect(Dir.glob("#{output_path}/**/record.json").size).to eq(2)
+      expect(saved_statuses(output_path)).to eq(["matched", "matched"])
     end
   end
 
@@ -236,7 +242,7 @@ RSpec.describe "page 57 execution identity" do
 
       run_experiment(repository, output_path)
 
-      expect(saved_statuses(output_path)).to eq(["invalid"])
+      expect(saved_stages(output_path)).to include("configuration")
     end
   end
 
@@ -249,7 +255,7 @@ RSpec.describe "page 57 execution identity" do
 
       run_experiment(repository, output_path)
 
-      expect(saved_statuses(output_path)).to eq(["invalid"])
+      expect(saved_stages(output_path)).to include("configuration")
     end
   end
 
@@ -262,7 +268,7 @@ RSpec.describe "page 57 execution identity" do
 
       run_experiment(repository, output_path)
 
-      expect(saved_statuses(output_path)).to eq(["invalid"])
+      expect(saved_stages(output_path)).to include("configuration")
     end
   end
 
@@ -275,7 +281,7 @@ RSpec.describe "page 57 execution identity" do
 
       run_experiment(repository, output_path)
 
-      expect(saved_statuses(output_path)).to eq(["invalid"])
+      expect(saved_stages(output_path)).to include("configuration")
     end
   end
 
@@ -289,7 +295,7 @@ RSpec.describe "page 57 execution identity" do
 
       run_experiment(repository, output_path)
 
-      expect(saved_statuses(output_path)).to eq(["invalid"])
+      expect(saved_stages(output_path)).to include("configuration")
     end
   end
 
