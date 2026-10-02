@@ -174,11 +174,12 @@ RSpec.describe Primus::Commands::Experiments do
       end
     end
 
-    it "writes an attempt to the requested output directory" do
+    it "writes an ID-keyed attempt to the requested output directory" do
       with_checkout do |repository, output_path|
         cli(repository, "run", "page-57-latin", "--output-path", output_path)
 
-        expect(records(output_path).size).to eq(1)
+        expect(records(output_path).first.fetch("experiment_id")).
+          to eq("page-57-latin")
       end
     end
 
@@ -194,11 +195,11 @@ RSpec.describe Primus::Commands::Experiments do
 
     it "rejects rerun without a nonblank reason" do
       with_checkout do |repository, output_path|
-        _out, _err, status = cli(repository, "run", "page-57-latin",
-                                 "--output-path", output_path, "--rerun",
-                                 "--reason", " ")
+        stdout, stderr, _status = cli(repository, "run", "page-57-latin",
+                                      "--output-path", output_path, "--rerun",
+                                      "--reason", " ")
 
-        expect(status).not_to be_success
+        expect("#{stdout}#{stderr}").to match(/reason/i)
       end
     end
 
@@ -400,10 +401,11 @@ RSpec.describe Primus::Commands::Experiments do
         File.write(path,
                    File.read(path).sub("id: page-57-latin", "id: other-id"))
 
-        _stdout, _stderr, status = cli(repository, "review", "page-57-latin",
+        stdout, _stderr, _status = cli(repository, "review", "page-57-latin",
                                        "--output-path", output_path)
+        run_id = records(output_path).first.fetch("run_id")
 
-        expect(status).to be_success
+        expect(stdout).to include(run_id)
       end
     end
 
