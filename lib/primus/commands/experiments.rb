@@ -69,10 +69,8 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
 
   def load_definition(id, path)
     experiment = Primus::Experiment.load(path: path)
-    unless experiment.id == id
-      raise Primus::Experiment::LoadError,
-            "#{path}: declared ID does not match #{id}"
-    end
+    message = "#{path}: declared ID does not match #{id}"
+    raise Primus::Experiment::LoadError, message unless experiment.id == id
     experiment
   end
 
