@@ -26,14 +26,18 @@ From the repository root, use Ruby 2.7.4 (see `.tool-versions`) with the
 project bundle installed, then run `bin/primus` directly:
 
 ```shell
-bin/primus experiments validate experiments/definitions/page-56-totient-latin.yml
-bin/primus experiments run experiments/definitions/page-56-totient-latin.yml --output-path experiments/runs
-bin/primus experiments run experiments/definitions/page-56-totient-latin.yml --output-path experiments/runs --rerun --reason "Check repeatability"
+bin/primus experiments validate page-56-totient-latin
+bin/primus experiments run page-56-totient-latin --output-path experiments/runs
+bin/primus experiments run page-56-totient-latin --output-path experiments/runs --rerun --reason "Check repeatability"
 bin/primus experiments review page-56-totient-latin --output-path experiments/runs
-bin/primus experiments validate experiments/definitions/page-57-latin.yml
-bin/primus experiments run experiments/definitions/page-57-latin.yml
+bin/primus experiments validate page-57-latin
+bin/primus experiments run page-57-latin
 bin/primus experiments review page-57-latin
 ```
+
+The CLI accepts experiment IDs and reads live definitions from
+`experiments/definitions/<ID>.yml`. Ruby callers can still load an explicit
+definition path with `Primus::Experiment.load(path: ...)`.
 
 `run` accepts `--output-path DIR` to retain attempts elsewhere. An unchanged
 attempt is reused; `--rerun --reason "..."` creates a linked new attempt.
@@ -43,8 +47,8 @@ encoded YAML, extracted body, expected text, output when produced, provenance,
 and a JSON record. Invalid and interrupted attempts remain visible. Validation
 does not write an attempt.
 
-The callable API is `Primus::Experiment.load(path: ...)`, then `valid?` and
-`errors`; `Primus::Experiment::Runner.new(experiment: ..., output_path: ...)`
+The callable API then provides `valid?` and `errors`;
+`Primus::Experiment::Runner.new(experiment: ..., output_path: ...)`
 offers the `run` command and `observation`, `assessment`, and `log_entry`
 readers. An ordinary `run` returns `nil`. A retained prior attempt is exposed
 through `log_entry` without creating a new observation. A new comparison is

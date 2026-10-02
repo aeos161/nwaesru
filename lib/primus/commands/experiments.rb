@@ -1,7 +1,7 @@
 class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
-  desc "validate DEFINITION", "check a saved experiment without executing it"
-  def validate(path)
-    experiment = Primus::Experiment.load(path: path)
+  desc "validate ID", "check a saved experiment without executing it"
+  def validate(id)
+    experiment = load_definition(id, definition_path(id))
     if experiment.valid?
       say "#{experiment.id}: valid"
       say "input SHA-256: #{experiment.source_digest}"
@@ -15,13 +15,14 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
     raise Thor::Error, "definition load: #{error.message}"
   end
 
-  desc "run DEFINITION", "execute and retain a saved experiment"
+  desc "run ID", "execute and retain a saved experiment"
   map "run" => :execute
   option :output_path, type: :string, default: "experiments/runs"
   option :rerun, type: :boolean, default: false
   option :reason, type: :string
-  def execute(path)
-    experiment = Primus::Experiment.load(path: path)
+  def execute(id)
+    path = definition_path(id)
+    experiment = load_definition(id, path)
     runner = Primus::Experiment::Runner.new(experiment: experiment,
                                             output_path: options[:output_path])
     runner.run(rerun: options[:rerun], reason: options[:reason])
@@ -43,22 +44,40 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
   desc "review ID [RUN_ID]", "show retained attempts"
   option :output_path, type: :string, default: "experiments/runs"
   def review(id, run_id = nil)
+    validate_id!(id)
     store = Primus::Experiment::Store.new(output_path: options[:output_path])
     entries = store.review(id: id, run_id: run_id)
     show_planned(id) if Array(entries).empty?
     Array(entries).each { |entry| show_entry(id, entry) }
   rescue Primus::Experiment::Store::ReadError => error
     raise Thor::Error, "review: #{error.message}"
+  rescue Primus::Experiment::LoadError => error
+    raise Thor::Error, "definition load: #{error.message}"
   end
 
   private
 
-  def show_planned(id)
-    path = "experiments/definitions/#{id}.yml"
-    unless File.file?(path)
-      raise Thor::Error, "#{id}: no saved definition or attempts"
-    end
+  def validate_id!(id)
+    return if /\A[a-z0-9]+(?:-[a-z0-9]+)*\z/.match?(id)
+    raise Thor::Error, "invalid experiment ID: #{id.inspect}"
+  end
+
+  def definition_path(id)
+    validate_id!(id)
+    "experiments/definitions/#{id}.yml"
+  end
+
+  def load_definition(id, path)
     experiment = Primus::Experiment.load(path: path)
+    unless experiment.id == id
+      raise Primus::Experiment::LoadError,
+            "#{path}: declared ID does not match #{id}"
+    end
+    experiment
+  end
+
+  def show_planned(id)
+    experiment = load_definition(id, definition_path(id))
     say "#{experiment.id}: planned — #{experiment.title}"
     say experiment.purpose
   end
