@@ -108,6 +108,13 @@ RSpec.describe "page 57 execution identity" do
     end
   end
 
+  def saved_input_snapshots(output_path)
+    saved_records(output_path).map do |record|
+      path = record.fetch("artifacts").dig("input.yml", "path")
+      path && File.binread(path)
+    end
+  end
+
   it "rejects modified executable code before transformation" do
     Dir.mktmpdir do |directory|
       repository = File.join(directory, "repo")
@@ -378,10 +385,7 @@ RSpec.describe "page 57 execution identity" do
       output_path = File.join(directory, "runs")
 
       run_experiment(repository, output_path)
-      saved = saved_records(output_path)
-      snapshots = saved.map do |record|
-        File.binread(record.fetch("artifacts").fetch("input.yml").fetch("path"))
-      end
+      snapshots = saved_input_snapshots(output_path)
 
       expect(snapshots).to eq([original])
     end

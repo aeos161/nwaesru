@@ -213,7 +213,7 @@ RSpec.describe Primus::Commands::Experiments do
                    fetch("run_id")
         rerun = attempts.detect { |record| record["rerun_reason"] }
 
-        expect(rerun.fetch("previous_run_ids")).to include(prior_id)
+        expect(rerun && rerun.fetch("previous_run_ids")).to include(prior_id)
       end
     end
 
@@ -271,9 +271,9 @@ RSpec.describe Primus::Commands::Experiments do
                            "experiments/definitions/page-57-latin.yml")
         cli(repository, "run", "page-57-latin", "--output-path", output_path)
         snapshot = records(output_path).first.fetch("artifacts").
-                   fetch("definition.yml").fetch("path")
+                   dig("definition.yml", "path")
 
-        expect(File.binread(snapshot)).to eq(File.binread(source))
+        expect(snapshot && File.binread(snapshot)).to eq(File.binread(source))
       end
     end
 
