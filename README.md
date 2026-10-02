@@ -22,14 +22,17 @@ prime totients modulo 29 from GP runes, skipping GP ordinal 56 without
 consuming a prime. Each run starts with prime 2 and preserves the hexadecimal
 passage as text. Page 57 directly transliterates the GP runes.
 
+From the repository root, use Ruby 2.7.4 (see `.tool-versions`) with the
+project bundle installed, then run `bin/primus` directly:
+
 ```shell
-bundle exec ruby -Ilib bin/primus experiments validate experiments/definitions/page-56-totient-latin.yml
-bundle exec ruby -Ilib bin/primus experiments run experiments/definitions/page-56-totient-latin.yml --output-path experiments/runs
-bundle exec ruby -Ilib bin/primus experiments run experiments/definitions/page-56-totient-latin.yml --output-path experiments/runs --rerun --reason "Check repeatability"
-bundle exec ruby -Ilib bin/primus experiments review page-56-totient-latin --output-path experiments/runs
-bundle exec ruby -Ilib bin/primus experiments validate experiments/definitions/page-57-latin.yml
-bundle exec ruby -Ilib bin/primus experiments run experiments/definitions/page-57-latin.yml
-bundle exec ruby -Ilib bin/primus experiments review page-57-latin
+bin/primus experiments validate experiments/definitions/page-56-totient-latin.yml
+bin/primus experiments run experiments/definitions/page-56-totient-latin.yml --output-path experiments/runs
+bin/primus experiments run experiments/definitions/page-56-totient-latin.yml --output-path experiments/runs --rerun --reason "Check repeatability"
+bin/primus experiments review page-56-totient-latin --output-path experiments/runs
+bin/primus experiments validate experiments/definitions/page-57-latin.yml
+bin/primus experiments run experiments/definitions/page-57-latin.yml
+bin/primus experiments review page-57-latin
 ```
 
 `run` accepts `--output-path DIR` to retain attempts elsewhere. An unchanged
