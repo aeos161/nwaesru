@@ -84,9 +84,9 @@ RSpec.describe Primus::Commands::Experiments do
 
     it "reports unsupported recipes through model validation" do
       with_checkout("page_57_unsupported.yml") do |repository, _output_path|
-        _stdout, _stderr, status = cli(repository, "validate", "page-57-latin")
+        stdout, stderr, _status = cli(repository, "validate", "page-57-latin")
 
-        expect(status).not_to be_success
+        expect("#{stdout}#{stderr}").to include("operation")
       end
     end
 
@@ -132,6 +132,24 @@ RSpec.describe Primus::Commands::Experiments do
       end
 
       expect(Primus::Experiment).not_to have_received(:load)
+    end
+
+    it "does not validate a definition declaring another ID" do
+      experiment = instance_double(Primus::Experiment, id: "another-id",
+                                                       errors: [])
+      allow(Primus::Experiment).to receive(:load).and_return(experiment)
+      allow(experiment).to receive(:valid?).and_return(false)
+      command = Primus::Commands::Experiments.new
+
+      ignore_thor_error { command.validate("page-57-latin") }
+
+      expect(experiment).not_to have_received(:valid?)
+    end
+
+    it "advertises ID arguments in Thor help" do
+      stdout, _stderr, _status = cli(Dir.pwd, "help")
+
+      expect(stdout).to include("validate ID", "run ID", "review ID [RUN_ID]")
     end
   end
 
@@ -220,8 +238,11 @@ RSpec.describe Primus::Commands::Experiments do
       with_checkout("page_57_wrong_digest.yml") do |repository, output_path|
         cli(repository, "run", "page-57-latin", "--output-path", output_path)
 
-        expect(records(output_path).map { |record| record["status"] }).
-          to eq(["invalid"])
+        stages = records(output_path).first.fetch("errors").map do |error|
+          error.fetch("stage")
+        end
+
+        expect(stages).to include("integrity")
       end
     end
 
@@ -269,6 +290,15 @@ RSpec.describe Primus::Commands::Experiments do
       end
     end
 
+    it "records the resolved path for a safe unknown ID" do
+      with_checkout do |repository, output_path|
+        cli(repository, "run", "unknown-recipe", "--output-path", output_path)
+
+        expect(records(output_path).first.fetch("definition_path")).
+          to eq("experiments/definitions/unknown-recipe.yml")
+      end
+    end
+
     it "rejects unsafe IDs before creating a Store" do
       Dir.mktmpdir do |output_path|
         command = Primus::Commands::Experiments.new(
@@ -295,6 +325,43 @@ RSpec.describe Primus::Commands::Experiments do
         title = "Transform page 57 from runes to Latin characters"
 
         expect(stdout).to include(title)
+      end
+    end
+
+    it "shows planned details without model validation" do
+      with_checkout("page_57_unsupported.yml") do |repository, output_path|
+        stdout, _stderr, _status = cli(repository, "review", "page-57-latin",
+                                       "--output-path", output_path)
+
+        title = "Transform page 57 from runes to Latin characters"
+
+        expect(stdout).to include(title)
+      end
+    end
+
+    it "rejects planned display when the declaration has another ID" do
+      with_checkout do |repository, output_path|
+        path = File.join(repository,
+                         "experiments/definitions/page-57-latin.yml")
+        changed = File.read(path).sub("id: page-57-latin", "id: other-id")
+        File.write(path, changed)
+
+        _stdout, _stderr, status = cli(repository, "review", "page-57-latin",
+                                       "--output-path", output_path)
+
+        expect(status).not_to be_success
+      end
+    end
+
+    it "reports a missing planned definition as a command error" do
+      with_checkout do |repository, output_path|
+        File.delete(File.join(repository,
+                              "experiments/definitions/page-57-latin.yml"))
+
+        _stdout, _stderr, status = cli(repository, "review", "page-57-latin",
+                                       "--output-path", output_path)
+
+        expect(status).not_to be_success
       end
     end
 
