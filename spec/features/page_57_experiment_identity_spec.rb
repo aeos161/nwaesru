@@ -15,7 +15,7 @@ RSpec.describe "page 57 execution identity" do
   def run_experiment(repository, output_path)
     Open3.capture3(
       RbConfig.ruby, "-Ilib", "bin/primus", "experiments", "run",
-      "spec/fixtures/experiments/page_57_valid.yml",
+      "page-57-latin",
       "--output-path", output_path, chdir: repository
     )
   end
@@ -23,7 +23,7 @@ RSpec.describe "page 57 execution identity" do
   def rerun_experiment(repository, output_path)
     args = [
       RbConfig.ruby, "-Ilib", "bin/primus", "experiments", "run",
-      "spec/fixtures/experiments/page_57_valid.yml",
+      "page-57-latin",
       "--output-path", output_path, "--rerun", "--reason", "Investigate stop"
     ]
     Open3.capture3(*args, chdir: repository)
@@ -39,7 +39,7 @@ RSpec.describe "page 57 execution identity" do
 
   def update_definition_digest(repository, original, changed)
     definition = File.join(repository,
-                           "spec/fixtures/experiments/page_57_valid.yml")
+                           "experiments/definitions/page-57-latin.yml")
     old_digest = Digest::SHA256.hexdigest(original)
     new_digest = Digest::SHA256.hexdigest(changed)
     File.write(definition, File.read(definition).sub(old_digest, new_digest))
@@ -102,6 +102,19 @@ RSpec.describe "page 57 execution identity" do
     saved_records(output_path).map { |record| record.fetch("status") }
   end
 
+  def saved_stages(output_path)
+    saved_records(output_path).flat_map do |record|
+      record.fetch("errors").map { |error| error.fetch("stage") }
+    end
+  end
+
+  def saved_input_snapshots(output_path)
+    saved_records(output_path).map do |record|
+      path = record.fetch("artifacts").dig("input.yml", "path")
+      path && Digest::SHA256.hexdigest(File.binread(path))
+    end
+  end
+
   it "rejects modified executable code before transformation" do
     Dir.mktmpdir do |directory|
       repository = File.join(directory, "repo")
@@ -113,7 +126,7 @@ RSpec.describe "page 57 execution identity" do
 
       run_experiment(repository, output_path)
 
-      expect(saved_statuses(output_path)).to eq(["invalid"])
+      expect(saved_stages(output_path)).to include("code")
     end
   end
 
@@ -124,7 +137,7 @@ RSpec.describe "page 57 execution identity" do
 
       Open3.capture3(
         RbConfig.ruby, "-Ilib", "bin/primus", "experiments", "validate",
-        "spec/fixtures/experiments/page_57_valid.yml", chdir: repository
+        "page-57-latin", chdir: repository
       )
 
       expect(Dir.glob("#{repository}/experiments/runs/**/record.json")).
@@ -141,7 +154,7 @@ RSpec.describe "page 57 execution identity" do
 
       run_experiment(repository, output_path)
 
-      expect(saved_statuses(output_path)).to eq(["invalid"])
+      expect(saved_stages(output_path)).to include("code")
     end
   end
 
@@ -156,7 +169,7 @@ RSpec.describe "page 57 execution identity" do
 
       run_experiment(repository, output_path)
 
-      expect(Dir.glob("#{output_path}/**/record.json").size).to eq(2)
+      expect(saved_statuses(output_path)).to eq(["matched", "matched"])
     end
   end
 
@@ -164,7 +177,7 @@ RSpec.describe "page 57 execution identity" do
     Dir.mktmpdir do |directory|
       repository = File.join(directory, "repo")
       clone_repository(repository)
-      definition = "spec/fixtures/experiments/page_57_valid.yml"
+      definition = "page-57-latin"
       Open3.capture3(
         RbConfig.ruby, "-Ilib", "bin/primus", "experiments", "validate",
         definition, chdir: repository
@@ -174,7 +187,7 @@ RSpec.describe "page 57 execution identity" do
 
       run_experiment(repository, output_path)
 
-      expect(saved_statuses(output_path)).to eq(["invalid"])
+      expect(saved_stages(output_path)).to include("integrity")
     end
   end
 
@@ -189,7 +202,7 @@ RSpec.describe "page 57 execution identity" do
 
       run_experiment(repository, output_path)
 
-      expect(Dir.glob("#{output_path}/**/record.json").size).to eq(2)
+      expect(saved_statuses(output_path)).to eq(["matched", "matched"])
     end
   end
 
@@ -200,7 +213,7 @@ RSpec.describe "page 57 execution identity" do
       output_path = File.join(directory, "runs")
       run_experiment(repository, output_path)
       definition = File.join(repository,
-                             "spec/fixtures/experiments/page_57_valid.yml")
+                             "experiments/definitions/page-57-latin.yml")
       File.open(definition, "a") { |file| file.write("\n# formatting only\n") }
 
       run_experiment(repository, output_path)
@@ -216,14 +229,14 @@ RSpec.describe "page 57 execution identity" do
       output_path = File.join(directory, "runs")
       run_experiment(repository, output_path)
       definition = File.join(repository,
-                             "spec/fixtures/experiments/page_57_valid.yml")
+                             "experiments/definitions/page-57-latin.yml")
       original = File.read(definition)
       File.write(definition, original.sub("Compare the direct",
                                           "Recheck the direct"))
 
       run_experiment(repository, output_path)
 
-      expect(Dir.glob("#{output_path}/**/record.json").size).to eq(2)
+      expect(saved_statuses(output_path)).to eq(["matched", "matched"])
     end
   end
 
@@ -236,7 +249,7 @@ RSpec.describe "page 57 execution identity" do
 
       run_experiment(repository, output_path)
 
-      expect(saved_statuses(output_path)).to eq(["invalid"])
+      expect(saved_stages(output_path)).to include("configuration")
     end
   end
 
@@ -249,7 +262,7 @@ RSpec.describe "page 57 execution identity" do
 
       run_experiment(repository, output_path)
 
-      expect(saved_statuses(output_path)).to eq(["invalid"])
+      expect(saved_stages(output_path)).to include("configuration")
     end
   end
 
@@ -262,7 +275,7 @@ RSpec.describe "page 57 execution identity" do
 
       run_experiment(repository, output_path)
 
-      expect(saved_statuses(output_path)).to eq(["invalid"])
+      expect(saved_stages(output_path)).to include("configuration")
     end
   end
 
@@ -275,7 +288,7 @@ RSpec.describe "page 57 execution identity" do
 
       run_experiment(repository, output_path)
 
-      expect(saved_statuses(output_path)).to eq(["invalid"])
+      expect(saved_stages(output_path)).to include("configuration")
     end
   end
 
@@ -289,7 +302,7 @@ RSpec.describe "page 57 execution identity" do
 
       run_experiment(repository, output_path)
 
-      expect(saved_statuses(output_path)).to eq(["invalid"])
+      expect(saved_stages(output_path)).to include("configuration")
     end
   end
 
@@ -372,12 +385,9 @@ RSpec.describe "page 57 execution identity" do
       output_path = File.join(directory, "runs")
 
       run_experiment(repository, output_path)
-      saved = saved_records(output_path)
-      snapshots = saved.map do |record|
-        File.binread(record.fetch("artifacts").fetch("input.yml").fetch("path"))
-      end
+      snapshots = saved_input_snapshots(output_path)
 
-      expect(snapshots).to eq([original])
+      expect(snapshots).to eq([Digest::SHA256.hexdigest(original)])
     end
   end
 end
