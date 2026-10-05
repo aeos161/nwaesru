@@ -4,19 +4,17 @@ The fixed `Primus::Reproduction` two-recipe adapter proposal in commit
 `a0d3de1` is superseded. Do not implement its combined scope or its exclusions
 of persistence/experiment definitions.
 
-The page-57 harness is implemented at `45cab84` and present on local main
-as of 2026-10-01; remote publication was not inferred. Current actionable
-plan: [page 56 through that harness](page-56-harness-experiment.md), reconciled
-against the actual implementation. Research definitions remain outside
-RSpec; RSpec verifies the harness.
+Local main contains page 57 (`45cab84`), page 56 (`946431c`) and the ID-based
+CLI (`e996a6e`) as inspected on 2026-10-03. Remote publication is not inferred.
+Research definitions remain outside RSpec; RSpec verifies the harness.
 
 The delivery sequence is now:
 
 1. Page 57 harness and plaintext experiment — implemented at `45cab84`.
-2. [Page 56 using that harness](page-56-harness-experiment.md) — reconciled
-   plan ready against the locally integrated first milestone.
-3. [Synthetic hash expectation](synthetic-hash-experiment.md), separately
-   re-planned after page 56 merges.
+2. [Page 56 using that harness](page-56-harness-experiment.md) — implemented
+   at `946431c`.
+3. [Page-57 SHA-512 control](page-57-hash-control.md) — current plan, replacing
+   the artificial-input synthetic hash proposal.
 4. Page 55 experiments against a declared real target-hash hypothesis.
 
 The broader [research direction](page-54-55-research.md) remains deferred.

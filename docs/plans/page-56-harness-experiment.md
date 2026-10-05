@@ -1,5 +1,12 @@
 # Page 56 through the implemented experiment harness
 
+## Delivery update — 2026-10-03
+
+Implemented at `946431c`, present on local main `e996a6e`. The plan below is
+retained as the implementation record. The current third milestone is the
+[page-57 SHA-512 control](page-57-hash-control.md), replacing synthetic input.
+No page-56 implementation or merge gate is reinstated by historical wording.
+
 ## Goal
 
 Define, validate, run, save and review the known page-56 totient decoding
@@ -320,7 +327,7 @@ This plan preserves the existing fingerprint policy and its limits.
 
 ## Next milestone
 
-After page 56 is implemented and merged, invoke planner fresh for the
-[synthetic hash experiment](synthetic-hash-experiment.md). It remains the
-third milestone. A synthetic two-cipher project and general chain engine
-are not prerequisites. Do not start that work in this documentation pass.
+The [page-57 SHA-512 control](page-57-hash-control.md) is reconciled against
+implemented page 56 and the ID-based CLI. It replaces the synthetic-input
+proposal as the third milestone. No two-cipher project or chain engine is
+required. This planning pass does not start implementation or execution.

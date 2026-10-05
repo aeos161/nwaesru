@@ -1,0 +1,16 @@
+schema_version: 1
+id: page-57-latin-sha512
+title: Check page 57 Latin bytes with SHA-512
+purpose: Compare the direct GP transliteration with an independent digest.
+input:
+  page_number: 57
+  path: data/encoded/liber_primus/page_57.yml
+  sha256: c7055db0173e43eb231608812f5d52569e4c0817934b1a65427cebf332759fff
+operation: runes_to_latin
+output:
+  policy: gp-latin-compatibility-v1
+expectation:
+  kind: hash
+  algorithm: sha512
+  digest: f3fac0115ab06d1a4075731e77fe157ad52b837b9068bf942c95784160578f43a1a72e770f2e2c1b00a1bc2fad39dc66fa78efd28c5cd976ed3a35f3e400bcab
+  provenance: Independently prepared from experiments/expected/page-57-latin.txt (SHA-256 2d450628c6431f9497a6709f5af25d3dad2aa509c31d99ec3a00b07a42eb9a39), byte-for-byte equal to the rstrip body of data/decoded/liber_primus/page_57.yml (source SHA-256 960d9e6e20817b4a52d7b24eb7ecf447acfd05d3112f1ed8ca516b2fc3192ad7). The 124 UTF-8 bytes have no BOM or terminal newline and retain lowercase GP spellings, wraps, punctuation and spacing under gp-latin-compatibility-v1. Python hashlib SHA-512 and shasum -a 512 independently agreed before the runner executed.

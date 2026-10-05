@@ -5,7 +5,12 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
     if experiment.valid?
       say "#{experiment.id}: valid"
       say "input SHA-256: #{experiment.source_digest}"
-      say "oracle SHA-256: #{experiment.expectation_digest}"
+      if experiment.expectation["kind"] == "hash"
+        show_hash_expectation(experiment.expectation,
+                              experiment.output["policy"])
+      else
+        say "oracle SHA-256: #{experiment.expectation_digest}"
+      end
     else
       raise Thor::Error, experiment.errors.map { |error|
         "#{error.attribute}: #{error.message}"
@@ -78,6 +83,10 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
     experiment = load_definition(id, definition_path(id))
     say "#{experiment.id}: planned — #{experiment.title}"
     say experiment.purpose
+    expectation = experiment.expectation
+    if expectation.is_a?(Hash) && expectation["kind"] == "hash"
+      show_hash_expectation(expectation, experiment.output["policy"])
+    end
   end
 
   def show_entry(id, entry)
@@ -90,14 +99,29 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
     say "Git HEAD: #{data["git_head"]} Ruby: #{data["runtime_version"]}"
     say "input: #{data["source_path"]}"
     say "input SHA-256: #{data["source_actual_sha256"]}"
-    say "oracle: #{data["oracle_path"]}"
-    say "oracle SHA-256: #{data["oracle_actual_sha256"]}"
+    expectation = configuration["expectation"] || {}
+    if expectation["kind"] == "hash"
+      policy = configuration.fetch("output").fetch("policy")
+      show_hash_expectation(expectation, policy)
+      hash_check = data.dig("assessment", "hash_check")
+      say "observed SHA-512: #{hash_check["observed_digest"]}" if hash_check
+      say "comparison: #{data["comparison"]}"
+    else
+      say "oracle: #{data["oracle_path"]}"
+      say "oracle SHA-256: #{data["oracle_actual_sha256"]}"
+    end
     prior = entry.previous_run_ids
     say "prior: #{prior.join(", ")}" if prior.any?
     data.fetch("errors", []).each { |error|
       say "#{error["stage"]}: #{error["message"]}"
     }
     show_artifacts(entry)
+  end
+
+  def show_hash_expectation(expectation, policy)
+    say "hash algorithm: #{expectation["algorithm"]}"
+    say "expected SHA-512: #{expectation["digest"]}"
+    say "output policy: #{policy}"
   end
 
   def show_artifacts(entry)

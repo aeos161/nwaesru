@@ -59,13 +59,22 @@ class Primus::Experiment::Runner
   def execute
     @observation = produce_observation
     @assessment = Primus::Experiment::Evaluator.new.assess(
-      observation: @observation, expectation: @experiment.expected_bytes,
+      observation: @observation, expectation: evaluation_expectation,
+      policy: @experiment.output.fetch("policy")
     )
     status = @assessment.comparison == "match" ? "matched" : "mismatched"
     @log_entry = @store.finish(
       @log_entry, status: status, observation: @observation,
                   assessment: @assessment
     )
+  end
+
+  def evaluation_expectation
+    if @experiment.expectation["kind"] == "hash"
+      @experiment.expectation
+    else
+      @experiment.expected_bytes
+    end
   end
 
   def produce_observation

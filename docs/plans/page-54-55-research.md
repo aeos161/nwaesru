@@ -12,28 +12,25 @@ plaintext/hash evaluation extends Assessment behavior, not model validation.
 The page-57 plan governs the concrete API; this record adds no implementation
 scope before its existing gate.
 
-## Delivery status — 2026-10-01
+## Delivery status — 2026-10-03
 
-Page 57 is implemented at `45cab84` and present on local main. The active
-bounded software plan is now [page 56](page-56-harness-experiment.md),
-reconciled against that implementation. References below to page 57 as
-current and page 56 awaiting fresh planning describe the earlier research
-roadmap; they do not reinstate those gates. Broader chains/search remain
-deferred, and synthetic hash planning still follows page-56 completion.
+Local main `e996a6e` contains page 57 (`45cab84`), page 56 (`946431c`) and
+the ID-based CLI. The current bounded plan is the
+[page-57 SHA-512 control](page-57-hash-control.md), replacing the earlier
+artificial-input hash proposal. Older references to page 57 as current or
+page 56 awaiting planning are historical; they do not reinstate those gates.
+Broader chains/search and page-55 target interpretation remain deferred.
 
 ## Goal and status
 
 Develop and test a bounded set of explanations for page 55, treating pages 54–55 as a possible shared decoding unit. Prioritize self-reference and reversal hypotheses motivated by the user's observations and reported historical mechanisms.
 
-This document records deferred research direction, not the current software
-acceptance scope. The current milestone is the [page-57 experiment
-harness](page-57-experiment-harness.md): definitions outside RSpec, input and
-configuration validation, saved runs/artifacts, plaintext comparison and
-intentional reruns. Lossless input (`381cd90`) and transcription reversals
-(`e24b2d7`) have merged. Page 56 follows as a separate harness experiment;
-synthetic hash validation is third; real page-55 target-hash experiments
-follow. No research search has been completed under this plan. Open research
-parameters remain explicit; a completed experiment need not decipher a page.
+This document records deferred research direction, not current software
+acceptance scope. The [page-57 SHA-512 control](page-57-hash-control.md) is
+third after the implemented plaintext page-57 and page-56 experiments; real
+page-55 target-hash experiments follow. No research search has been completed
+under this plan. Open research parameters remain explicit; a completed
+experiment need not decipher a page.
 
 ## Evidence and motivation
 
@@ -238,11 +235,11 @@ Do not reuse the unfinished `Brute#crib` command as the chain orchestrator. Avoi
 ## 12. Deferred broader chain-and-hash acceptance criteria
 
 These are deferred research capabilities, not a mandatory next implementation
-bundle. Only [page-57-experiment-harness.md](page-57-experiment-harness.md)
-defines current implementation scope. Persistence and explicit byte policy
-start there; general chains and multiple hash algorithms are not required.
-The former synthetic two-cipher next-step requirement is superseded by the
-separate synthetic hash experiment after page 56.
+bundle. Only [page-57-hash-control.md](page-57-hash-control.md) defines current
+implementation scope. Persistence and explicit byte policy already exist;
+general chains and multiple hash algorithms are not required. The former
+synthetic two-cipher and artificial-input next steps are superseded by the
+separate page-57 SHA-512 control.
 
 - A Ruby caller can supply one finite, explicit chain whose stages have independent parameters; the CLI can invoke the same behavior.
 - The runner records the original candidate and every intermediate output, including exact hash-input bytes or a lossless artifact reference and serialization policy.
@@ -260,19 +257,17 @@ No page-55 decipherment is required to complete this software milestone. The 201
 
 ## 13. Delivery sequence
 
-1. **Page 57 harness (current):** implement the saved definition, validation,
-   run, artifacts/records, plaintext oracle and review lifecycle in the
-   [active plan](page-57-experiment-harness.md). RSpec verifies the harness.
-2. **Page 56 experiment:** fresh planning after page 57 merges; use the same
-   lifecycle and enhance only for its known totient/Latin recipe. See the
-   [bounded follow-on](page-56-harness-experiment.md).
-3. **Synthetic hash experiment:** fresh planning after page 56 merges; prove
-   a hash expectation over controlled bytes with an independent oracle. See
-   [the third milestone](synthetic-hash-experiment.md). A two-cipher example
-   is not a prerequisite.
+1. **Page 57 plaintext harness:** implemented at `45cab84`; see the
+   [historical plan](page-57-experiment-harness.md).
+2. **Page 56 experiment:** implemented at `946431c`; see its
+   [implementation plan](page-56-harness-experiment.md).
+3. **Page-57 SHA-512 control:** current bounded plan, using independent
+   known plaintext to prepare a saved digest before execution. See
+   [the third milestone](page-57-hash-control.md). This replaces artificial
+   synthetic input; a two-cipher example is not required.
 4. **Page 55 target-hash experiments:** separately declare algorithm, exact
    serialization and target interpretation; these remain hypotheses, unlike
-   the synthetic oracle. Add verified algorithm support only as required.
+   the known page-57 oracle. Add verified algorithm support only as required.
 5. **Broader research, when justified:** independent chains/checkpoints,
    bounded key sources and self-consistency, experiment generation, then
    ranking/constraint search. Set candidate/runtime/storage caps and re-plan

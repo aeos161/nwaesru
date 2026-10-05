@@ -21,6 +21,10 @@ each definition records its source YAML digest. Page 56 subtracts successive
 prime totients modulo 29 from GP runes, skipping GP ordinal 56 without
 consuming a prime. Each run starts with prime 2 and preserves the hexadecimal
 passage as text. Page 57 directly transliterates the GP runes.
+`page-57-latin-sha512` runs that same translation as a separate control with
+a fixed SHA-512 expectation prepared from the known page-57 plaintext. The
+digest checks the exact saved output bytes; it does not identify any
+historical target hash.
 
 From the repository root, use Ruby 2.7.4 (see `.tool-versions`) with the
 project bundle installed, then run `bin/primus` directly:
@@ -33,6 +37,10 @@ bin/primus experiments review page-56-totient-latin --output-path experiments/ru
 bin/primus experiments validate page-57-latin
 bin/primus experiments run page-57-latin
 bin/primus experiments review page-57-latin
+bin/primus experiments validate page-57-latin-sha512
+bin/primus experiments run page-57-latin-sha512
+bin/primus experiments review page-57-latin-sha512
+bin/primus experiments run page-57-latin-sha512 --rerun --reason "Check reproducibility"
 ```
 
 The CLI accepts experiment IDs and reads live definitions from
@@ -43,7 +51,8 @@ definition path with `Primus::Experiment.load(path: ...)`.
 attempt is reused; `--rerun --reason "..."` creates a linked new attempt.
 `review` also accepts a run ID. The default local history is
 `experiments/runs/`, which Git ignores. Each attempt retains exact definition,
-encoded YAML, extracted body, expected text, output when produced, provenance,
+encoded YAML, extracted body, expected text for plaintext checks, output when
+produced, provenance,
 and a JSON record. Invalid and interrupted attempts remain visible. Validation
 does not write an attempt.
 
@@ -52,7 +61,7 @@ The callable API then provides `valid?` and `errors`;
 offers the `run` command and `observation`, `assessment`, and `log_entry`
 readers. An ordinary `run` returns `nil`. A retained prior attempt is exposed
 through `log_entry` without creating a new observation. A new comparison is
-an `Assessment` against the independent expected bytes.
+an `Assessment` against the independent expected bytes or fixed digest.
 
 Runs require the executable and dependency files to match Git HEAD. The record
 captures that commit and Ruby version, plus exact source and oracle digests.

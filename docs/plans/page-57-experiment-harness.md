@@ -11,10 +11,11 @@ missing-production-code, dependency-installation and 75-example rewrite
 instructions are superseded by the implementation. ActiveModel 7.1.6 and
 Shoulda Matchers 5.3.0 are already in the resolved bundle.
 
-The current actionable second milestone is the reconciled
-[page-56 plan](page-56-harness-experiment.md), based on the actual code.
-No new page-57 implementation or stale merge gate is implied by the
-historical wording below. Synthetic hash planning still follows page 56.
+Delivery update on 2026-10-03: page 56 is implemented at `946431c`, and
+local main `e996a6e` also includes the ID-based CLI. The actionable third
+milestone is now the [page-57 SHA-512 control](page-57-hash-control.md),
+replacing artificial synthetic input. Historical scope/gates below describe
+this completed first milestone and do not require it to be repeated.
 
 ## Goal
 
@@ -26,7 +27,7 @@ intentional. RSpec verifies this harness; it is not the experiment store.
 
 **Current implementation scope: page 57 only.** This supersedes
 [the two-page adapter plan](reproduce-pages-57-56.md). Page 56 is a separate
-follow-on; synthetic hash validation follows page 56, then page 55 research.
+follow-on; the page-57 SHA-512 control follows page 56, then page 55 research.
 This document plans work only; no implementation or experiments were run.
 
 ## Baseline and design decisions
@@ -477,7 +478,6 @@ tradeoff if needed before implementation.
 
 ## Next milestones
 
-After this harness merges, re-plan [page 56](page-56-harness-experiment.md)
-against its actual interface. After page 56 merges, re-plan the
-[synthetic hash experiment](synthetic-hash-experiment.md). Those are separate
-bounded work records, not additional page-57 acceptance criteria.
+[Page 56](page-56-harness-experiment.md) is implemented. The separate
+[page-57 SHA-512 control](page-57-hash-control.md) is the next bounded work
+record; its criteria do not expand this completed plaintext milestone.

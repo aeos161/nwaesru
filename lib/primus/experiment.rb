@@ -11,6 +11,8 @@ class Primus::Experiment
   RECIPES = {
     "page-57-latin" => [57, "data/encoded/liber_primus/page_57.yml",
                         "runes_to_latin"],
+    "page-57-latin-sha512" => [57, "data/encoded/liber_primus/page_57.yml",
+                               "runes_to_latin"],
     "page-56-totient-latin" => [56, "data/encoded/liber_primus/page_56.yml",
                                 "totient_shift_to_latin"],
   }.freeze
@@ -21,7 +23,10 @@ class Primus::Experiment
   NESTED_KEYS = {
     "input" => %w[page_number path sha256],
     "output" => %w[policy],
-    "expectation" => %w[kind path sha256 provenance],
+  }.freeze
+  EXPECTATION_KEYS = {
+    "plaintext" => %w[kind path sha256 provenance],
+    "hash" => %w[kind algorithm digest provenance],
   }.freeze
 
   attr_accessor :schema_version, :id, :title, :purpose, :input, :operation,
@@ -113,8 +118,7 @@ class Primus::Experiment
   end
 
   def validate_mappings
-    expected = { output: { "policy" => "gp-latin-compatibility-v1" },
-                 expectation: { "kind" => "plaintext" } }
+    expected = { output: { "policy" => "gp-latin-compatibility-v1" } }
     expected.each do |field, fields|
       value = public_send(field)
       reject(field, "must be a mapping") unless value.is_a?(Hash)
@@ -125,11 +129,30 @@ class Primus::Experiment
         end
       }
     end
+    validate_expectation_mapping
     provenance = expectation["provenance"] if expectation.is_a?(Hash)
     unless provenance.is_a?(String) && !provenance.strip.empty?
       reject(:expectation,
              "provenance is required")
     end
+  end
+
+  def validate_expectation_mapping
+    unless expectation.is_a?(Hash)
+      reject(:expectation, "must be a mapping")
+      return
+    end
+    wanted = id == "page-57-latin-sha512" ? "hash" : "plaintext"
+    unless expectation["kind"] == wanted
+      reject(:expectation, "kind must be #{wanted}")
+    end
+    return unless wanted == "hash"
+    unless expectation["algorithm"] == "sha512"
+      reject(:expectation, "algorithm must be sha512")
+    end
+    digest = expectation["digest"]
+    valid_digest = digest.is_a?(String) && digest.match?(/\A[0-9a-f]{128}\z/)
+    reject(:expectation, "digest must be 128 lowercase hex") unless valid_digest
   end
 
   def validate_recipe
@@ -175,12 +198,20 @@ class Primus::Experiment
                "unknown fields: #{(actual.keys - allowed).join(", ")}")
       end
     end
+    if expectation.is_a?(Hash)
+      allowed = EXPECTATION_KEYS[expectation["kind"]] || []
+      extra = expectation.keys - allowed
+      reject(:expectation, "unknown fields") if extra.any?
+    end
   end
 
   def validate_files
     @input_bytes = @source_body = @expected_bytes = nil
     validate_source if safe_path?(input_path, :input)
-    validate_expectation if safe_path?(expectation_path, :expectation)
+    if expectation.is_a?(Hash) && expectation["kind"] == "plaintext" &&
+        safe_path?(expectation_path, :expectation)
+      validate_expectation
+    end
   end
 
   def safe_path?(path, field)

@@ -150,10 +150,15 @@ class Primus::Experiment::Store
 
   def read_record(path)
     data = JSON.parse(File.binread(path))
-    assessment = data["assessment"] &&
-      Primus::Experiment::Assessment.new(
-        **data["assessment"].transform_keys(&:to_sym),
-      )
+    assessment = if data["assessment"]
+                   attributes = data["assessment"].dup
+                   hash_check = attributes.delete("hash_check")
+                   Primus::Experiment::Assessment.new(
+                     **attributes.transform_keys(&:to_sym),
+                   ).tap do |item|
+                     item.restore_hash_check(hash_check) if hash_check
+                   end
+                 end
     Primus::Experiment::LogEntry.new(data: data,
                                      observation: saved_observation(data),
                                      assessment: assessment)
