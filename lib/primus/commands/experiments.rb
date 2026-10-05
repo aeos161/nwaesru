@@ -42,7 +42,8 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
     store = Primus::Experiment::Store.new(output_path: options[:output_path])
     store.failed_load(path: path, error: error)
     raise Thor::Error, "definition load: #{error.message}"
-  rescue SystemCallError, ArgumentError => error
+  rescue SystemCallError, ArgumentError,
+         Primus::Experiment::Blake2b::Unavailable => error
     raise Thor::Error, "experiment run: #{error.message}"
   end
 
@@ -104,7 +105,10 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
       policy = configuration.fetch("output").fetch("policy")
       show_hash_expectation(expectation, policy)
       hash_check = data.dig("assessment", "hash_check")
-      say "observed SHA-512: #{hash_check["observed_digest"]}" if hash_check
+      if hash_check
+        label = digest_label(expectation)
+        say "observed #{label}: #{hash_check["observed_digest"]}"
+      end
       say "comparison: #{data["comparison"]}"
     else
       say "oracle: #{data["oracle_path"]}"
@@ -120,8 +124,12 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
 
   def show_hash_expectation(expectation, policy)
     say "hash algorithm: #{expectation["algorithm"]}"
-    say "expected SHA-512: #{expectation["digest"]}"
+    say "expected #{digest_label(expectation)}: #{expectation["digest"]}"
     say "output policy: #{policy}"
+  end
+
+  def digest_label(expectation)
+    expectation.fetch("algorithm") == "sha512" ? "SHA-512" : "BLAKE2b-512"
   end
 
   def show_artifacts(entry)

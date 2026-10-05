@@ -235,9 +235,11 @@ Do not reuse the unfinished `Brute#crib` command as the chain orchestrator. Avoi
 ## 12. Deferred broader chain-and-hash acceptance criteria
 
 These are deferred research capabilities, not a mandatory next implementation
-bundle. Only [page-57-hash-control.md](page-57-hash-control.md) defines current
-implementation scope. Persistence and explicit byte policy already exist;
-general chains and multiple hash algorithms are not required. The former
+bundle. The SHA-512 milestone is implemented at `098c0da`. The next bounded
+[page-57 BLAKE2b control plan](page-57-blake2b-control.md) proposes
+BLAKE2b-512 first over the same known text. Original BLAKE-512 is deferred
+to a fresh plan and dependency review. The BLAKE2b plan awaits review;
+general chains are not required. The former
 synthetic two-cipher and artificial-input next steps are superseded by the
 separate page-57 SHA-512 control.
 
@@ -261,14 +263,19 @@ No page-55 decipherment is required to complete this software milestone. The 201
    [historical plan](page-57-experiment-harness.md).
 2. **Page 56 experiment:** implemented at `946431c`; see its
    [implementation plan](page-56-harness-experiment.md).
-3. **Page-57 SHA-512 control:** current bounded plan, using independent
-   known plaintext to prepare a saved digest before execution. See
-   [the third milestone](page-57-hash-control.md). This replaces artificial
-   synthetic input; a two-cipher example is not required.
-4. **Page 55 target-hash experiments:** separately declare algorithm, exact
+3. **Page-57 SHA-512 control:** implemented at `098c0da`, using independent
+   known plaintext and a saved digest. See the
+   [historical plan](page-57-hash-control.md).
+4. **Page-57 BLAKE2b-512 control:** the next bounded
+   [plan](page-57-blake2b-control.md), awaiting review, extends that same
+   control using existing OpenSSL support. Independent vector/oracle
+   verification is required; no native build work is included. Original
+   BLAKE-512 is deferred to a fresh plan and dependency review afterward,
+   and is not a prerequisite for this milestone.
+5. **Page 55 target-hash experiments:** separately declare algorithm, exact
    serialization and target interpretation; these remain hypotheses, unlike
    the known page-57 oracle. Add verified algorithm support only as required.
-5. **Broader research, when justified:** independent chains/checkpoints,
+6. **Broader research, when justified:** independent chains/checkpoints,
    bounded key sources and self-consistency, experiment generation, then
    ranking/constraint search. Set candidate/runtime/storage caps and re-plan
    each change against merged code. Preserve negative results and encrypted

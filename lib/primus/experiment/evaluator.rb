@@ -22,13 +22,22 @@ class Primus::Experiment::Evaluator
 
   def assess_hash(observation, expectation, policy)
     actual = observation.output_bytes
-    observed = Digest::SHA512.hexdigest(actual)
+    algorithm = expectation.fetch("algorithm")
+    observed = hexdigest(algorithm, actual)
     expected = expectation.fetch("digest")
-    hash_check = { "algorithm" => expectation.fetch("algorithm"),
+    hash_check = { "algorithm" => algorithm,
                    "policy" => policy, "expected_digest" => expected,
                    "observed_digest" => observed }
     Primus::Experiment::Assessment.for_hash(
       actual_length: actual.bytesize, hash_check: hash_check,
     )
+  end
+
+  def hexdigest(algorithm, bytes)
+    case algorithm
+    when "sha512" then Digest::SHA512.hexdigest(bytes)
+    when "blake2b512" then Primus::Experiment::Blake2b.new.hexdigest(bytes)
+    else raise ArgumentError, "unsupported hash algorithm: #{algorithm}"
+    end
   end
 end

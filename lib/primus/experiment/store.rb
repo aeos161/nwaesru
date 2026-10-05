@@ -32,6 +32,7 @@ class Primus::Experiment::Store
   end
 
   def reserve(experiment:, fingerprint:, git_head:, code_clean:,
+              hash_runtime: nil,
               previous_run_ids: [],
               rerun_reason: nil)
     id = experiment.id.to_s.empty? ? "failed-load" : experiment.id
@@ -40,6 +41,7 @@ class Primus::Experiment::Store
     FileUtils.mkdir_p(directory)
     data = initial_data(experiment, run_id, fingerprint, git_head,
                         code_clean, previous_run_ids, rerun_reason)
+    data["hash_runtime"] = hash_runtime if hash_runtime
     entry = Primus::Experiment::LogEntry.new(data: data)
     save(entry, directory: directory)
     entry

@@ -1,0 +1,16 @@
+schema_version: 1
+id: page-57-latin-blake2b512
+title: Check page 57 Latin bytes with BLAKE2b-512
+purpose: Compare the direct GP transliteration with an independent digest.
+input:
+  page_number: 57
+  path: data/encoded/liber_primus/page_57.yml
+  sha256: c7055db0173e43eb231608812f5d52569e4c0817934b1a65427cebf332759fff
+operation: runes_to_latin
+output:
+  policy: gp-latin-compatibility-v1
+expectation:
+  kind: hash
+  algorithm: blake2b512
+  digest: 2e205b4c5686b98f55de31b2aac81512ba7e034a7c2c11ddfb97fea2d57ef9d6a395367c2e98da2f86677e41713dc65d9d2af7e81eb8a54c749a1dd9fe844454
+  provenance: Independently prepared from experiments/expected/page-57-latin.txt (SHA-256 2d450628c6431f9497a6709f5af25d3dad2aa509c31d99ec3a00b07a42eb9a39), 124 exact bytes without final newline; Python 3.13.5 hashlib.blake2b digest_size=64 agrees with Ruby 2.7.4 OpenSSL 1.1.1w BLAKE2b512.

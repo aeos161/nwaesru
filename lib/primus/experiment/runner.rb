@@ -23,6 +23,7 @@ class Primus::Experiment::Runner
     head = git_head
     clean = code_clean?
     valid &&= clean
+    @hash_runtime = blake2b_runtime
     fingerprint = fingerprint_for(head)
     previous = @store.prior(id: @experiment.id, fingerprint: fingerprint)
     if previous && !rerun
@@ -35,7 +36,7 @@ class Primus::Experiment::Runner
                      definition_bytes: @experiment.definition_bytes)
     @log_entry = @store.reserve(
       experiment: @experiment, fingerprint: fingerprint, git_head: head,
-      code_clean: clean,
+      code_clean: clean, hash_runtime: @hash_runtime,
       previous_run_ids: previous ? [previous.run_id] : [],
       rerun_reason: rerun ? reason : nil
     )
@@ -132,7 +133,14 @@ class Primus::Experiment::Runner
                  source_sha256: @experiment.source_digest,
                  oracle_sha256: @experiment.expectation_digest,
                  git_head: head, ruby_version: RUBY_VERSION, version: 1 }
+    identity[:hash_runtime] = @hash_runtime if @hash_runtime
     Digest::SHA256.hexdigest(JSON.generate(sorted(identity)))
+  end
+
+  def blake2b_runtime
+    return unless @experiment.id == "page-57-latin-blake2b512"
+
+    Primus::Experiment::Blake2b.new.runtime
   end
 
   def sorted(value)

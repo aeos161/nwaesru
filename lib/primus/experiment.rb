@@ -13,6 +13,8 @@ class Primus::Experiment
                         "runes_to_latin"],
     "page-57-latin-sha512" => [57, "data/encoded/liber_primus/page_57.yml",
                                "runes_to_latin"],
+    "page-57-latin-blake2b512" => [57, "data/encoded/liber_primus/page_57.yml",
+                                   "runes_to_latin"],
     "page-56-totient-latin" => [56, "data/encoded/liber_primus/page_56.yml",
                                 "totient_shift_to_latin"],
   }.freeze
@@ -27,6 +29,10 @@ class Primus::Experiment
   EXPECTATION_KEYS = {
     "plaintext" => %w[kind path sha256 provenance],
     "hash" => %w[kind algorithm digest provenance],
+  }.freeze
+  HASH_ALGORITHMS = {
+    "page-57-latin-sha512" => "sha512",
+    "page-57-latin-blake2b512" => "blake2b512",
   }.freeze
 
   attr_accessor :schema_version, :id, :title, :purpose, :input, :operation,
@@ -142,13 +148,14 @@ class Primus::Experiment
       reject(:expectation, "must be a mapping")
       return
     end
-    wanted = id == "page-57-latin-sha512" ? "hash" : "plaintext"
+    algorithm = HASH_ALGORITHMS[id]
+    wanted = algorithm ? "hash" : "plaintext"
     unless expectation["kind"] == wanted
       reject(:expectation, "kind must be #{wanted}")
     end
     return unless wanted == "hash"
-    unless expectation["algorithm"] == "sha512"
-      reject(:expectation, "algorithm must be sha512")
+    unless expectation["algorithm"] == algorithm
+      reject(:expectation, "algorithm must be #{algorithm}")
     end
     digest = expectation["digest"]
     valid_digest = digest.is_a?(String) && digest.match?(/\A[0-9a-f]{128}\z/)

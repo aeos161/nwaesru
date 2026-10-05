@@ -23,8 +23,10 @@ consuming a prime. Each run starts with prime 2 and preserves the hexadecimal
 passage as text. Page 57 directly transliterates the GP runes.
 `page-57-latin-sha512` runs that same translation as a separate control with
 a fixed SHA-512 expectation prepared from the known page-57 plaintext. The
-digest checks the exact saved output bytes; it does not identify any
-historical target hash.
+`page-57-latin-blake2b512` control checks the same bytes with an independently
+prepared, unkeyed BLAKE2b-512 digest through the Ruby OpenSSL binding. These
+digests check the exact saved output bytes; they do not identify any historical
+target hash.
 
 From the repository root, use Ruby 2.7.4 (see `.tool-versions`) with the
 project bundle installed, then run `bin/primus` directly:
@@ -41,6 +43,9 @@ bin/primus experiments validate page-57-latin-sha512
 bin/primus experiments run page-57-latin-sha512
 bin/primus experiments review page-57-latin-sha512
 bin/primus experiments run page-57-latin-sha512 --rerun --reason "Check reproducibility"
+bin/primus experiments validate page-57-latin-blake2b512
+bin/primus experiments run page-57-latin-blake2b512
+bin/primus experiments review page-57-latin-blake2b512
 ```
 
 The CLI accepts experiment IDs and reads live definitions from
@@ -65,6 +70,10 @@ an `Assessment` against the independent expected bytes or fixed digest.
 
 Runs require the executable and dependency files to match Git HEAD. The record
 captures that commit and Ruby version, plus exact source and oracle digests.
+The BLAKE2b-512 control also records the OpenSSL binding, build and linked
+library versions and digest availability, so backend changes create separate
+attempts. If the backend is unavailable, the attempt retains any produced
+output and records an execution error.
 Git HEAD does not identify the entire host environment, so a saved attempt
 is evidence of this local run rather than a fully portable build recipe.
 
