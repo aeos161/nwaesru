@@ -1,11 +1,19 @@
 class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
   desc "validate ID", "check a saved experiment without executing it"
-  def validate(id)
-    experiment = load_definition(id, definition_path(id))
+  option :input, type: :string
+  option :recipe, type: :string
+  option :hash, type: :string
+  option :expect_digest, type: :string
+  option :expect_text, type: :string
+  option :expect_provenance, type: :string
+  def validate(id = nil)
+    experiment = selected_experiment(id)
     if experiment.valid?
       say "#{experiment.id}: valid"
       say "input SHA-256: #{experiment.source_digest}"
-      if experiment.expectation["kind"] == "hash"
+      if experiment.v2?
+        show_v2_check(experiment)
+      elsif experiment.expectation["kind"] == "hash"
         show_hash_expectation(experiment.expectation,
                               experiment.output["policy"])
       else
@@ -25,9 +33,15 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
   option :output_path, type: :string, default: "experiments/runs"
   option :rerun, type: :boolean, default: false
   option :reason, type: :string
-  def execute(id)
-    path = definition_path(id)
-    experiment = load_definition(id, path)
+  option :input, type: :string
+  option :recipe, type: :string
+  option :hash, type: :string
+  option :expect_digest, type: :string
+  option :expect_text, type: :string
+  option :expect_provenance, type: :string
+  def execute(id = nil)
+    path = id && definition_path(id)
+    experiment = selected_experiment(id)
     runner = Primus::Experiment::Runner.new(experiment: experiment,
                                             output_path: options[:output_path])
     runner.run(rerun: options[:rerun], reason: options[:reason])
@@ -63,6 +77,25 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
   end
 
   private
+
+  def selected_experiment(id)
+    if options[:input] || options[:recipe] || options[:hash] ||
+        options[:expect_digest] || options[:expect_text]
+      raise Thor::Error, "composition cannot include a preset ID" if id
+      raise Thor::Error, "choose one expectation" if options[:hash] && options[:expect_text]
+      return Primus::Experiment::Composition.new(options).experiment
+    end
+    raise Thor::Error, "experiment ID or composition is required" unless id
+    load_definition(id, definition_path(id))
+  end
+
+  def show_v2_check(experiment)
+    check = experiment.checks.first
+    say "check: #{check['strategy']} #{check['algorithm']}"
+    expectation = check.fetch("expectation")
+    say "expected digest: #{expectation['digest']}" if expectation['digest']
+    say "oracle SHA-256: #{experiment.expectation_digest}" if experiment.expected_bytes
+  end
 
   def validate_id!(id)
     return if /\A[a-z0-9]+(?:-[a-z0-9]+)*\z/.match?(id)
@@ -101,6 +134,7 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
     say "Git HEAD: #{data["git_head"]} Ruby: #{data["runtime_version"]}"
     say "input: #{data["source_path"]}"
     say "input SHA-256: #{data["source_actual_sha256"]}"
+    return show_v2_entry(entry) if data["schema_version"] == 2
     expectation = configuration["expectation"] || {}
     if expectation["kind"] == "hash"
       policy = configuration.fetch("output").fetch("policy")
@@ -120,6 +154,21 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
     data.fetch("errors", []).each { |error|
       say "#{error["stage"]}: #{error["message"]}"
     }
+    show_artifacts(entry)
+  end
+
+  def show_v2_entry(entry)
+    config = entry.data.fetch("configuration")
+    check = config.fetch("checks").first
+    expected = check.fetch("expectation")
+    say "strategy: #{check['strategy']}"
+    say "hash algorithm: #{check['algorithm']}" if check["algorithm"]
+    say "expected digest: #{expected['digest']}" if expected["digest"]
+    observed = entry.data.dig("assessment", "hash_check", "observed_digest")
+    say "observed digest: #{observed}" if observed
+    say "expectation provenance: #{expected['provenance']}"
+    say "output policy: #{config.fetch('output').fetch('policy')}"
+    say "comparison: #{entry.data['comparison']}"
     show_artifacts(entry)
   end
 

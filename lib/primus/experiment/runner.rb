@@ -17,6 +17,7 @@ class Primus::Experiment::Runner
   end
 
   def run(rerun: false, reason: nil)
+    return run_v2(rerun: rerun, reason: reason) if @experiment.v2?
     @observation = @assessment = @log_entry = nil
     if rerun && reason.to_s.strip.empty?
       raise ArgumentError,
@@ -61,8 +62,46 @@ class Primus::Experiment::Runner
 
   private
 
+  def run_v2(rerun:, reason:)
+    @observation = @assessment = @log_entry = nil
+    raise ArgumentError, "rerun reason is required" if rerun && reason.to_s.strip.empty?
+    reject_output_overlap!
+    valid = @experiment.valid?
+    head = git_head
+    clean = code_clean?
+    valid &&= clean
+    @hash_runtime = hash_runtime
+    @store.snapshots(input_bytes: @experiment.input_bytes,
+                     source_body: @experiment.source_body,
+                     expected_bytes: @experiment.expected_bytes,
+                     definition_bytes: @experiment.definition_bytes)
+    @log_entry = @store.reserve(
+      experiment: @experiment, fingerprint: v2_identity(head), git_head: head,
+      code_clean: clean, hash_runtime: @hash_runtime,
+      rerun_reason: rerun ? reason : nil
+    )
+    if valid
+      execute
+    else
+      @log_entry = @store.finish(@log_entry, status: "invalid",
+                                errors: @experiment.check_details)
+    end
+    nil
+  rescue StandardError => error
+    record_execution_error(error) if @log_entry && @log_entry.status == "running"
+    raise
+  end
+
+  def v2_identity(head)
+    identity = { source_sha256: @experiment.source_digest,
+                 recipe: @experiment.recipe, output: @experiment.output,
+                 git_head: head, ruby_version: RUBY_VERSION, version: 2 }
+    Digest::SHA256.hexdigest(JSON.generate(sorted(identity)))
+  end
+
   def execute
     @observation = produce_observation
+    @store.record_observation(@log_entry, @observation) if @experiment.v2?
     @assessment = Primus::Experiment::Evaluator.new.assess(
       observation: @observation, expectation: evaluation_expectation,
       policy: @experiment.output.fetch("policy")
@@ -75,6 +114,12 @@ class Primus::Experiment::Runner
   end
 
   def evaluation_expectation
+    if @experiment.v2?
+      return @experiment.v2_expectation.merge(
+        "algorithm" => @experiment.checks.first["algorithm"]
+      ) if @experiment.checks.first["strategy"] == "hash"
+      return @experiment.expected_bytes
+    end
     if @experiment.expectation["kind"] == "hash"
       @experiment.expectation
     else
@@ -84,7 +129,7 @@ class Primus::Experiment::Runner
 
   def produce_observation
     page = Primus::LiberPrimus::Page.new(
-      number: @experiment.input.fetch("page_number"),
+      number: @experiment.v2? ? @experiment.v2_page_number : @experiment.input.fetch("page_number"),
       data: @experiment.source_body.rstrip,
       source_body: @experiment.source_body,
       artifact_bytes: @experiment.input_bytes,
@@ -102,7 +147,7 @@ class Primus::Experiment::Runner
   end
 
   def derive(translated)
-    return translated if @experiment.operation == "runes_to_latin"
+    return translated if @experiment.v2? || @experiment.operation == "runes_to_latin"
 
     parameters = @experiment.parameters
     primes = Prime.each.lazy.drop_while { |prime|
@@ -142,6 +187,13 @@ class Primus::Experiment::Runner
   end
 
   def hash_runtime
+    if @experiment.v2? && @experiment.checks.is_a?(Array) &&
+        @experiment.checks.first.is_a?(Hash)
+      case @experiment.checks.first["algorithm"]
+      when "blake2b512" then return Primus::Experiment::Blake2b.new.runtime
+      when "blake512" then return Primus::Experiment::Blake512.new.runtime
+      end
+    end
     case @experiment.id
     when "page-57-latin-blake2b512"
       Primus::Experiment::Blake2b.new.runtime

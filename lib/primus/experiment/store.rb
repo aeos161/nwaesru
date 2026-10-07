@@ -63,6 +63,10 @@ class Primus::Experiment::Store
                                      assessment: assessment)
   end
 
+  def record_observation(entry, observation)
+    save(entry, directory: record_directory(entry), observation: observation)
+  end
+
   def failed_load(path:, error:)
     run_id = "#{Time.now.utc.strftime("%Y%m%dT%H%M%S")}-#{SecureRandom.hex(6)}"
     directory = File.join(output_path, "failed-load", run_id)
@@ -85,6 +89,7 @@ class Primus::Experiment::Store
 
   def initial_data(experiment, run_id, fingerprint, git_head, clean, previous,
                    reason)
+    return v2_initial_data(experiment, run_id, fingerprint, git_head, clean, previous, reason) if experiment.v2?
     { "schema_version" => 1, "run_id" => run_id,
       "experiment_id" => experiment.id, "action" => "run",
       "started_at" => Time.now.utc.iso8601, "completed_at" => nil,
@@ -110,6 +115,31 @@ class Primus::Experiment::Store
       "artifacts" => {} }
   end
 
+  def v2_initial_data(experiment, run_id, identity, head, clean, previous,
+                      reason)
+    oracle = experiment.checks.first["expectation"] if experiment.checks.is_a?(Array) && experiment.checks.first.is_a?(Hash)
+    source_checksum = experiment.input["sha256"] if experiment.input.is_a?(Hash)
+    oracle_checksum = oracle["sha256"] if oracle.is_a?(Hash)
+    { "schema_version" => 2, "run_id" => run_id,
+      "experiment_id" => experiment.id, "action" => "run",
+      "started_at" => Time.now.utc.iso8601, "completed_at" => nil,
+      "status" => "running", "comparison" => "not_checked",
+      "definition_sha256" => Digest::SHA256.hexdigest(experiment.definition_bytes),
+      "definition_path" => experiment.definition_path,
+      "configuration" => experiment.definition_data,
+      "source_path" => experiment.input_path,
+      "source_declared_sha256" => source_checksum,
+      "source_actual_sha256" => experiment.source_digest,
+      "oracle_path" => experiment.expectation_path,
+      "oracle_declared_sha256" => oracle_checksum,
+      "oracle_actual_sha256" => experiment.expectation_digest,
+      "runtime_version" => RUBY_VERSION, "git_head" => head,
+      "code_clean" => clean, "execution_identity" => identity,
+      "previous_run_ids" => previous, "rerun_reason" => reason,
+      "checks" => experiment.check_details, "errors" => [],
+      "observation" => nil, "assessment" => nil, "artifacts" => {} }
+  end
+
   def record_directory(entry)
     File.join(output_path, entry.data["experiment_id"], entry.run_id)
   end
@@ -129,7 +159,7 @@ class Primus::Experiment::Store
                  @expected_bytes)
       end
     end
-    if observation
+    if observation && !data.fetch("artifacts").key?("output.txt")
       snapshot(data, directory, "output.txt", observation.output_bytes)
       snapshot(data, directory, "provenance.json",
                JSON.pretty_generate(observation.provenance))
