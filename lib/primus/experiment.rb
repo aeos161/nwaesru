@@ -15,6 +15,8 @@ class Primus::Experiment
                                "runes_to_latin"],
     "page-57-latin-blake2b512" => [57, "data/encoded/liber_primus/page_57.yml",
                                    "runes_to_latin"],
+    "page-57-latin-blake512" => [57, "data/encoded/liber_primus/page_57.yml",
+                                "runes_to_latin"],
     "page-56-totient-latin" => [56, "data/encoded/liber_primus/page_56.yml",
                                 "totient_shift_to_latin"],
   }.freeze
@@ -33,6 +35,7 @@ class Primus::Experiment
   HASH_ALGORITHMS = {
     "page-57-latin-sha512" => "sha512",
     "page-57-latin-blake2b512" => "blake2b512",
+    "page-57-latin-blake512" => "blake512",
   }.freeze
 
   attr_accessor :schema_version, :id, :title, :purpose, :input, :operation,

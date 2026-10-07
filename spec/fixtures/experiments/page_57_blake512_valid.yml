@@ -1,0 +1,16 @@
+schema_version: 1
+id: page-57-latin-blake512
+title: Check page 57 Latin bytes with original BLAKE-512
+purpose: Compare the direct GP transliteration with an independently prepared original BLAKE-512 digest.
+input:
+  page_number: 57
+  path: data/encoded/liber_primus/page_57.yml
+  sha256: c7055db0173e43eb231608812f5d52569e4c0817934b1a65427cebf332759fff
+operation: runes_to_latin
+output:
+  policy: gp-latin-compatibility-v1
+expectation:
+  kind: hash
+  algorithm: blake512
+  digest: 999826f07ba989ae4d25d57acfc5fb2b16102289d5bbc0a427cf2997a8ff89ac84bc545e6a8e06108794975fd88cb6dc7c7c64f967d4248b6d2a73cbb67cb3e7
+  provenance: Independently prepared before Runner use from the 124 exact bytes of experiments/expected/page-57-latin.txt (SHA-256 2d450628c6431f9497a6709f5af25d3dad2aa509c31d99ec3a00b07a42eb9a39), equal to the established decoded page-57 body with no BOM or final newline. Original BLAKE-512 was computed with @noble/hashes BLAKE1 blake512 1.8.0, Git revision 32f700f38ec49d7e6b2ab687904d6b2d7d60d80a, under Node 18.4.0. The npm tarball SHA-256 is e8a765d92c04faaccba8776411c5038cb195f812ee629fce07e1d2e6aec80ea0 and src/blake1.ts SHA-256 is bc232796e5e0811d81d96b120c41ef7166f9df2f5d5af516075be31571f6f586. The vetted verifier confirmed all 13 literal known answers against noble and the designer C source before this digest was fixed. GP lowercase spelling, wraps, punctuation and spacing are retained under gp-latin-compatibility-v1.

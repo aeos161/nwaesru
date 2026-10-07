@@ -37,6 +37,7 @@ class Primus::Experiment::Evaluator
     case algorithm
     when "sha512" then Digest::SHA512.hexdigest(bytes)
     when "blake2b512" then Primus::Experiment::Blake2b.new.hexdigest(bytes)
+    when "blake512" then Primus::Experiment::Blake512.new.hexdigest(bytes)
     else raise ArgumentError, "unsupported hash algorithm: #{algorithm}"
     end
   end

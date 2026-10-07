@@ -1,3 +1,10 @@
+GIT
+  remote: https://github.com/aeos161/blake512-ruby.git
+  revision: 36dfec39eac5401548676c35190ab72c559a5e8c
+  ref: 36dfec39eac5401548676c35190ab72c559a5e8c
+  specs:
+    blake512-ruby (0.1.0)
+
 PATH
   remote: .
   specs:
@@ -78,6 +85,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  blake512-ruby (= 0.1.0)!
   bundler (~> 2.1)
   numeric_inverse (~> 0.1)
   primus!

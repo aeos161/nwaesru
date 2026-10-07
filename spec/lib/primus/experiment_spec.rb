@@ -19,6 +19,10 @@ RSpec.describe "Primus::Experiment" do
     end
   end
 
+  def blake512_definition
+    Psych.safe_load(File.read(fixture("page_57_blake512_valid.yml")))
+  end
+
   describe ".load" do
     it "hydrates the saved page 57 identity" do
       path = fixture("page_57_valid.yml")
@@ -79,6 +83,53 @@ RSpec.describe "Primus::Experiment" do
   end
 
   describe "#valid?" do
+    it "accepts the page-57 original BLAKE-512 hash recipe" do
+      definition = blake512_definition
+      experiment = load_temp_definition(definition)
+
+      expect(experiment).to be_valid
+    end
+
+    it "rejects BLAKE2b under the original BLAKE-512 ID" do
+      definition = blake512_definition
+      definition.fetch("expectation")["algorithm"] = "blake2b512"
+      experiment = load_temp_definition(definition)
+
+      experiment.valid?
+
+      expect(experiment.errors.attribute_names.uniq).to eq([:expectation])
+    end
+
+    it "rejects a shortened original BLAKE-512 digest" do
+      definition = blake512_definition
+      definition.fetch("expectation")["digest"] = "0" * 127
+      experiment = load_temp_definition(definition)
+
+      experiment.valid?
+
+      expect(experiment.errors.attribute_names.uniq).to eq([:expectation])
+    end
+
+    it "rejects a different page under the original BLAKE-512 ID" do
+      definition = blake512_definition
+      definition.fetch("input")["page_number"] = 56
+      experiment = load_temp_definition(definition)
+
+      experiment.valid?
+
+      expect(experiment.errors.attribute_names.uniq).to eq([:base])
+    end
+
+    it "rejects an unknown original BLAKE-512 expectation field" do
+      definition = blake512_definition
+      definition.fetch("expectation")["salt"] = "0"
+      experiment = load_temp_definition(definition)
+
+      experiment.valid?
+
+      expect(experiment.errors.attribute_names.uniq).to eq([:expectation])
+    end
+
     it "accepts the valid page 57 definition" do
       experiment = Primus::Experiment.load(path: fixture("page_57_valid.yml"))
 

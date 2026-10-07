@@ -3,6 +3,10 @@ require "open3"
 class Primus::Experiment::Runner
   CODE_PATHS = %w[lib bin Gemfile Gemfile.lock primus.gemspec
                   .tool-versions].freeze
+  BLAKE512_IDENTITY_KEYS = %w[backend available schema_version algorithm
+                              gem_version upstream_revision source_sha256
+                              native_sha256 ruby_engine ruby_api_version
+                              ruby_platform dlext].freeze
 
   attr_reader :observation, :assessment, :log_entry
 
@@ -23,7 +27,7 @@ class Primus::Experiment::Runner
     head = git_head
     clean = code_clean?
     valid &&= clean
-    @hash_runtime = blake2b_runtime
+    @hash_runtime = hash_runtime
     fingerprint = fingerprint_for(head)
     previous = @store.prior(id: @experiment.id, fingerprint: fingerprint)
     if previous && !rerun
@@ -133,14 +137,25 @@ class Primus::Experiment::Runner
                  source_sha256: @experiment.source_digest,
                  oracle_sha256: @experiment.expectation_digest,
                  git_head: head, ruby_version: RUBY_VERSION, version: 1 }
-    identity[:hash_runtime] = @hash_runtime if @hash_runtime
+    identity[:hash_runtime] = fingerprint_runtime if @hash_runtime
     Digest::SHA256.hexdigest(JSON.generate(sorted(identity)))
   end
 
-  def blake2b_runtime
-    return unless @experiment.id == "page-57-latin-blake2b512"
+  def hash_runtime
+    case @experiment.id
+    when "page-57-latin-blake2b512"
+      Primus::Experiment::Blake2b.new.runtime
+    when "page-57-latin-blake512"
+      Primus::Experiment::Blake512.new.runtime
+    end
+  end
 
-    Primus::Experiment::Blake2b.new.runtime
+  def fingerprint_runtime
+    return @hash_runtime unless @experiment.id == "page-57-latin-blake512"
+
+    known = @hash_runtime.slice(*BLAKE512_IDENTITY_KEYS)
+    known["error_class"] = @hash_runtime["error_class"] unless known["available"]
+    known
   end
 
   def sorted(value)

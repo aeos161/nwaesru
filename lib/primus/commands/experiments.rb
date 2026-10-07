@@ -43,7 +43,8 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
     store.failed_load(path: path, error: error)
     raise Thor::Error, "definition load: #{error.message}"
   rescue SystemCallError, ArgumentError,
-         Primus::Experiment::Blake2b::Unavailable => error
+         Primus::Experiment::Blake2b::Unavailable,
+         Primus::Experiment::Blake512::Unavailable => error
     raise Thor::Error, "experiment run: #{error.message}"
   end
 
@@ -129,7 +130,11 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
   end
 
   def digest_label(expectation)
-    expectation.fetch("algorithm") == "sha512" ? "SHA-512" : "BLAKE2b-512"
+    case expectation.fetch("algorithm")
+    when "sha512" then "SHA-512"
+    when "blake2b512" then "BLAKE2b-512"
+    when "blake512" then "BLAKE-512"
+    end
   end
 
   def show_artifacts(entry)

@@ -27,6 +27,19 @@ a fixed SHA-512 expectation prepared from the known page-57 plaintext. The
 prepared, unkeyed BLAKE2b-512 digest through the Ruby OpenSSL binding. These
 digests check the exact saved output bytes; they do not identify any historical
 target hash.
+The `page-57-latin-blake512` control uses the final original BLAKE-512
+algorithm through the pinned `blake512-ruby` native gem. Its fixed digest was
+prepared independently with the vetted @noble/hashes implementation; the
+definition records the exact input, package checksums and source revision.
+
+The first `bundle install` needs Git and HTTPS access to fetch the pinned gem,
+plus a C compiler, `make` and headers for the selected Ruby 2.7.4 to build its
+native extension. Run `bundle check` after installation. If a previously
+installed native artifact is missing or fails its build-identity check, run
+`bundle pristine blake512-ruby` and start a fresh process. This rebuild was
+verified with Bundler 2.1.4 on MRI 2.7.4/macOS arm64. If the Git checkout is
+missing, run `bundle install` again to fetch the pinned revision. Resolution
+and compilation errors are setup failures before an experiment can run.
 
 From the repository root, use Ruby 2.7.4 (see `.tool-versions`) with the
 project bundle installed, then run `bin/primus` directly:
@@ -46,6 +59,9 @@ bin/primus experiments run page-57-latin-sha512 --rerun --reason "Check reproduc
 bin/primus experiments validate page-57-latin-blake2b512
 bin/primus experiments run page-57-latin-blake2b512
 bin/primus experiments review page-57-latin-blake2b512
+bin/primus experiments validate page-57-latin-blake512
+bin/primus experiments run page-57-latin-blake512
+bin/primus experiments review page-57-latin-blake512
 ```
 
 The CLI accepts experiment IDs and reads live definitions from
@@ -74,6 +90,10 @@ The BLAKE2b-512 control also records the OpenSSL binding, build and linked
 library versions and digest availability, so backend changes create separate
 attempts. If the backend is unavailable, the attempt retains any produced
 output and records an execution error.
+The original BLAKE-512 control saves the gem's source and native checksums,
+Ruby/native identity and diagnostic build details. A source, native binary or
+availability change creates a distinct attempt; changing only a path, compiler
+description or compile flags does not.
 Git HEAD does not identify the entire host environment, so a saved attempt
 is evidence of this local run rather than a fully portable build recipe.
 
