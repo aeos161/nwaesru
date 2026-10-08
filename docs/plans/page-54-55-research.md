@@ -12,6 +12,22 @@ plaintext/hash evaluation extends Assessment behavior, not model validation.
 The page-57 plan governs the concrete API; this record adds no implementation
 scope before its existing gate.
 
+## Focused planning update — 2026-10-08
+
+Local main now contains reusable totient and the complete page-56 control at
+`d98c722`; the previous reusable-totient gate is historical. The
+[page-55 initial experiment plan](page-55-initial-experiments.md) selects only
+two existing-recipe baselines (direct Latin and totient with modulus 29,
+prime_start 2, no skips), three target-hash comparisons each. This is planning,
+not a report of six completed checks. The next step after review/authorization
+is input/target audit, frozen definitions, validation and one run per baseline.
+The broader key/reversal, normalization and ranking directions below remain
+hypotheses and are not the scope of this first batch. New structural chains
+need their own synthetic layered control; that does not block existing recipes.
+Page 54–55 input remains separate, and reassessment/reuse and general preset
+overrides stay deferred. Cached origin/main is still 45d4380; no remote refresh
+or remote merge is asserted.
+
 ## Delivery status — 2026-10-03
 
 Local main `e996a6e` contains page 57 (`45cab84`), page 56 (`946431c`) and
