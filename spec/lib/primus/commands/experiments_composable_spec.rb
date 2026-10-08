@@ -1,3 +1,4 @@
+require "fileutils"
 require "json"
 require "open3"
 require "rbconfig"
@@ -37,6 +38,18 @@ RSpec.describe Primus::Commands::Experiments do
      "Independent decoded page-57 control."]
   end
 
+  def page_56_totient_options
+    oracle = JSON.parse(File.binread("spec/fixtures/experiments/page_56_totient_oracle.json"))
+    ["--input", "page-56", "--recipe", "totient-latin",
+     "--recipe-param", "skip_sequence=[56]",
+     "--hash", "sha512", "--hash", "blake2b512", "--hash", "blake512",
+     "--expect-digest", "sha512=#{oracle.fetch('digests').fetch('sha512')}",
+     "--expect-digest", "blake2b512=#{oracle.fetch('digests').fetch('blake2b512')}",
+     "--expect-digest", "blake512=#{oracle.fetch('digests').fetch('blake512')}",
+     "--expect-text", "experiments/expected/page-56-totient-latin.txt",
+     "--expect-provenance", "Independent page-56 oracle packet."]
+  end
+
   def write_v2_definition(repository)
     path = File.join(repository,
                      "experiments/definitions/page-57-composed.yml")
@@ -63,6 +76,39 @@ RSpec.describe Primus::Commands::Experiments do
   end
 
   describe "#validate" do
+    it "accepts typed repeated totient parameters in both flag forms" do
+      with_repository do |repository, _output_path|
+        _stdout, _stderr, status = cli(
+          repository, "validate", "--input", "page-56", "--recipe", "totient-latin",
+          "--recipe-param", "modulus=29", "--recipe-param=prime_start=2",
+          "--recipe-param", "skip_sequence=[56]",
+          "--expect-text", "experiments/expected/page-56-totient-latin.txt"
+        )
+
+        expect(status).to be_success
+      end
+    end
+
+    it "validates the four-check page 56 YAML control" do
+      with_repository do |repository, _output_path|
+        path = File.join(repository, "experiments/definitions/page-56-totient-controls.yml")
+        FileUtils.cp("spec/fixtures/experiments/page_56_totient_controls.yml", path)
+
+        _stdout, _stderr, status = cli(repository, "validate", "page-56-totient-controls")
+
+        expect(status).to be_success
+      end
+    end
+
+    it "rejects a recipe parameter with a positional preset" do
+      with_repository do |repository, _output_path|
+        _stdout, _stderr, status = cli(repository, "validate", "page-57-latin",
+                                       "--recipe-param", "prime_start=2")
+
+        expect(status).not_to be_success
+      end
+    end
+
     it "accepts a whole-page Latin composition with an independent plaintext oracle" do
       with_repository do |repository, _output_path|
         _stdout, _stderr, status = cli(repository, "validate", *plaintext_options)
@@ -84,6 +130,26 @@ RSpec.describe Primus::Commands::Experiments do
   end
 
   describe "#execute" do
+    it "completes four independent page 56 checks" do
+      with_repository do |repository, output_path|
+        stdout, _stderr, _status = cli(repository, "run", *page_56_totient_options,
+                                        "--output-path", output_path)
+
+        expect(stdout).to include("completed (matches: 4, mismatches: 0, errors: 0)")
+      end
+    end
+
+    it "saves exactly one observation for the four page 56 checks" do
+      with_repository do |repository, output_path|
+        cli(repository, "run", *page_56_totient_options,
+            "--output-path", output_path)
+
+        observations = saved_records(output_path).select { |record| record["configuration"] }
+
+        expect(observations.size).to eq(1)
+      end
+    end
+
     it "prints the generated identity of an ad-hoc composition" do
       with_repository do |repository, output_path|
         stdout, _stderr, _status = cli(repository, "run", *plaintext_options,
