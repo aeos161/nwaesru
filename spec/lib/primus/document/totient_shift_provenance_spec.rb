@@ -17,6 +17,20 @@ RSpec.describe Primus::Document::TotientShift do
   end
 
   describe "#visit_sentence" do
+    it "consumes primes 263 and 269 around skipped page 56 ordinal 56" do
+      document = Primus::LiberPrimus.page(page_number: 56)
+      consumed = []
+      primes = Prime.each.to_enum
+      key = Object.new
+      key.define_singleton_method(:next) { primes.next.tap { |prime| consumed << prime } }
+      visitor = Primus::Document::TotientShift.new(key: key)
+      visitor.skip_sequence = [56]
+
+      document.accept(Primus::Document::Translator.new).accept(visitor)
+
+      expect(consumed[55..56]).to eq([263, 269])
+    end
+
     it "exempts page 56 rune index 56 without changing its letter" do
       document = Primus::LiberPrimus.page(page_number: 56)
       visitor = Primus::Document::TotientShift.new
