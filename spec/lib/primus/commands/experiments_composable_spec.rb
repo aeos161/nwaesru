@@ -73,7 +73,7 @@ RSpec.describe Primus::Commands::Experiments do
       "output" => { "policy" => "gp-latin-compatibility-v1" },
       "checks" => [{ "id" => "check-1", "strategy" => "plaintext",
                      "expectation" => { "path" => expected_path,
-                                        "sha256" => Digest::SHA256.hexdigest("f f 9A\ny"),
+                                        "sha256" => "3ff0b3f387873e098a47011c2f9c5793c378a0ddd6353ec2b132ee604c48f62e",
                                         "provenance" => "Hand-calculated small rune control." } }]
     }
     path = File.join(repository, "experiments/definitions/#{experiment_id}.yml")
