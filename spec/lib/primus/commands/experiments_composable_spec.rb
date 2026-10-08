@@ -241,6 +241,24 @@ RSpec.describe Primus::Commands::Experiments do
       end
     end
 
+    it "resolves equivalent CLI and YAML totient parameters identically" do
+      with_repository do |repository, output_path|
+        definition = File.join(repository, "experiments/definitions/page-56-totient-controls.yml")
+        FileUtils.cp("spec/fixtures/experiments/page_56_totient_controls.yml", definition)
+        cli_path = File.join(output_path, "cli")
+        yaml_path = File.join(output_path, "yaml")
+
+        cli(repository, "run", *page_56_totient_options, "--output-path", cli_path)
+        cli(repository, "run", "page-56-totient-controls", "--output-path", yaml_path)
+        cli_record = saved_records(cli_path).find { |record| record["configuration"] }
+        yaml_record = saved_records(yaml_path).find { |record| record["configuration"] }
+
+        expect(cli_record.fetch("configuration").fetch("recipe")).to eq(
+          yaml_record.fetch("configuration").fetch("recipe")
+        )
+      end
+    end
+
     it "keeps non-GP separators while shifting a small page from prime 3" do
       with_repository do |repository, output_path|
         write_small_totient_definition(repository, "page-99", "moon-phase-control")
@@ -671,6 +689,19 @@ RSpec.describe Primus::Commands::Experiments do
   end
 
   describe "#review" do
+    it "shows four saved page 56 matches after the named control runs" do
+      with_repository do |repository, output_path|
+        definition = File.join(repository, "experiments/definitions/page-56-totient-controls.yml")
+        FileUtils.cp("spec/fixtures/experiments/page_56_totient_controls.yml", definition)
+        cli(repository, "run", "page-56-totient-controls", "--output-path", output_path)
+
+        review, _stderr, _status = cli(repository, "review", "page-56-totient-controls",
+                                        "--output-path", output_path)
+
+        expect(review).to include("checks: 4 matches, 0 mismatches, 0 errors")
+      end
+    end
+
     it "shows the saved strategy and literal SHA-512 comparison" do
       with_repository do |repository, output_path|
         _stdout, _stderr, _status = cli(

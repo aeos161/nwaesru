@@ -121,6 +121,38 @@ RSpec.describe "Primus::Experiment::Runner" do
       end
     end
 
+    it "starts a fresh prime stream on an explicit v2 rerun" do
+      Dir.mktmpdir do |output_path|
+        experiment = Primus::Experiment.load(path: fixture("page_56_totient_controls.yml"))
+        runner = Primus::Experiment::Runner.new(experiment: experiment,
+                                                output_path: output_path)
+        runner.run
+        first_output = runner.observation.output_bytes
+
+        runner.run(rerun: true, reason: "Check fresh totient state")
+
+        expect(runner.observation.output_bytes).to eq(first_output)
+      end
+    end
+
+    it "starts a fresh v2 prime stream after v1 totient and Latin runs" do
+      Dir.mktmpdir do |output_path|
+        v2 = Primus::Experiment.load(path: fixture("page_56_totient_controls.yml"))
+        v1 = Primus::Experiment.load(path: fixture("page_56_valid.yml"))
+        latin = Primus::Experiment.load(path: fixture("page_57_valid.yml"))
+        Primus::Experiment::Runner.new(experiment: v1, output_path: output_path).run
+        Primus::Experiment::Runner.new(experiment: latin, output_path: output_path).run
+        runner = Primus::Experiment::Runner.new(experiment: v2,
+                                                output_path: output_path)
+
+        runner.run
+
+        expect(runner.observation.output_bytes).to eq(
+          File.binread("experiments/expected/page-56-totient-latin.txt")
+        )
+      end
+    end
+
     it "saves original coordinates for translated GP symbols" do
       Dir.mktmpdir do |output_path|
         experiment = Primus::Experiment.load(path: fixture("page_57_valid.yml"))
