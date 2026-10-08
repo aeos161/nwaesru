@@ -188,7 +188,7 @@ class Primus::Experiment::Store
       "status" => "running", "comparison" => "not_checked",
       "definition_sha256" => Digest::SHA256.hexdigest(experiment.definition_bytes),
       "definition_path" => experiment.definition_path,
-      "configuration" => experiment.definition_data,
+      "configuration" => experiment.persisted_configuration,
       "source_path" => experiment.input_path,
       "source_declared_sha256" => source_checksum,
       "source_actual_sha256" => experiment.source_digest,

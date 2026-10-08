@@ -1,0 +1,13 @@
+{
+  "source_path": "data/decoded/liber_primus/page_56.yml",
+  "source_sha256": "45bda9f7ae9018cc4257b0acaaf30e95a8366f06acf7a4a52b137b555a590b64",
+  "extraction": "Psych.safe_load(File.binread(source_path)).fetch('body').rstrip, UTF-8 bytes",
+  "plaintext_path": "experiments/expected/page-56-totient-latin.txt",
+  "plaintext_bytes": 255,
+  "plaintext_sha256": "be341e15b67a3363b429319e23fd8ef4d172b9aea879016402bdd477348e7868",
+  "digests": {
+    "sha512": "a65bca81201326e47008fce54060d5f5308d842706f1d1f806c033318538cf0224a475a700028de48fd56a3c0de560e0b05e0b73df2cd3b936e36d00747a3d1b",
+    "blake2b512": "5ba7ad35df94b6969501ce20cd12dfb82e9dbc801fdb0030cf19c1a6217f26b825bdd0d32f97578f42a7f5396bbd70b5091483a06a1f9e6376f535cd8674ffe1",
+    "blake512": "9d49507f09105cae343d77b676f608a96653ca652905f5ba607c8d2b9c72a307b016e0d6d300c946ddd7f842462d4d66e741408dd0c1622393fa8b626439eed1"
+  }
+}

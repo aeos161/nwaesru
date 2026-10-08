@@ -259,6 +259,15 @@ No page-55 decipherment is required to complete this software milestone. The 201
 
 ## 13. Delivery sequence
 
+Current priority update (2026-10-08): page-57 BLAKE2b and original BLAKE
+controls, composable experiments and multiple checks are implemented on
+local main `45d4380`. The older milestone descriptions below are retained
+as history. Before any page-55 experiment, complete the
+[reusable totient recipe and four-check page-56 control](reusable-totient-latin.md).
+Independent oracle preparation comes before its test-writer handoff.
+Reassessment/reuse and general preset overrides remain deferred.
+
+
 1. **Page 57 plaintext harness:** implemented at `45cab84`; see the
    [historical plan](page-57-experiment-harness.md).
 2. **Page 56 experiment:** implemented at `946431c`; see its

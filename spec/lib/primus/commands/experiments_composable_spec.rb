@@ -1,5 +1,8 @@
+require "digest"
+require "fileutils"
 require "json"
 require "open3"
+require "psych"
 require "rbconfig"
 require "shellwords"
 require "tmpdir"
@@ -37,6 +40,46 @@ RSpec.describe Primus::Commands::Experiments do
      "Independent decoded page-57 control."]
   end
 
+  def page_56_totient_options
+    oracle = JSON.parse(File.binread("spec/fixtures/experiments/page_56_totient_oracle.json"))
+    ["--input", "page-56", "--recipe", "totient-latin",
+     "--recipe-param", "skip_sequence=[56]",
+     "--hash", "sha512", "--hash", "blake2b512", "--hash", "blake512",
+     "--expect-digest", "sha512=#{oracle.fetch('digests').fetch('sha512')}",
+     "--expect-digest", "blake2b512=#{oracle.fetch('digests').fetch('blake2b512')}",
+     "--expect-digest", "blake512=#{oracle.fetch('digests').fetch('blake512')}",
+     "--expect-text", "experiments/expected/page-56-totient-latin.txt",
+     "--expect-provenance", "Independent page-56 oracle packet."]
+  end
+
+  def page_56_plaintext_options
+    ["--input", "page-56", "--recipe", "totient-latin",
+     "--expect-text", "experiments/expected/page-56-totient-latin.txt",
+     "--expect-provenance", "Independent page-56 oracle packet."]
+  end
+
+  def write_small_totient_definition(repository, page_id, experiment_id)
+    source_path = "data/encoded/liber_primus/#{page_id.tr('-', '_')}.yml"
+    File.write(File.join(repository, source_path), "---\nbody: |\n  ᚦ-ᚠ 9A\n  ᚢ\n")
+    expected_path = "experiments/expected/#{experiment_id}.txt"
+    File.write(File.join(repository, expected_path), "f f 9A\ny")
+    definition = {
+      "schema_version" => 2, "id" => experiment_id,
+      "title" => "Small totient control", "purpose" => "Check a page-independent recipe.",
+      "input" => { "id" => page_id,
+                   "sha256" => Digest::SHA256.file(File.join(repository, source_path)).hexdigest },
+      "recipe" => { "id" => "totient-latin",
+                    "parameters" => { "prime_start" => 3, "skip_sequence" => [1] } },
+      "output" => { "policy" => "gp-latin-compatibility-v1" },
+      "checks" => [{ "id" => "check-1", "strategy" => "plaintext",
+                     "expectation" => { "path" => expected_path,
+                                        "sha256" => "3ff0b3f387873e098a47011c2f9c5793c378a0ddd6353ec2b132ee604c48f62e",
+                                        "provenance" => "Hand-calculated small rune control." } }]
+    }
+    path = File.join(repository, "experiments/definitions/#{experiment_id}.yml")
+    File.write(path, Psych.dump(definition))
+  end
+
   def write_v2_definition(repository)
     path = File.join(repository,
                      "experiments/definitions/page-57-composed.yml")
@@ -63,6 +106,88 @@ RSpec.describe Primus::Commands::Experiments do
   end
 
   describe "#validate" do
+    it "accepts typed repeated totient parameters in both flag forms" do
+      with_repository do |repository, _output_path|
+        _stdout, _stderr, status = cli(
+          repository, "validate", "--input", "page-56", "--recipe", "totient-latin",
+          "--recipe-param", "modulus=29", "--recipe-param=prime_start=2",
+          "--recipe-param", "skip_sequence=[56]",
+          "--expect-text", "experiments/expected/page-56-totient-latin.txt"
+        )
+
+        expect(status).to be_success
+      end
+    end
+
+    it "validates the four-check page 56 YAML control" do
+      with_repository do |repository, _output_path|
+        path = File.join(repository, "experiments/definitions/page-56-totient-controls.yml")
+        FileUtils.cp("spec/fixtures/experiments/page_56_totient_controls.yml", path)
+
+        _stdout, _stderr, status = cli(repository, "validate", "page-56-totient-controls")
+
+        expect(status).to be_success
+      end
+    end
+
+    it "accepts a small whole page under an unrelated experiment ID" do
+      with_repository do |repository, _output_path|
+        write_small_totient_definition(repository, "page-99", "moon-phase-control")
+
+        _stdout, _stderr, status = cli(repository, "validate", "moon-phase-control")
+
+        expect(status).to be_success
+      end
+    end
+
+    it "rejects a recipe parameter with a positional preset" do
+      with_repository do |repository, _output_path|
+        _stdout, _stderr, status = cli(repository, "validate", "page-57-latin",
+                                       "--recipe-param", "prime_start=2")
+
+        expect(status).not_to be_success
+      end
+    end
+
+    {
+      "duplicate parameter keys" => ["modulus=29", "modulus=29"],
+      "malformed JSON" => ["skip_sequence=[56"],
+      "a missing parameter key" => ["=29"],
+      "an unknown parameter key" => ["surprise=2"]
+    }.each do |case_name, values|
+      it "rejects #{case_name} at the CLI boundary" do
+        with_repository do |repository, _output_path|
+          flags = values.flat_map { |value| ["--recipe-param", value] }
+
+          _stdout, _stderr, status = cli(repository, "validate",
+                                         *page_56_plaintext_options, *flags)
+
+          expect(status).not_to be_success
+        end
+      end
+    end
+
+    it "rejects recipe parameters without a selected recipe" do
+      with_repository do |repository, _output_path|
+        _stdout, _stderr, status = cli(repository, "validate", "--input", "page-56",
+                                       "--recipe-param", "prime_start=2",
+                                       "--expect-text", "experiments/expected/page-56-totient-latin.txt")
+
+        expect(status).not_to be_success
+      end
+    end
+
+    it "rejects even an empty parameter mapping for the Latin recipe" do
+      with_repository do |repository, _output_path|
+        _stdout, _stderr, status = cli(repository, "validate", "--input", "page-57",
+                                       "--recipe", "latin", "--recipe-param",
+                                       "skip_sequence=[]", "--expect-text",
+                                       "experiments/expected/page-57-latin.txt")
+
+        expect(status).not_to be_success
+      end
+    end
+
     it "accepts a whole-page Latin composition with an independent plaintext oracle" do
       with_repository do |repository, _output_path|
         _stdout, _stderr, status = cli(repository, "validate", *plaintext_options)
@@ -84,6 +209,103 @@ RSpec.describe Primus::Commands::Experiments do
   end
 
   describe "#execute" do
+    it "assigns the same ad-hoc ID to implicit and explicit totient defaults" do
+      with_repository do |repository, output_path|
+        implicit = File.join(output_path, "implicit")
+        explicit = File.join(output_path, "explicit")
+        cli(repository, "run", *page_56_plaintext_options, "--output-path", implicit)
+        cli(repository, "run", *page_56_plaintext_options,
+            "--recipe-param", "modulus=29", "--recipe-param", "prime_start=2",
+            "--recipe-param", "skip_sequence=[]", "--output-path", explicit)
+        first = saved_records(implicit).find { |record| record["configuration"] }
+        second = saved_records(explicit).find { |record| record["configuration"] }
+
+        expect(second.fetch("experiment_id")).to eq(first.fetch("experiment_id"))
+      end
+    end
+
+    it "keeps ad-hoc identity independent of parameter flag order" do
+      with_repository do |repository, output_path|
+        forward = File.join(output_path, "forward")
+        reversed = File.join(output_path, "reversed")
+        cli(repository, "run", *page_56_plaintext_options,
+            "--recipe-param", "prime_start=3", "--recipe-param", "skip_sequence=[56]",
+            "--output-path", forward)
+        cli(repository, "run", *page_56_plaintext_options,
+            "--recipe-param", "skip_sequence=[56]", "--recipe-param", "prime_start=3",
+            "--output-path", reversed)
+        first = saved_records(forward).find { |record| record["configuration"] }
+        second = saved_records(reversed).find { |record| record["configuration"] }
+
+        expect(second.fetch("experiment_id")).to eq(first.fetch("experiment_id"))
+      end
+    end
+
+    it "resolves equivalent CLI and YAML totient parameters identically" do
+      with_repository do |repository, output_path|
+        definition = File.join(repository, "experiments/definitions/page-56-totient-controls.yml")
+        FileUtils.cp("spec/fixtures/experiments/page_56_totient_controls.yml", definition)
+        cli_path = File.join(output_path, "cli")
+        yaml_path = File.join(output_path, "yaml")
+
+        cli(repository, "run", *page_56_totient_options, "--output-path", cli_path)
+        cli(repository, "run", "page-56-totient-controls", "--output-path", yaml_path)
+        cli_record = saved_records(cli_path).find { |record| record["configuration"] }
+        yaml_record = saved_records(yaml_path).find { |record| record["configuration"] }
+
+        expect(cli_record.fetch("configuration").fetch("recipe")).to eq(
+          yaml_record.fetch("configuration").fetch("recipe")
+        )
+      end
+    end
+
+    it "keeps non-GP separators while shifting a small page from prime 3" do
+      with_repository do |repository, output_path|
+        write_small_totient_definition(repository, "page-99", "moon-phase-control")
+
+        cli(repository, "run", "moon-phase-control", "--output-path", output_path)
+        outputs = Dir.glob("#{output_path}/**/output.txt").map { |path| File.binread(path) }
+
+        expect(outputs).to eq(["f f 9A\ny"])
+      end
+    end
+
+    it "distinguishes equal source bytes selected as different pages" do
+      with_repository do |repository, output_path|
+        write_small_totient_definition(repository, "page-98", "first-small-control")
+        write_small_totient_definition(repository, "page-99", "second-small-control")
+        first_path = File.join(output_path, "first")
+        second_path = File.join(output_path, "second")
+
+        cli(repository, "run", "first-small-control", "--output-path", first_path)
+        cli(repository, "run", "second-small-control", "--output-path", second_path)
+        first = saved_records(first_path).find { |record| record["configuration"] }
+        second = saved_records(second_path).find { |record| record["configuration"] }
+
+        expect(second.fetch("execution_identity")).not_to eq(first.fetch("execution_identity"))
+      end
+    end
+
+    it "completes four independent page 56 checks" do
+      with_repository do |repository, output_path|
+        stdout, _stderr, _status = cli(repository, "run", *page_56_totient_options,
+                                        "--output-path", output_path)
+
+        expect(stdout).to include("completed (matches: 4, mismatches: 0, errors: 0)")
+      end
+    end
+
+    it "saves exactly one observation for the four page 56 checks" do
+      with_repository do |repository, output_path|
+        cli(repository, "run", *page_56_totient_options,
+            "--output-path", output_path)
+
+        observations = saved_records(output_path).select { |record| record["configuration"] }
+
+        expect(observations.size).to eq(1)
+      end
+    end
+
     it "prints the generated identity of an ad-hoc composition" do
       with_repository do |repository, output_path|
         stdout, _stderr, _status = cli(repository, "run", *plaintext_options,
@@ -467,6 +689,19 @@ RSpec.describe Primus::Commands::Experiments do
   end
 
   describe "#review" do
+    it "shows four saved page 56 matches after the named control runs" do
+      with_repository do |repository, output_path|
+        definition = File.join(repository, "experiments/definitions/page-56-totient-controls.yml")
+        FileUtils.cp("spec/fixtures/experiments/page_56_totient_controls.yml", definition)
+        cli(repository, "run", "page-56-totient-controls", "--output-path", output_path)
+
+        review, _stderr, _status = cli(repository, "review", "page-56-totient-controls",
+                                        "--output-path", output_path)
+
+        expect(review).to include("checks: 4 matches, 0 mismatches, 0 errors")
+      end
+    end
+
     it "shows the saved strategy and literal SHA-512 comparison" do
       with_repository do |repository, output_path|
         _stdout, _stderr, _status = cli(
