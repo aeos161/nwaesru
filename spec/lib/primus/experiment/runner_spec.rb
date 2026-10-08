@@ -3,7 +3,7 @@ require "json"
 require "open3"
 require "tmpdir"
 
-RSpec.describe "Primus::Experiment::Runner" do
+RSpec.describe Primus::Experiment::Runner do
   def fixture(name)
     "spec/fixtures/experiments/#{name}"
   end
