@@ -1,5 +1,13 @@
 # Multiple experiment checks
 
+## Delivery status (2026-10-08)
+
+Implemented and merged at `45d4380` on local main. The baseline, planned
+handoff and restrictions below describe that completed increment. Next is
+[reusable totient Latin and complete page-56 validation](reusable-totient-latin.md).
+Saved-output reassessment and general preset overrides remain deferred; this
+focused next plan supersedes their earlier relative ordering.
+
 ## Goal
 
 Deliver increment 2 of composable experiments: execute a whole-page Latin
