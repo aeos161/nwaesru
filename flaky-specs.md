@@ -12,6 +12,23 @@ baseline. The prior clean `673942b` full-suite baseline reported 608 examples,
 27 expected new-feature failures and 12 pending, seed 64904; the later
 `05b3bbb` literal fixture correction has not yet had a full-suite retry.
 
+During implementation at revision `849a2e0` with dirty `lib/` files,
+`RUBYOPT=-EUTF-8 bundle exec rspec spec/lib/primus/experiment_composable_spec.rb spec/lib/primus/experiment/runner_spec.rb`
+reported 52 examples, 22 failures, seed 32986. Runner attempts were invalid
+because its executable-code-clean guard detected those uncommitted source
+changes; they did not exercise the new derivation. After committing the
+source changes at `55a3061`, the model, runner and CLI focused command passed
+97 examples, zero failures, seed 18059.
+
+The full suite at clean revision `ade0d8e` with MRI Ruby 2.7.4 and
+`RUBYOPT=-EUTF-8 bundle exec rspec` passed 608 examples, zero failures and
+12 existing pending, seed 38613. The named v2 page-56 control completed with
+four matches, zero mismatches and zero errors; its saved review confirmed the
+same result. The unchanged v1 page-56 control matched. No unrelated or
+unclassified failure remains. Bundled RuboCop was unavailable; the installed
+standalone version rejected the repository's obsolete Performance and Rails
+cop configuration before checking any files.
+
 ## 2026-10-07: expected discoverability TDD reds
 
 These were **expected new-feature failures**, not evidence of flaky tests or
