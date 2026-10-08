@@ -1,6 +1,8 @@
+require "digest"
 require "fileutils"
 require "json"
 require "open3"
+require "psych"
 require "rbconfig"
 require "shellwords"
 require "tmpdir"
@@ -48,6 +50,28 @@ RSpec.describe Primus::Commands::Experiments do
      "--expect-digest", "blake512=#{oracle.fetch('digests').fetch('blake512')}",
      "--expect-text", "experiments/expected/page-56-totient-latin.txt",
      "--expect-provenance", "Independent page-56 oracle packet."]
+  end
+
+  def write_small_totient_definition(repository, page_id, experiment_id)
+    source_path = "data/encoded/liber_primus/#{page_id.tr('-', '_')}.yml"
+    File.write(File.join(repository, source_path), "---\nbody: |\n  ᚦ-ᚠ 9A\n  ᚢ\n")
+    expected_path = "experiments/expected/#{experiment_id}.txt"
+    File.write(File.join(repository, expected_path), "f-f 9A\ny")
+    definition = {
+      "schema_version" => 2, "id" => experiment_id,
+      "title" => "Small totient control", "purpose" => "Check a page-independent recipe.",
+      "input" => { "id" => page_id,
+                   "sha256" => Digest::SHA256.file(File.join(repository, source_path)).hexdigest },
+      "recipe" => { "id" => "totient-latin",
+                    "parameters" => { "prime_start" => 3, "skip_sequence" => [1] } },
+      "output" => { "policy" => "gp-latin-compatibility-v1" },
+      "checks" => [{ "id" => "check-1", "strategy" => "plaintext",
+                     "expectation" => { "path" => expected_path,
+                                        "sha256" => Digest::SHA256.hexdigest("f-f 9A\ny"),
+                                        "provenance" => "Hand-calculated small rune control." } }]
+    }
+    path = File.join(repository, "experiments/definitions/#{experiment_id}.yml")
+    File.write(path, Psych.dump(definition))
   end
 
   def write_v2_definition(repository)
@@ -100,6 +124,16 @@ RSpec.describe Primus::Commands::Experiments do
       end
     end
 
+    it "accepts a small whole page under an unrelated experiment ID" do
+      with_repository do |repository, _output_path|
+        write_small_totient_definition(repository, "page-99", "moon-phase-control")
+
+        _stdout, _stderr, status = cli(repository, "validate", "moon-phase-control")
+
+        expect(status).to be_success
+      end
+    end
+
     it "rejects a recipe parameter with a positional preset" do
       with_repository do |repository, _output_path|
         _stdout, _stderr, status = cli(repository, "validate", "page-57-latin",
@@ -130,6 +164,33 @@ RSpec.describe Primus::Commands::Experiments do
   end
 
   describe "#execute" do
+    it "keeps non-GP separators while shifting a small page from prime 3" do
+      with_repository do |repository, output_path|
+        write_small_totient_definition(repository, "page-99", "moon-phase-control")
+
+        cli(repository, "run", "moon-phase-control", "--output-path", output_path)
+        outputs = Dir.glob("#{output_path}/**/output.txt").map { |path| File.binread(path) }
+
+        expect(outputs).to eq(["f-f 9A\ny"])
+      end
+    end
+
+    it "distinguishes equal source bytes selected as different pages" do
+      with_repository do |repository, output_path|
+        write_small_totient_definition(repository, "page-98", "first-small-control")
+        write_small_totient_definition(repository, "page-99", "second-small-control")
+        first_path = File.join(output_path, "first")
+        second_path = File.join(output_path, "second")
+
+        cli(repository, "run", "first-small-control", "--output-path", first_path)
+        cli(repository, "run", "second-small-control", "--output-path", second_path)
+        first = saved_records(first_path).find { |record| record["configuration"] }
+        second = saved_records(second_path).find { |record| record["configuration"] }
+
+        expect(second.fetch("execution_identity")).not_to eq(first.fetch("execution_identity"))
+      end
+    end
+
     it "completes four independent page 56 checks" do
       with_repository do |repository, output_path|
         stdout, _stderr, _status = cli(repository, "run", *page_56_totient_options,
