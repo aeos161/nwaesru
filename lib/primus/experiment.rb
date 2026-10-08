@@ -2,6 +2,7 @@ require "active_model"
 require "digest"
 require "json"
 require "psych"
+require "prime"
 
 class Primus::Experiment
   include ActiveModel::Model
@@ -40,6 +41,8 @@ class Primus::Experiment
   }.freeze
   V2_HASHES = %w[sha512 blake2b512 blake512].freeze
   V2_POLICY = "gp-latin-compatibility-v1".freeze
+  V2_TOTIENT_DEFAULTS = { "modulus" => 29, "prime_start" => 2,
+                          "skip_sequence" => [] }.freeze
 
   attr_accessor :schema_version, :id, :title, :purpose, :input, :operation,
                 :output, :expectation, :parameters, :recipe, :checks
@@ -66,11 +69,22 @@ class Primus::Experiment
 
   def self.from_data(data, path: nil, bytes: nil)
     attributes = data.slice(*(ROOT_KEYS | V2_ROOT_KEYS))
+    attributes["recipe"] = canonical_recipe(attributes["recipe"]) if data["schema_version"] == 2
     new(**attributes.transform_keys(&:to_sym)).tap do |model|
       model.instance_variable_set(:@definition_path, path)
       model.instance_variable_set(:@definition_bytes, bytes || JSON.generate(data))
       model.instance_variable_set(:@definition_data, data)
     end
+  end
+
+  def self.canonical_recipe(value)
+    return value unless value.is_a?(Hash) && value["id"] == "totient-latin"
+    return value.dup if value.key?("parameters") && !value["parameters"].is_a?(Hash)
+
+    parameters = V2_TOTIENT_DEFAULTS.merge(value.fetch("parameters", {}))
+    skips = parameters["skip_sequence"]
+    parameters["skip_sequence"] = skips.sort if skips.is_a?(Array) && skips.all? { |item| item.instance_of?(Integer) }
+    value.merge("parameters" => parameters)
   end
 
   def self.reject_duplicate_keys!(node)
@@ -102,7 +116,11 @@ class Primus::Experiment
   end
 
   def canonical_configuration
-    definition_data.slice("input", "recipe", "output", "checks")
+    definition_data.slice("input", "output", "checks").merge("recipe" => recipe)
+  end
+
+  def persisted_configuration
+    v2? ? definition_data.merge("recipe" => recipe) : definition_data
   end
 
   def v2?
@@ -245,6 +263,7 @@ class Primus::Experiment
     @input_bytes = @source_body = @expected_bytes = nil
     @expected_bytes_by_check = {}
     validate_source if safe_path?(input_path, :input)
+    validate_v2_skip_bounds if v2?
     return validate_v2_expectation_file if v2?
     if expectation.is_a?(Hash) && expectation["kind"] == "plaintext" &&
         safe_path?(expectation_path, :expectation)
@@ -257,7 +276,7 @@ class Primus::Experiment
     reject(:title, "is required") unless title.is_a?(String) && !title.strip.empty?
     reject(:purpose, "is required") unless purpose.is_a?(String) && !purpose.strip.empty?
     reject(:input, "must select a whole page") unless input.is_a?(Hash) && input["id"].is_a?(String) && input["id"].match?(/\Apage-[0-9]+\z/)
-    reject(:recipe, "must be latin") unless recipe == { "id" => "latin" }
+    validate_v2_recipe
     reject(:input, "unknown fields") if input.is_a?(Hash) && (input.keys - %w[id sha256]).any?
     reject(:output, "policy must be #{V2_POLICY}") unless output == { "policy" => V2_POLICY }
     reject(:checks, "must contain checks") unless checks.is_a?(Array) && checks.any?
@@ -269,6 +288,36 @@ class Primus::Experiment
       reject(:checks, "duplicate check strategy or algorithm") unless kinds.uniq == kinds
     end
     reject(:base, "unknown fields") if (definition_data.keys - V2_ROOT_KEYS).any?
+  end
+
+  def validate_v2_recipe
+    return if recipe == { "id" => "latin" }
+    unless recipe.is_a?(Hash) && recipe["id"] == "totient-latin" &&
+        (recipe.keys - %w[id parameters]).empty?
+      return reject(:recipe, "must be latin or totient-latin")
+    end
+    values = recipe["parameters"]
+    return reject(:recipe, "parameters must be a mapping") unless values.is_a?(Hash)
+    reject(:recipe, "unknown parameters") unless (values.keys - V2_TOTIENT_DEFAULTS.keys).empty?
+    reject(:recipe, "modulus must be 29") unless values["modulus"].instance_of?(Integer) && values["modulus"] == 29
+    start = values["prime_start"]
+    reject(:recipe, "prime_start must be prime") unless start.instance_of?(Integer) && start >= 2 && Prime.prime?(start)
+    skips = values["skip_sequence"]
+    valid_skips = skips.is_a?(Array) && skips.all? { |item| item.instance_of?(Integer) && item >= 0 }
+    reject(:recipe, "skip_sequence must contain unique nonnegative integers") unless valid_skips && skips.uniq == skips
+  end
+
+  def validate_v2_skip_bounds
+    return unless recipe.is_a?(Hash) && recipe["id"] == "totient-latin" && source_body
+    skips = recipe["parameters"]["skip_sequence"] if recipe["parameters"].is_a?(Hash)
+    return unless skips.is_a?(Array) && skips.all? { |item| item.instance_of?(Integer) }
+    reject(:recipe, "skip_sequence exceeds GP rune count") unless skips.all? { |item| item < gp_rune_count }
+  end
+
+  def gp_rune_count
+    page = Primus::Page.new(data: source_body)
+    scan = Primus::Lexer::SourceScan.new(page: page, strategy: :runic)
+    scan.to_transcription.tokens.count { |token| token.kind == :rune }
   end
 
   def validate_v2_check(check)
@@ -327,7 +376,7 @@ class Primus::Experiment
     body = Psych.safe_load(input_bytes, aliases: false)
     @source_body = body["body"] if body.is_a?(Hash) &&
       body["body"].is_a?(String)
-    unless source_body.is_a?(String) && source_body.match?(/[ᚠ-ᛟ]/)
+    unless source_body.is_a?(String) && gp_rune_count.positive?
       reject(:input, "body must contain GP runes")
     end
     verify_digest(input, source_digest, :input)

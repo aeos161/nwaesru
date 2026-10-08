@@ -1,5 +1,17 @@
 # Observed test failures
 
+## 2026-10-08: reusable totient implementation baseline
+
+At clean revision `05b3bbb`, MRI Ruby 2.7.4 with `RUBYOPT=-EUTF-8`,
+`bundle exec rspec spec/lib/primus/experiment_composable_spec.rb spec/lib/primus/experiment/runner_spec.rb`
+reported 52 examples, 16 expected new-feature failures, seed 5362. The
+model rejected the new `totient-latin` recipe or left its parameters
+uncanonicalized; runner examples therefore recorded invalid attempts with no
+observation or assessments. No unrelated failure was observed in this focused
+baseline. The prior clean `673942b` full-suite baseline reported 608 examples,
+27 expected new-feature failures and 12 pending, seed 64904; the later
+`05b3bbb` literal fixture correction has not yet had a full-suite retry.
+
 ## 2026-10-07: expected discoverability TDD reds
 
 These were **expected new-feature failures**, not evidence of flaky tests or
