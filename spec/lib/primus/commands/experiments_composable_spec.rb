@@ -56,7 +56,7 @@ RSpec.describe Primus::Commands::Experiments do
     source_path = "data/encoded/liber_primus/#{page_id.tr('-', '_')}.yml"
     File.write(File.join(repository, source_path), "---\nbody: |\n  ᚦ-ᚠ 9A\n  ᚢ\n")
     expected_path = "experiments/expected/#{experiment_id}.txt"
-    File.write(File.join(repository, expected_path), "f-f 9A\ny")
+    File.write(File.join(repository, expected_path), "f f 9A\ny")
     definition = {
       "schema_version" => 2, "id" => experiment_id,
       "title" => "Small totient control", "purpose" => "Check a page-independent recipe.",
@@ -67,7 +67,7 @@ RSpec.describe Primus::Commands::Experiments do
       "output" => { "policy" => "gp-latin-compatibility-v1" },
       "checks" => [{ "id" => "check-1", "strategy" => "plaintext",
                      "expectation" => { "path" => expected_path,
-                                        "sha256" => Digest::SHA256.hexdigest("f-f 9A\ny"),
+                                        "sha256" => Digest::SHA256.hexdigest("f f 9A\ny"),
                                         "provenance" => "Hand-calculated small rune control." } }]
     }
     path = File.join(repository, "experiments/definitions/#{experiment_id}.yml")
@@ -171,7 +171,7 @@ RSpec.describe Primus::Commands::Experiments do
         cli(repository, "run", "moon-phase-control", "--output-path", output_path)
         outputs = Dir.glob("#{output_path}/**/output.txt").map { |path| File.binread(path) }
 
-        expect(outputs).to eq(["f-f 9A\ny"])
+        expect(outputs).to eq(["f f 9A\ny"])
       end
     end
 
