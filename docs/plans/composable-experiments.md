@@ -10,6 +10,23 @@ append new assessments later without executing the recipe again.
 This is a plan for human review, not authorization to begin implementation.
 No cryptanalytic exploration or test-writer handoff accompanies this plan.
 
+## Current delivery status (2026-10-07)
+
+Increment 1 and CLI experiment discoverability are merged on main at
+`67113c5dfcc53ce97932b94b4c77b1ec9983d1a5`. The baseline and coupling analysis
+below document the original proposal, not the current implementation.
+[Multiple experiment checks](multiple-experiment-checks.md) reconciles increment
+2 against that merged code and supplies its concrete review/test handoff.
+It preserves current singleton records while adding independent assessment
+records for multi-check runs. Reassessment/reuse remains increment 3; reusable
+totient and preset overrides remain increment 4. Do not begin implementation
+until the user reviews the increment-2 plan.
+
+The earlier suite failures mentioned below are historical. Root
+`flaky-specs.md` records the encoding diagnosis and UTF-8 full-suite retry
+(538 examples, 0 failures, 12 pending); the user reports main green. No new
+suite was run while reconciling this documentation.
+
 ## Baseline and design assessment
 
 Inspected baseline: clean `main` and local `origin/main` both at
@@ -207,11 +224,18 @@ output files into every assessment.
 
 Preserve per-check `match`, `mismatch`, or `error/not_checked` semantics. For new
 multi-check records use a completion summary (completed or error, with match,
-mismatch and error counts); a mixture of matches/mismatches is useful evidence,
-not one misleading scientific verdict. CLI exits unsuccessfully on any mismatch
-or error for consistency with controls, but prints all results first; distinguish
+mismatch and error counts). Record scientific `matching_outcome` separately:
+`matched` when any check matches, otherwise `no_match` after all checks have
+been processed. A single match is sufficient; no ranking or unanimous-match
+requirement applies. For multi-check runs, CLI exit 0 means execution and all
+comparisons completed, even if all mismatch. Invalid configuration, execution
+or persistence failure, or any check error produces a nonzero exit after all
+available results are printed. A match alongside a backend error remains a
+positive matching outcome and an execution error; preserve both. Distinguish
 invalid configuration, execution failure and check failure in saved stages and
-messages. Legacy single-check status strings remain unchanged.
+messages. Legacy v1 and singleton v2 status strings and exit behavior remain
+unchanged for compatibility. The increment-2 plan defines incomplete-attempt
+outcomes and the exact CLI contract.
 
 ### Likely files
 

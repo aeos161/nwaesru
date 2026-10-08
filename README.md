@@ -64,12 +64,38 @@ bin/primus experiments run page-57-latin-blake512
 bin/primus experiments review page-57-latin-blake512
 ```
 
+You can compose a whole-page Latin run with several independent checks. The
+following example compares the same saved output with SHA-512 and BLAKE2b-512,
+then with exact plaintext bytes:
+
+```shell
+bin/primus experiments run --input page-57 --recipe latin --hash sha512 --hash blake2b512 --expect-digest "sha512=SHA_HEX" --expect-digest "blake2b512=BLAKE_HEX" --expect-text experiments/expected/page-57-latin.txt
+```
+
+Replace `SHA_HEX` and `BLAKE_HEX` with independent 128-character lowercase
+hexadecimal digests. A single bare `--expect-digest HEX` instead applies the
+same target to every selected hash. Available hashes are `sha512`,
+`blake2b512` and `blake512`; `--hash=sha512` and
+`--expect-digest=sha512=HEX` spellings work too. Every selected hash needs one
+expectation, and plaintext is optional. `validate` accepts the same composition
+flags without running the recipe or checking backend availability.
+
+A multi-check run prints each check and a summary. Its `matching outcome` is
+`matched` if any check matches, even when another check mismatches or errors.
+The command exits successfully when all comparisons complete, including when
+every check mismatches. A backend, configuration, transformation or storage
+error causes a nonzero exit. The older one-check runs retain their existing
+convention: a mismatch exits nonzero. Copy the printed `review:` command to
+inspect all retained check evidence later, without relying on current inputs
+or installed hash backends.
+
 The CLI accepts experiment IDs and reads live definitions from
 `experiments/definitions/<ID>.yml`. Ruby callers can still load an explicit
 definition path with `Primus::Experiment.load(path: ...)`.
 
-`run` accepts `--output-path DIR` to retain attempts elsewhere. An unchanged
-attempt is reused; `--rerun --reason "..."` creates a linked new attempt.
+`run` accepts `--output-path DIR` to retain attempts elsewhere. Legacy v1 runs
+reuse an unchanged attempt; v2 composed runs create a fresh attempt.
+`--rerun --reason "..."` remains available.
 `review` also accepts a run ID. The default local history is
 `experiments/runs/`, which Git ignores. Each attempt retains exact definition,
 encoded YAML, extracted body, expected text for plaintext checks, output when

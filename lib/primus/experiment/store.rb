@@ -42,6 +42,12 @@ class Primus::Experiment::Store
     data = initial_data(experiment, run_id, fingerprint, git_head,
                         code_clean, previous_run_ids, rerun_reason)
     data["hash_runtime"] = hash_runtime if hash_runtime
+    if experiment.v2? && experiment.checks.is_a?(Array) && experiment.checks.size > 1
+      data.merge!("comparison" => "not_applicable", "assessment_records" => [],
+                  "completion_summary" => { "match" => 0, "mismatch" => 0, "error" => 0 },
+                  "matching_outcome" => nil)
+      data.delete("assessment")
+    end
     entry = Primus::Experiment::LogEntry.new(data: data)
     save(entry, directory: directory)
     entry
@@ -51,11 +57,14 @@ class Primus::Experiment::Store
     entry.data["status"] = status
     entry.data["completed_at"] = Time.now.utc.iso8601
     entry.data["errors"] = errors
-    entry.data["comparison"] =
-      assessment ? assessment.comparison : "not_checked"
+    entry.data["comparison"] = if entry.data.key?("assessment_records")
+                                 "not_applicable"
+                               else
+                                 assessment ? assessment.comparison : "not_checked"
+                               end
     entry.data["observation"] =
       observation && { "output_bytes" => observation.output_bytes.bytesize }
-    entry.data["assessment"] = assessment&.to_h
+    entry.data["assessment"] = assessment&.to_h unless entry.data.key?("assessment_records")
     directory = record_directory(entry)
     save(entry, directory: directory, observation: observation)
     Primus::Experiment::LogEntry.new(data: entry.data,
@@ -64,7 +73,60 @@ class Primus::Experiment::Store
   end
 
   def record_observation(entry, observation)
+    entry.data["observation"] = { "output_bytes" => observation.output_bytes.bytesize }
     save(entry, directory: record_directory(entry), observation: observation)
+  end
+
+  def reserve_assessment(entry, check, policy)
+    id = "#{Time.now.utc.strftime('%Y%m%dT%H%M%S')}-#{SecureRandom.hex(6)}"
+    reference = "assessments/#{id}/record.json"
+    data = { "schema_version" => 2, "assessment_id" => id,
+             "check_id" => check.fetch("id"), "check" => check,
+             "observation" => { "experiment_id" => entry.data.fetch("experiment_id"),
+                                "run_id" => entry.run_id },
+             "policy" => policy, "started_at" => Time.now.utc.iso8601,
+             "completed_at" => nil, "status" => "running",
+             "comparison" => "not_checked", "errors" => [], "artifacts" => {},
+             "runtime_version" => RUBY_VERSION,
+             "assessment_code" => entry.data.fetch("git_head") }
+    directory = File.dirname(File.join(record_directory(entry), reference))
+    FileUtils.mkdir_p(directory)
+    atomic_record(directory, data)
+    entry.data.fetch("assessment_records") << reference
+    atomic_record(record_directory(entry), entry.data)
+    data
+  end
+
+  def record_expected(entry, data, bytes)
+    directory = File.join(record_directory(entry), "assessments", data.fetch("assessment_id"))
+    snapshot(data, directory, "expected.txt", bytes)
+    atomic_record(directory, data)
+  end
+
+  def finish_assessment(entry, data)
+    directory = File.join(record_directory(entry), "assessments", data.fetch("assessment_id"))
+    atomic_record(directory, data)
+    counts = entry.data.fetch("completion_summary")
+    counts[data.fetch("status")] += 1
+    entry.data["matching_outcome"] = "matched" if counts["match"].positive?
+    atomic_record(record_directory(entry), entry.data)
+  end
+
+  def finish_collection(entry, assessments)
+    counts = { "match" => 0, "mismatch" => 0, "error" => 0 }
+    assessments.each { |item| counts[item["status"]] += 1 }
+    entry.data["completion_summary"] = counts
+    entry.data["matching_outcome"] = counts["match"].positive? ? "matched" : "no_match"
+    entry.data["status"] = counts["error"].positive? ? "error" : "completed"
+    entry.data["completed_at"] = Time.now.utc.iso8601
+    atomic_record(record_directory(entry), entry.data)
+    Primus::Experiment::LogEntry.new(data: entry.data, assessments: assessments,
+                                     observation: saved_observation(entry.data))
+  end
+
+  def finish_collection_error(entry)
+    atomic_record(record_directory(entry), entry.data)
+    Primus::Experiment::LogEntry.new(data: entry.data)
   end
 
   def failed_load(path:, error:)
@@ -106,7 +168,7 @@ class Primus::Experiment::Store
       "oracle_declared_sha256" => if experiment.expectation.is_a?(Hash)
                                     experiment.expectation["sha256"]
                                   end,
-      "oracle_actual_sha256" => experiment.expectation_digest,
+      "oracle_actual_sha256" => experiment.checks.is_a?(Array) && experiment.checks.size > 1 ? nil : experiment.expectation_digest,
       "runtime_version" => RUBY_VERSION, "git_head" => git_head,
       "code_clean" => clean, "execution_fingerprint" => fingerprint,
       "previous_run_ids" => previous, "rerun_reason" => reason,
@@ -117,7 +179,7 @@ class Primus::Experiment::Store
 
   def v2_initial_data(experiment, run_id, identity, head, clean, previous,
                       reason)
-    oracle = experiment.checks.first["expectation"] if experiment.checks.is_a?(Array) && experiment.checks.first.is_a?(Hash)
+    oracle = experiment.checks.first["expectation"] if experiment.checks.is_a?(Array) && experiment.checks.size == 1 && experiment.checks.first.is_a?(Hash)
     source_checksum = experiment.input["sha256"] if experiment.input.is_a?(Hash)
     oracle_checksum = oracle["sha256"] if oracle.is_a?(Hash)
     { "schema_version" => 2, "run_id" => run_id,
@@ -130,7 +192,7 @@ class Primus::Experiment::Store
       "source_path" => experiment.input_path,
       "source_declared_sha256" => source_checksum,
       "source_actual_sha256" => experiment.source_digest,
-      "oracle_path" => experiment.expectation_path,
+      "oracle_path" => experiment.checks.is_a?(Array) && experiment.checks.size > 1 ? nil : experiment.expectation_path,
       "oracle_declared_sha256" => oracle_checksum,
       "oracle_actual_sha256" => experiment.expectation_digest,
       "runtime_version" => RUBY_VERSION, "git_head" => head,
@@ -191,11 +253,44 @@ class Primus::Experiment::Store
                      item.restore_hash_check(hash_check) if hash_check
                    end
                  end
+    assessments = read_assessments(path, data) if data.key?("assessment_records")
     Primus::Experiment::LogEntry.new(data: data,
                                      observation: saved_observation(data),
-                                     assessment: assessment)
+                                     assessment: assessment,
+                                     assessments: assessments)
   rescue JSON::ParserError, SystemCallError => error
     raise ReadError, "#{path}: #{error.class}: #{error.message}"
+  end
+
+  def read_assessments(path, data)
+    run_directory = File.dirname(path)
+    references = data.fetch("assessment_records")
+    unless references.is_a?(Array) && references.uniq == references
+      raise ReadError, "#{path}: invalid assessment references"
+    end
+    references.map do |reference|
+      unless reference.is_a?(String) && reference.match?(%r{\Aassessments/[^/]+/record\.json\z})
+        raise ReadError, "#{path}: invalid assessment reference"
+      end
+      assessment_path = File.join(run_directory, reference)
+      unless File.realpath(assessment_path).start_with?("#{File.realpath(run_directory)}/")
+        raise ReadError, "#{path}: assessment reference escapes run directory"
+      end
+      item = JSON.parse(File.binread(assessment_path))
+      raise ReadError, "#{assessment_path}: invalid assessment record" unless item.is_a?(Hash)
+      raise ReadError, "#{assessment_path}: unsupported schema" unless item["schema_version"] == 2
+      unless item["observation"].is_a?(Hash) && item["check"].is_a?(Hash) &&
+          item["check_id"] == item["check"]["id"] &&
+          %w[running match mismatch error].include?(item["status"])
+        raise ReadError, "#{assessment_path}: invalid assessment evidence"
+      end
+      unless item["assessment_id"] == File.basename(File.dirname(assessment_path)) &&
+          item.dig("observation", "experiment_id") == data["experiment_id"] &&
+          item.dig("observation", "run_id") == data["run_id"]
+        raise ReadError, "#{assessment_path}: invalid observation reference"
+      end
+      item
+    end
   end
 
   def saved_observation(data)

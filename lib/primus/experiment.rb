@@ -44,7 +44,7 @@ class Primus::Experiment
   attr_accessor :schema_version, :id, :title, :purpose, :input, :operation,
                 :output, :expectation, :parameters, :recipe, :checks
   attr_reader :definition_path, :definition_bytes, :definition_data,
-              :input_bytes, :source_body, :expected_bytes
+              :input_bytes, :source_body, :expected_bytes, :expected_bytes_by_check
 
   def self.load(path:)
     bytes = File.binread(path).force_encoding(Encoding::UTF_8)
@@ -243,6 +243,7 @@ class Primus::Experiment
 
   def validate_files
     @input_bytes = @source_body = @expected_bytes = nil
+    @expected_bytes_by_check = {}
     validate_source if safe_path?(input_path, :input)
     return validate_v2_expectation_file if v2?
     if expectation.is_a?(Hash) && expectation["kind"] == "plaintext" &&
@@ -259,13 +260,18 @@ class Primus::Experiment
     reject(:recipe, "must be latin") unless recipe == { "id" => "latin" }
     reject(:input, "unknown fields") if input.is_a?(Hash) && (input.keys - %w[id sha256]).any?
     reject(:output, "policy must be #{V2_POLICY}") unless output == { "policy" => V2_POLICY }
-    reject(:checks, "must contain one check") unless checks.is_a?(Array) && checks.size == 1
-    validate_v2_check if checks.is_a?(Array) && checks.size == 1
+    reject(:checks, "must contain checks") unless checks.is_a?(Array) && checks.any?
+    if checks.is_a?(Array)
+      checks.each { |check| validate_v2_check(check) }
+      ids = checks.filter_map { |check| check["id"] if check.is_a?(Hash) }
+      kinds = checks.filter_map { |check| check["strategy"] == "hash" ? check["algorithm"] : check["strategy"] if check.is_a?(Hash) }
+      reject(:checks, "duplicate check ID") unless ids.uniq == ids
+      reject(:checks, "duplicate check strategy or algorithm") unless kinds.uniq == kinds
+    end
     reject(:base, "unknown fields") if (definition_data.keys - V2_ROOT_KEYS).any?
   end
 
-  def validate_v2_check
-    check = checks.first
+  def validate_v2_check(check)
     return reject(:checks, "must be a mapping") unless check.is_a?(Hash)
     expectation = check["expectation"]
     return reject(:checks, "expectation must be a mapping") unless expectation.is_a?(Hash)
@@ -291,9 +297,13 @@ class Primus::Experiment
   end
 
   def validate_v2_expectation_file
-    return unless checks.is_a?(Array) && checks.first.is_a?(Hash)
-    return unless checks.first["strategy"] == "plaintext"
-    validate_expectation if safe_path?(expectation_path, :checks)
+    return unless checks.is_a?(Array)
+    checks.each do |check|
+      next unless check.is_a?(Hash) && check["strategy"] == "plaintext"
+      next unless check["expectation"].is_a?(Hash)
+      path = check["expectation"]["path"]
+      validate_expectation(check, path) if safe_path?(path, :checks)
+    end
   end
 
   def safe_path?(path, field)
@@ -326,11 +336,12 @@ class Primus::Experiment
                                                       type: error.class.name)
   end
 
-  def validate_expectation
-    @expected_bytes = File.binread(expectation_path).force_encoding(Encoding::UTF_8)
+  def validate_expectation(check = nil, path = expectation_path)
+    @expected_bytes = File.binread(path).force_encoding(Encoding::UTF_8)
     reject(:expectation, "invalid UTF-8") unless expected_bytes.valid_encoding?
-    config = v2? ? checks.first["expectation"] : expectation
+    config = v2? ? check.fetch("expectation") : expectation
     verify_digest(config, expectation_digest, v2? ? :checks : :expectation)
+    @expected_bytes_by_check[check.fetch("id")] = @expected_bytes if v2?
   rescue SystemCallError => error
     reject(:expectation, "#{expectation_path}: #{error.message}",
            type: error.class.name)

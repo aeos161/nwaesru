@@ -61,3 +61,114 @@ no project source or spec was changed to address it.
 Full-suite retry at clean revision `76bc8c1` with
 `PATH="$HOME/.asdf/shims:$PATH" RUBYOPT=-EUTF-8 bundle exec rspec` passed:
 538 examples, 0 failures, 12 pending, randomized seed 27306.
+
+## 2026-10-07: expected multiple-check TDD reds
+
+These are **expected new-feature failures**, not flaky tests. The baseline
+focused suite passed before test edits: 219 examples, 0 failures (seed 52358).
+The final full run started with a clean tree at revision
+`2070694d170097b2160ed37edfc501d0003938ce`, using MRI Ruby 2.7.4p191
+(arm64-darwin21), Bundler 2.1.4, and `RUBYOPT=-EUTF-8`. Command:
+
+```shell
+PATH="$HOME/.asdf/shims:$PATH" RUBYOPT=-EUTF-8 bundle exec rspec
+```
+
+Result: 558 examples, 20 failures, 12 pending, seed 9270. Every failed
+example is a newly added increment-2 test; all pre-existing examples passed.
+The observed failures fall into these missing-feature groups:
+
+- CLI repeated flags retain only the last value, so duplicate and mixed-mode
+  validations incorrectly succeed or the run keeps one check.
+- Multi-check execution is rejected or uses a singleton assessment/status, so
+  ordered results, completion counts, independent IDs and review are absent.
+- Runner probes the first backend before entering a per-check error boundary;
+  a raised probe aborts, while digest failures do not retain later matches.
+- The valid two-check YAML composition is rejected; no digest assessment occurs
+  at the persisted-observation boundary.
+
+Failed examples (the command above is the reproduction):
+
+- `rspec ./spec/lib/primus/experiment_composable_spec.rb:39 # Primus::Experiment#valid? accepts two independent checks in declaration order`
+- `rspec ./spec/lib/primus/experiment/runner_multiple_spec.rb:91 # Primus::Experiment::Runner#run keeps a negative outcome when a mismatch accompanies a backend error`
+- `rspec ./spec/lib/primus/experiment/runner_multiple_spec.rb:112 # Primus::Experiment::Runner#run records no match when every backend probe fails`
+- `rspec ./spec/lib/primus/experiment/runner_multiple_spec.rb:69 # Primus::Experiment::Runner#run retains a later SHA-512 match after BLAKE2b digest calculation raises`
+- `rspec ./spec/lib/primus/experiment/runner_multiple_spec.rb:48 # Primus::Experiment::Runner#run retains a later SHA-512 match after a BLAKE2b runtime probe raises`
+- `rspec ./spec/lib/primus/experiment/runner_multiple_spec.rb:25 # Primus::Experiment::Runner#run persists the observed output before the first digest calculation`
+- `rspec ./spec/lib/primus/commands/experiments_composable_spec.rb:371 # Primus::Commands::Experiments#validate with multiple checks rejects repeated plaintext oracle flags`
+- `rspec ./spec/lib/primus/commands/experiments_composable_spec.rb:348 # Primus::Commands::Experiments#validate with multiple checks rejects a duplicate selected algorithm`
+- `rspec ./spec/lib/primus/commands/experiments_composable_spec.rb:359 # Primus::Commands::Experiments#validate with multiple checks rejects a mixture of shared and qualified expectations`
+- `rspec ./spec/lib/primus/commands/experiments_composable_spec.rb:432 # Primus::Commands::Experiments#review of multiple checks reads every saved result after the current source and oracle disappear`
+- `rspec ./spec/lib/primus/commands/experiments_composable_spec.rb:452 # Primus::Commands::Experiments#review of multiple checks uses a shell-escaped review command for a path containing spaces`
+- `rspec ./spec/lib/primus/commands/experiments_composable_spec.rb:296 # Primus::Commands::Experiments#execute with multiple checks reports every match with qualified digests`
+- `rspec ./spec/lib/primus/commands/experiments_composable_spec.rb:285 # Primus::Commands::Experiments#execute with multiple checks exits successfully after every comparison mismatches`
+- `rspec ./spec/lib/primus/commands/experiments_composable_spec.rb:330 # Primus::Commands::Experiments#execute with multiple checks appends a plaintext check after hashes regardless of flag position`
+- `rspec ./spec/lib/primus/commands/experiments_composable_spec.rb:271 # Primus::Commands::Experiments#execute with multiple checks reports a match after an earlier mismatch`
+- `rspec ./spec/lib/primus/commands/experiments_composable_spec.rb:310 # Primus::Commands::Experiments#execute with multiple checks canonicalizes equivalent shared and qualified expectations identically`
+- `rspec ./spec/lib/primus/commands/experiments_composable_spec.rb:256 # Primus::Commands::Experiments#execute with multiple checks accumulates repeated hash flags and retains their declaration order`
+- `rspec ./spec/lib/primus/commands/experiments_composable_spec.rb:415 # Primus::Commands::Experiments#execute collection records gives distinct assessment IDs to repeated attempts on the same checks`
+- `rspec ./spec/lib/primus/commands/experiments_composable_spec.rb:385 # Primus::Commands::Experiments#execute collection records saves two relative assessment record references`
+- `rspec ./spec/lib/primus/commands/experiments_composable_spec.rb:399 # Primus::Commands::Experiments#execute collection records records an all-mismatch outcome separately from completed execution`
+
+Focused retries also reproduced intended reds: 8/8 CLI accumulation and
+validation examples, 5/5 collection/review examples, 4/4 initial runner
+examples, and the valid multi-check model example. One earlier full run was
+interrupted after 15 examples to fix a new spec constant-name collision; it
+showed a v1 identity example failing during interruption. That pre-existing
+example passed in the complete clean rerun above, so the interrupted result
+is not evidence of a baseline regression or flakiness.
+
+### Final increment-2 test-writer run
+
+After adding the Store reference and persistence examples, a clean working
+tree at revision `b0f79e16e956fb4ca5cdabb6f72a8c0b95f300ba` used the same
+MRI Ruby 2.7.4p191 and UTF-8 command above. Result: 562 examples, 24
+failures, 12 pending, seed 52304. The prior 20 new-feature reds reproduced;
+these four new examples also failed as expected:
+
+- `rspec ./spec/lib/primus/experiment/store_multiple_spec.rb:29 # Primus::Experiment::Store#review rejects an assessment reference that escapes its run directory`
+- `rspec ./spec/lib/primus/experiment/store_multiple_spec.rb:18 # Primus::Experiment::Store#review rejects a missing referenced assessment record`
+- `rspec ./spec/lib/primus/experiment/store_multiple_spec.rb:43 # Primus::Experiment::Store#review rejects an unsupported referenced assessment schema`
+- `rspec ./spec/lib/primus/experiment/runner_multiple_spec.rb:25 # Primus::Experiment::Runner#run surfaces an observation persistence failure before assessment`
+
+Store currently ignores referenced assessments, so the three reader
+examples raised no `ReadError`. The runner rejected the multi-check setup
+before reaching `record_observation`, so the injected `Errno::ENOSPC` was not
+raised. The same four failed in focused runs. All 538 pre-existing examples
+passed; no unrelated failure was observed.
+
+## 2026-10-08: implementer verification
+
+All runs below used MRI Ruby 2.7.4p191, Bundler 2.1.4 and
+`RUBYOPT=-EUTF-8` unless noted. No failure here is proven flaky.
+
+- At clean revision `7055d9d`, the initial focused command
+  `RUBYOPT=-EUTF-8 bundle exec rspec spec/lib/primus/commands/experiments_composable_spec.rb spec/lib/primus/experiment_composable_spec.rb spec/lib/primus/experiment/runner_multiple_spec.rb spec/lib/primus/experiment/store_multiple_spec.rb`
+  used the default `/usr/bin/ruby` 2.6 and failed before loading specs because
+  Bundler 2.1.4 was unavailable. Retrying with
+  `PATH="$HOME/.asdf/shims:$PATH"` at the same clean revision produced 40
+  examples, 24 expected new-feature failures, seed 5008. This was environment
+  setup plus intended TDD red behavior, not an unrelated test failure.
+- With uncommitted configuration edits after `7055d9d`, a focused location
+  run of the model and three CLI validation examples showed 7 examples,
+  3 CLI failures. The CLI specs clone committed code, so they exercised the old
+  revision while the implementation was dirty. After committing `b7a21bd`,
+  the same focused run passed 7 examples, 0 failures, seed 59031.
+- With uncommitted runner/store edits after `b7a21bd`, the command
+  `PATH="$HOME/.asdf/shims:$PATH" RUBYOPT=-EUTF-8 bundle exec rspec spec/lib/primus/experiment/runner_multiple_spec.rb spec/lib/primus/experiment/store_multiple_spec.rb`
+  produced 9 examples, 6 failures, seed 24819. Three exposed an incorrect
+  early runtime probe in the implementation; the others encountered the
+  executable-code-clean guard while source was dirty. After fixing the probe
+  boundary and committing `bbcd6c7`, the same command passed 9 examples,
+  0 failures, seed 42428.
+- At clean revision `05149ec`, the full command
+  `PATH="$HOME/.asdf/shims:$PATH" RUBYOPT=-EUTF-8 bundle exec rspec`
+  passed 562 examples, 0 failures, 12 existing pending, seed 36825. The
+  focused four-file command passed 40 examples, 0 failures, seed 27791.
+- After the final read-validation changes, the focused four-file command at
+  clean revision `4f902bd` passed 40 examples, 0 failures, seed 45905. The
+  full command above at clean revision `5e4174c` passed 562 examples,
+  0 failures, 12 existing pending, seed 36629. The direct CLI controls at
+  `05149ec` confirmed mixed match/mismatch exit 0, all-mismatch exit 0, and
+  three qualified hash/plaintext matches exit 0. No unclassified test failure
+  remains.

@@ -1,10 +1,11 @@
 class Primus::Experiment::LogEntry
-  attr_reader :data, :observation, :assessment
+  attr_reader :data, :observation, :assessment, :assessments
 
-  def initialize(data:, observation: nil, assessment: nil)
+  def initialize(data:, observation: nil, assessment: nil, assessments: nil)
     @data = data
     @observation = observation
     @assessment = assessment
+    @assessments = assessments
   end
 
   def run_id

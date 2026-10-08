@@ -8,7 +8,7 @@ class Primus::Experiment::Runner
                               native_sha256 ruby_engine ruby_api_version
                               ruby_platform dlext].freeze
 
-  attr_reader :observation, :assessment, :log_entry
+  attr_reader :observation, :assessment, :assessments, :log_entry
 
   def initialize(experiment:, output_path: "experiments/runs")
     @experiment = experiment
@@ -19,6 +19,7 @@ class Primus::Experiment::Runner
   def run(rerun: false, reason: nil)
     return run_v2(rerun: rerun, reason: reason) if @experiment.v2?
     @observation = @assessment = @log_entry = nil
+    @assessments = nil
     if rerun && reason.to_s.strip.empty?
       raise ArgumentError,
             "rerun reason is required"
@@ -64,16 +65,18 @@ class Primus::Experiment::Runner
 
   def run_v2(rerun:, reason:)
     @observation = @assessment = @log_entry = nil
+    @assessments = nil
+    @hash_runtime = nil
     raise ArgumentError, "rerun reason is required" if rerun && reason.to_s.strip.empty?
     reject_output_overlap!
     valid = @experiment.valid?
     head = git_head
     clean = code_clean?
     valid &&= clean
-    @hash_runtime = hash_runtime
+    @hash_runtime = hash_runtime unless @experiment.checks.is_a?(Array) && @experiment.checks.size > 1
     @store.snapshots(input_bytes: @experiment.input_bytes,
                      source_body: @experiment.source_body,
-                     expected_bytes: @experiment.expected_bytes,
+                     expected_bytes: @experiment.checks.size > 1 ? nil : @experiment.expected_bytes,
                      definition_bytes: @experiment.definition_bytes)
     @log_entry = @store.reserve(
       experiment: @experiment, fingerprint: v2_identity(head), git_head: head,
@@ -81,7 +84,7 @@ class Primus::Experiment::Runner
       rerun_reason: rerun ? reason : nil
     )
     if valid
-      execute
+      @experiment.checks.size > 1 ? execute_collection : execute
     else
       @log_entry = @store.finish(@log_entry, status: "invalid",
                                 errors: @experiment.check_details)
@@ -111,6 +114,80 @@ class Primus::Experiment::Runner
       @log_entry, status: status, observation: @observation,
                   assessment: @assessment
     )
+  end
+
+  def execute_collection
+    @observation = produce_observation
+    @store.record_observation(@log_entry, @observation)
+    @assessments = @experiment.checks.map { |check| assess_check(check) }
+    @log_entry = @store.finish_collection(@log_entry, @assessments)
+  end
+
+  def assess_check(check)
+    data = @store.reserve_assessment(@log_entry, check, @experiment.output.fetch("policy"))
+    if check["strategy"] == "plaintext"
+      @store.record_expected(@log_entry, data, @experiment.expected_bytes_by_check.fetch(check.fetch("id")))
+    end
+    begin
+      data["backend"] = check_runtime(check)
+      unavailable_backend!(check, data["backend"]) if data["backend"]["available"] == false
+      assessment = Primus::Experiment::Evaluator.new.assess(
+        observation: @observation, expectation: check_expectation(check),
+        policy: @experiment.output.fetch("policy")
+      )
+      data.merge!("status" => assessment.comparison,
+                  "comparison" => assessment.comparison,
+                  "detail" => assessment.to_h)
+    rescue StandardError => error
+      data.merge!("status" => "error", "comparison" => "not_checked",
+                  "errors" => [{ "stage" => "assessment", "type" => error.class.name,
+                                 "message" => error.message }])
+      data["backend"] ||= { "available" => false }
+      data["backend"]["error_class"] ||= error.class.name unless data["backend"]["available"]
+    ensure
+      data["completed_at"] = Time.now.utc.iso8601
+      data["output_sha256"] = @log_entry.data.dig("artifacts", "output.txt", "sha256")
+      data["expected_length"] = check["strategy"] == "hash" ? 64 : @experiment.expected_bytes_by_check.fetch(check.fetch("id")).bytesize
+      data["expected_provenance"] = check.dig("expectation", "provenance")
+      data["assessment_identity"] = assessment_identity(data)
+      @store.finish_assessment(@log_entry, data)
+    end
+    data
+  end
+
+  def check_expectation(check)
+    if check["strategy"] == "hash"
+      check.fetch("expectation").merge("algorithm" => check.fetch("algorithm"))
+    else
+      @experiment.expected_bytes_by_check.fetch(check.fetch("id"))
+    end
+  end
+
+  def check_runtime(check)
+    case check["algorithm"]
+    when "blake2b512" then Primus::Experiment::Blake2b.new.runtime.merge("backend" => "openssl-blake2b512")
+    when "blake512" then Primus::Experiment::Blake512.new.runtime
+    else { "backend" => check["strategy"] == "plaintext" ? "ruby-bytes" : "ruby-digest-sha512",
+           "available" => true, "ruby_version" => RUBY_VERSION }
+    end
+  end
+
+  def unavailable_backend!(check, descriptor)
+    message = descriptor["error_message"] || "#{check['algorithm']} backend unavailable"
+    klass = check["algorithm"] == "blake512" ? Primus::Experiment::Blake512::Unavailable : Primus::Experiment::Blake2b::Unavailable
+    raise klass, message
+  end
+
+  def assessment_identity(data)
+    backend = if data.dig("check", "algorithm") == "blake512"
+                data.fetch("backend").slice(*BLAKE512_IDENTITY_KEYS, "error_class")
+              else
+                data.fetch("backend").reject { |key, _value| key == "error_message" }
+              end
+    identity = { "output_sha256" => data["output_sha256"], "policy" => data["policy"],
+                 "check" => data["check"], "backend" => backend,
+                 "ruby_version" => RUBY_VERSION, "code" => @log_entry.data["git_head"] }
+    Digest::SHA256.hexdigest(JSON.generate(sorted(identity)))
   end
 
   def evaluation_expectation
@@ -234,10 +311,17 @@ class Primus::Experiment::Runner
   end
 
   def reject_output_overlap!
-    output = File.expand_path(@output_path)
-    [@experiment.input_path,
-     @experiment.expectation_path].compact.each do |path|
-      source = File.expand_path(path)
+    output = resolved_path(@output_path)
+    paths = [@experiment.input_path]
+    if @experiment.v2? && @experiment.checks.is_a?(Array)
+      paths.concat(@experiment.checks.filter_map { |check|
+        check.dig("expectation", "path") if check.is_a?(Hash) && check["expectation"].is_a?(Hash)
+      })
+    else
+      paths << @experiment.expectation_path
+    end
+    paths.compact.each do |path|
+      source = resolved_path(path)
       if source.start_with?("#{output}/") || output == source
         raise ArgumentError,
               "output path overlaps research input"
@@ -245,9 +329,21 @@ class Primus::Experiment::Runner
     end
   end
 
+  def resolved_path(path)
+    expanded = File.expand_path(path)
+    return File.realpath(expanded) if File.exist?(expanded)
+    File.join(resolved_path(File.dirname(expanded)), File.basename(expanded))
+  end
+
   def record_execution_error(error)
     failure = { "stage" => "execution", "type" => error.class.name,
                 "message" => error.message }
+    if @log_entry.data.key?("assessment_records")
+      @log_entry.data["status"] = "error"
+      @log_entry.data["errors"] = [failure]
+      @log_entry.data["completed_at"] = Time.now.utc.iso8601
+      return @log_entry = @store.finish_collection_error(@log_entry)
+    end
     @log_entry = @store.finish(
       @log_entry, status: "error", errors: [failure],
                   observation: @observation, assessment: @assessment

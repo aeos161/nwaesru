@@ -1,12 +1,13 @@
 require "shellwords"
+require "json"
 
 class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
   desc "validate ID", "check a saved experiment without executing it"
   option :input, type: :string
   option :recipe, type: :string
-  option :hash, type: :string
-  option :expect_digest, type: :string
-  option :expect_text, type: :string
+  option :hash, type: :string, repeatable: true
+  option :expect_digest, type: :string, repeatable: true
+  option :expect_text, type: :string, repeatable: true
   option :expect_provenance, type: :string
   def validate(id = nil)
     experiment = selected_experiment(id)
@@ -14,7 +15,7 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
       say "#{experiment.id}: valid"
       say "input SHA-256: #{experiment.source_digest}"
       if experiment.v2?
-        show_v2_check(experiment)
+        experiment.checks.size > 1 ? show_v2_checks(experiment) : show_v2_check(experiment)
       elsif experiment.expectation["kind"] == "hash"
         show_hash_expectation(experiment.expectation,
                               experiment.output["policy"])
@@ -37,9 +38,9 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
   option :reason, type: :string
   option :input, type: :string
   option :recipe, type: :string
-  option :hash, type: :string
-  option :expect_digest, type: :string
-  option :expect_text, type: :string
+  option :hash, type: :string, repeatable: true
+  option :expect_digest, type: :string, repeatable: true
+  option :expect_text, type: :string, repeatable: true
   option :expect_provenance, type: :string
   def execute(id = nil)
     path = id && definition_path(id)
@@ -48,9 +49,17 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
                                             output_path: options[:output_path])
     runner.run(rerun: options[:rerun], reason: options[:reason])
     entry = runner.log_entry
-    say "#{entry.run_id}: #{entry.status} (#{entry.data["comparison"]})"
+    if entry.data.key?("assessment_records")
+      summary = entry.data.fetch("completion_summary")
+      say "#{entry.run_id}: #{entry.status} (matches: #{summary['match']}, mismatches: #{summary['mismatch']}, errors: #{summary['error']})"
+    else
+      say "#{entry.run_id}: #{entry.status} (#{entry.data["comparison"]})"
+    end
     show_run_identity(entry)
-    unless entry.status == "matched"
+    if entry.data.key?("assessment_records")
+      show_collection(entry)
+      raise Thor::Error, "one or more checks failed" unless entry.status == "completed"
+    elsif entry.status != "matched"
       raise Thor::Error, entry.data["errors"].map { |item|
         item["message"]
       }.join("; ")
@@ -97,7 +106,6 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
     if options[:input] || options[:recipe] || options[:hash] ||
         options[:expect_digest] || options[:expect_text]
       raise Thor::Error, "composition cannot include a preset ID" if id
-      raise Thor::Error, "choose one expectation" if options[:hash] && options[:expect_text]
       return Primus::Experiment::Composition.new(options).experiment
     end
     raise Thor::Error, "experiment ID or composition is required" unless id
@@ -110,6 +118,39 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
     expectation = check.fetch("expectation")
     say "expected digest: #{expectation['digest']}" if expectation['digest']
     say "oracle SHA-256: #{experiment.expectation_digest}" if experiment.expected_bytes
+  end
+
+  def show_v2_checks(experiment)
+    experiment.checks.each do |check|
+      label = check["algorithm"] ? digest_label(check) : "plaintext"
+      say "#{check['id']}: #{check['strategy']} #{label}"
+      say "expected digest: #{check.dig('expectation', 'digest')}" if check.dig("expectation", "digest")
+    end
+  end
+
+  def show_collection(entry)
+    summary = entry.data.fetch("completion_summary")
+    say "checks: #{summary['match']} matches, #{summary['mismatch']} mismatches, #{summary['error']} errors"
+    say "matching outcome: #{entry.data['matching_outcome']}" if entry.data["matching_outcome"]
+    entry.assessments.to_a.each { |item| show_assessment(item) }
+  end
+
+  def show_assessment(item)
+    check = item.fetch("check")
+    label = check["algorithm"] || "exact bytes"
+    say "#{item['check_id']} assessment #{item['assessment_id']}: #{check['strategy']} #{label} #{item['status']}"
+    say "expected digest: #{check.dig('expectation', 'digest')}" if check.dig("expectation", "digest")
+    observed = item.dig("detail", "hash_check", "observed_digest")
+    say "observed digest: #{observed}" if observed
+    say "expected length: #{item['expected_length']} bytes" if item["expected_length"]
+    say "actual length: #{item.dig('detail', 'actual_length')} bytes" if item.dig("detail", "actual_length")
+    say "first difference byte: #{item.dig('detail', 'first_difference_byte')}" if item.dig("detail", "first_difference_byte")
+    say "expectation provenance: #{check.dig('expectation', 'provenance')}"
+    say "output policy: #{item['policy']}"
+    say "backend: #{JSON.generate(item['backend'])}" if item["backend"]
+    say "assessment code: #{item['assessment_code']} Ruby: #{item['runtime_version']}"
+    say "started: #{item['started_at']} completed: #{item['completed_at']}"
+    item.fetch("errors", []).each { |error| say "#{error['stage']}: #{error['message']}" }
   end
 
   def validate_id!(id)
@@ -149,6 +190,10 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
     say "Git HEAD: #{data["git_head"]} Ruby: #{data["runtime_version"]}"
     say "input: #{data["source_path"]}"
     say "input SHA-256: #{data["source_actual_sha256"]}"
+    if data.key?("assessment_records")
+      show_collection(entry)
+      return show_artifacts(entry)
+    end
     return show_v2_entry(entry) if data["schema_version"] == 2
     expectation = configuration["expectation"] || {}
     if expectation["kind"] == "hash"

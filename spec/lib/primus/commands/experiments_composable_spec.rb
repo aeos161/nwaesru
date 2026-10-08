@@ -5,6 +5,7 @@ require "shellwords"
 require "tmpdir"
 
 RSpec.describe Primus::Commands::Experiments do
+  BLAKE2B512_DIGEST = "2e205b4c5686b98f55de31b2aac81512ba7e034a7c2c11ddfb97fea2d57ef9d6a395367c2e98da2f86677e41713dc65d9d2af7e81eb8a54c749a1dd9fe844454"
   SHA512_DIGEST = "f3fac0115ab06d1a4075731e77fe157ad52b837b9068bf942c95784160578f43a1a72e770f2e2c1b00a1bc2fad39dc66fa78efd28c5cd976ed3a35f3e400bcab"
 
   def cli(repository, *arguments)
@@ -247,6 +248,220 @@ RSpec.describe Primus::Commands::Experiments do
         )
 
         expect(stdout).to include("matched (match)")
+      end
+    end
+  end
+
+  describe "#execute with multiple checks" do
+    it "accumulates repeated hash flags and retains their declaration order" do
+      with_repository do |repository, output_path|
+        cli(repository, "run", "--input", "page-57", "--recipe", "latin",
+            "--hash=sha512", "--hash", "blake2b512",
+            "--expect-digest", "sha512=#{SHA512_DIGEST}",
+            "--expect-digest=blake2b512=#{'0' * 128}",
+            "--output-path", output_path)
+        run = saved_records(output_path).find { |record| record["configuration"] }
+
+        expect(run.fetch("configuration").fetch("checks").map { |check|
+          [check.fetch("id"), check.fetch("algorithm")]
+        }).to eq([["check-1", "sha512"], ["check-2", "blake2b512"]])
+      end
+    end
+
+    it "reports a match after an earlier mismatch" do
+      with_repository do |repository, output_path|
+        stdout, _stderr, _status = cli(repository, "run", "--input", "page-57",
+                                       "--recipe", "latin", "--hash", "blake2b512",
+                                      "--hash", "sha512", "--expect-digest",
+                                      "blake2b512=#{'0' * 128}", "--expect-digest",
+                                      "sha512=#{SHA512_DIGEST}",
+                                      "--output-path", output_path)
+
+        expect(stdout).to include("completed (matches: 1, mismatches: 1, errors: 0)",
+                                  "matching outcome: matched", "check-1", "check-2")
+      end
+    end
+
+    it "exits successfully after every comparison mismatches" do
+      with_repository do |repository, output_path|
+        _stdout, _stderr, status = cli(repository, "run", "--input", "page-57",
+                                       "--recipe", "latin", "--hash", "sha512",
+                                      "--hash", "blake2b512", "--expect-digest",
+                                      '0' * 128, "--output-path", output_path)
+
+        expect(status).to be_success
+      end
+    end
+
+    it "reports every match with qualified digests" do
+      with_repository do |repository, output_path|
+        stdout, _stderr, _status = cli(repository, "run", "--input", "page-57",
+                                       "--recipe", "latin", "--hash", "sha512",
+                                      "--hash", "blake2b512", "--expect-digest",
+                                      "sha512=#{SHA512_DIGEST}", "--expect-digest",
+                                      "blake2b512=#{BLAKE2B512_DIGEST}",
+                                      "--output-path", output_path)
+
+        expect(stdout).to include("completed (matches: 2, mismatches: 0, errors: 0)",
+                                  "matching outcome: matched")
+      end
+    end
+
+    it "canonicalizes equivalent shared and qualified expectations identically" do
+      with_repository do |repository, output_path|
+        shared_runs = File.join(output_path, "shared")
+        qualified_runs = File.join(output_path, "qualified")
+        common = ["run", "--input", "page-57", "--recipe", "latin",
+                  "--hash", "sha512", "--hash", "blake2b512"]
+        cli(repository, *common, "--expect-digest", SHA512_DIGEST,
+            "--output-path", shared_runs)
+        cli(repository, *common, "--expect-digest", "sha512=#{SHA512_DIGEST}",
+            "--expect-digest", "blake2b512=#{SHA512_DIGEST}",
+            "--output-path", qualified_runs)
+        shared = saved_records(shared_runs).find { |record| record["configuration"] }
+        qualified = saved_records(qualified_runs).find { |record| record["configuration"] }
+
+        expect(shared.fetch("configuration").fetch("checks")).to eq(
+          qualified.fetch("configuration").fetch("checks")
+        )
+      end
+    end
+
+    it "appends a plaintext check after hashes regardless of flag position" do
+      with_repository do |repository, output_path|
+        cli(repository, "run", "--input", "page-57", "--recipe", "latin",
+            "--expect-text", "experiments/expected/page-57-latin.txt",
+            "--hash", "sha512", "--hash", "blake2b512",
+            "--expect-digest", SHA512_DIGEST, "--output-path", output_path)
+        run = saved_records(output_path).find { |record| record["configuration"] }
+
+        expect(run.fetch("configuration").fetch("checks").map { |check|
+          [check.fetch("id"), check.fetch("strategy")]
+        }).to eq([["check-1", "hash"], ["check-2", "hash"],
+                 ["check-3", "plaintext"]])
+      end
+    end
+
+  end
+
+  describe "#validate with multiple checks" do
+    it "rejects a duplicate selected algorithm" do
+      with_repository do |repository, _output_path|
+        _stdout, _stderr, status = cli(repository, "validate", "--input", "page-57",
+                                       "--recipe", "latin", "--hash", "sha512",
+                                       "--hash", "sha512", "--expect-digest",
+                                       SHA512_DIGEST)
+
+        expect(status).not_to be_success
+      end
+    end
+
+    it "rejects a mixture of shared and qualified expectations" do
+      with_repository do |repository, _output_path|
+        _stdout, _stderr, status = cli(repository, "validate", "--input", "page-57",
+                                       "--recipe", "latin", "--hash", "sha512",
+                                       "--hash", "blake2b512", "--expect-digest",
+                                       "sha512=#{SHA512_DIGEST}", "--expect-digest",
+                                       SHA512_DIGEST)
+
+        expect(status).not_to be_success
+      end
+    end
+
+    it "rejects repeated plaintext oracle flags" do
+      with_repository do |repository, _output_path|
+        _stdout, _stderr, status = cli(repository, "validate", "--input", "page-57",
+                                       "--recipe", "latin", "--expect-text",
+                                       "experiments/expected/page-57-latin.txt",
+                                       "--expect-text",
+                                       "experiments/expected/page-57-latin.txt")
+
+        expect(status).not_to be_success
+      end
+    end
+  end
+
+  describe "#execute collection records" do
+    it "saves two relative assessment record references" do
+      with_repository do |repository, output_path|
+        cli(repository, "run", "--input", "page-57", "--recipe", "latin",
+            "--hash", "sha512", "--hash", "blake2b512",
+            "--expect-digest", SHA512_DIGEST, "--output-path", output_path)
+        run = saved_records(output_path).find { |record| record["configuration"] }
+
+        expect(run.fetch("assessment_records")).to contain_exactly(
+          a_string_matching(%r{\Aassessments/[^/]+/record\.json\z}),
+          a_string_matching(%r{\Aassessments/[^/]+/record\.json\z})
+        )
+      end
+    end
+
+    it "records an all-mismatch outcome separately from completed execution" do
+      with_repository do |repository, output_path|
+        cli(repository, "run", "--input", "page-57", "--recipe", "latin",
+            "--hash", "sha512", "--hash", "blake2b512",
+            "--expect-digest", '0' * 128, "--output-path", output_path)
+        run = saved_records(output_path).find { |record| record["configuration"] }
+
+        expect(run).to include("status" => "completed",
+                               "comparison" => "not_applicable",
+                               "matching_outcome" => "no_match",
+                               "completion_summary" => {
+                                 "match" => 0, "mismatch" => 2, "error" => 0
+                               })
+      end
+    end
+
+    it "gives distinct assessment IDs to repeated attempts on the same checks" do
+      with_repository do |repository, output_path|
+        arguments = ["run", "--input", "page-57", "--recipe", "latin",
+                     "--hash", "sha512", "--hash", "blake2b512",
+                     "--expect-digest", SHA512_DIGEST, "--output-path", output_path]
+        cli(repository, *arguments)
+        cli(repository, *arguments)
+        records = saved_records(output_path).select { |record|
+          record["assessment_id"]
+        }
+
+        expect(records.map { |record| record.fetch("assessment_id") }.uniq.length).to eq(4)
+      end
+    end
+  end
+
+  describe "#review of multiple checks" do
+    it "reads every saved result after the current source and oracle disappear" do
+      with_repository do |repository, output_path|
+        stdout, _stderr, _status = cli(repository, "run", "--input", "page-57",
+                                       "--recipe", "latin", "--hash", "sha512",
+                                       "--hash", "blake2b512", "--expect-digest",
+                                       "sha512=#{SHA512_DIGEST}", "--expect-digest",
+                                       "blake2b512=#{BLAKE2B512_DIGEST}",
+                                       "--output-path", output_path)
+        File.delete(File.join(repository, "data/encoded/liber_primus/page_57.yml"))
+        File.delete(File.join(repository, "experiments/expected/page-57-latin.txt"))
+        command = stdout.lines.find { |line| line.start_with?("review: ") }
+        argv = Shellwords.split(command.delete_prefix("review: "))
+
+        review, _error, _status = cli(repository, *argv.drop(2))
+
+        expect(review).to include("check-1", "check-2", SHA512_DIGEST,
+                                  BLAKE2B512_DIGEST)
+      end
+    end
+
+    it "uses a shell-escaped review command for a path containing spaces" do
+      with_repository do |repository, output_path|
+        spaced_output = File.join(output_path, "runs with spaces")
+        stdout, _stderr, _status = cli(repository, "run", "--input", "page-57",
+                                       "--recipe", "latin", "--hash", "sha512",
+                                       "--hash", "blake2b512", "--expect-digest",
+                                       SHA512_DIGEST, "--output-path", spaced_output)
+        command = stdout.lines.find { |line| line.start_with?("review: ") }
+        argv = Shellwords.split(command.delete_prefix("review: "))
+
+        review, _error, _status = cli(repository, *argv.drop(2))
+
+        expect(review).to include("check-2")
       end
     end
   end
