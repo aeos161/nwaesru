@@ -2,6 +2,7 @@ require "fileutils"
 require "json"
 require "open3"
 require "rbconfig"
+require "shellwords"
 require "tmpdir"
 
 RSpec.describe Primus::Commands::Experiments do
@@ -154,6 +155,158 @@ RSpec.describe Primus::Commands::Experiments do
   end
 
   describe "#execute" do
+    it "keeps the saved status as the first output line" do
+      with_checkout do |repository, output_path|
+        stdout, _stderr, _status = cli(repository, "run", "page-57-latin",
+                                       "--output-path", output_path)
+        run_id = records(output_path).fetch(0).fetch("run_id")
+
+        expect(stdout.lines.first).to eq("#{run_id}: matched (match)\n")
+      end
+    end
+
+    it "prints the saved identities and a direct review command in order" do
+      with_checkout do |repository, output_path|
+        stdout, _stderr, _status = cli(repository, "run", "page-57-latin",
+                                       "--output-path", output_path)
+        record = records(output_path).fetch(0)
+        run_id = record.fetch("run_id")
+        experiment_id = record.fetch("experiment_id")
+
+        expect(stdout.lines.drop(1)).to eq([
+          "experiment ID: #{experiment_id}\n",
+          "run ID: #{run_id}\n",
+          "review: bin/primus experiments review #{experiment_id} " \
+            "#{run_id} --output-path #{output_path}\n"
+        ])
+      end
+    end
+
+    it "makes the default output store explicit in the review command" do
+      with_checkout do |repository, _output_path|
+        stdout, _stderr, _status = cli(repository, "run", "page-57-latin")
+        record = records(File.join(repository, "experiments/runs")).fetch(0)
+
+        expect(stdout).to include(
+          "review: bin/primus experiments review page-57-latin " \
+            "#{record.fetch('run_id')} --output-path experiments/runs\n"
+        )
+      end
+    end
+
+    it "preserves and shell-escapes a relative path with shell characters" do
+      with_checkout do |repository, _output_path|
+        path = "runs with spaces/it's $money;done"
+        stdout, _stderr, _status = cli(repository, "run", "page-57-latin",
+                                       "--output-path", path)
+        record = records(File.join(repository, path)).fetch(0)
+
+        expect(stdout).to include(
+          "review: bin/primus experiments review page-57-latin " \
+            "#{record.fetch('run_id')} --output-path " \
+            "runs\\ with\\ spaces/it\\'s\\ \\$money\\;done\n"
+        )
+      end
+    end
+
+    it "selects the saved attempt through its printed review command" do
+      with_checkout do |repository, _output_path|
+        output_path = "runs with spaces/it's $money;done"
+        cli(repository, "run", "page-57-latin", "--output-path", output_path)
+        stdout, _stderr, _status = cli(repository, "run", "page-57-latin",
+                                       "--output-path", output_path,
+                                       "--rerun", "--reason", "Compare again")
+        record = records(File.join(repository, output_path)).detect do |item|
+          item["rerun_reason"]
+        end
+        command = stdout.lines.find { |line| line.start_with?("review: ") }
+        argv = Shellwords.split(command.delete_prefix("review: "))
+
+        review, _error, _status = cli(repository, *argv.drop(2))
+
+        expect(review.scan(/^page-57-latin [^:]+: matched match$/)).to eq(
+          ["page-57-latin #{record.fetch('run_id')}: matched match"]
+        )
+      end
+    end
+
+    it "prints the returned prior attempt ID on a deduplicated run" do
+      with_checkout do |repository, output_path|
+        cli(repository, "run", "page-57-latin", "--output-path", output_path)
+        prior_id = records(output_path).fetch(0).fetch("run_id")
+
+        stdout, _stderr, _status = cli(repository, "run", "page-57-latin",
+                                       "--output-path", output_path)
+
+        expect(stdout).to include("run ID: #{prior_id}\n")
+      end
+    end
+
+    it "prints the new attempt ID on a forced rerun" do
+      with_checkout do |repository, output_path|
+        cli(repository, "run", "page-57-latin", "--output-path", output_path)
+
+        stdout, _stderr, _status = cli(repository, "run", "page-57-latin",
+                                       "--output-path", output_path,
+                                       "--rerun", "--reason", "Compare again")
+        rerun = records(output_path).detect { |item| item["rerun_reason"] }
+
+        expect(stdout).to include("run ID: #{rerun.fetch('run_id')}\n")
+      end
+    end
+
+    it "prints reviewable identities before the mismatch error" do
+      with_checkout("page_57_mismatch.yml") do |repository, output_path|
+        stdout, _stderr, _status = cli(repository, "run", "page-57-latin",
+                                       "--output-path", output_path)
+        record = records(output_path).fetch(0)
+
+        expect(stdout).to include(
+          "experiment ID: page-57-latin\nrun ID: #{record.fetch('run_id')}\n"
+        )
+      end
+    end
+
+    it "prints reviewable identities before the invalid-result error" do
+      with_checkout("page_57_wrong_digest.yml") do |repository, output_path|
+        stdout, _stderr, _status = cli(repository, "run", "page-57-latin",
+                                       "--output-path", output_path)
+        record = records(output_path).fetch(0)
+
+        expect(stdout).to include(
+          "experiment ID: page-57-latin\nrun ID: #{record.fetch('run_id')}\n"
+        )
+      end
+    end
+
+    it "prints the identity of a returned recorded execution error" do
+      with_checkout do |repository, output_path|
+        cli(repository, "run", "page-57-latin", "--output-path", output_path)
+        path = Dir.glob("#{output_path}/**/record.json").fetch(0)
+        record = JSON.parse(File.read(path))
+        record["status"] = "error"
+        record["comparison"] = "not_checked"
+        record["errors"] = [{ "stage" => "execution",
+                              "message" => "translator failed" }]
+        File.write(path, JSON.generate(record))
+
+        stdout, _stderr, _status = cli(repository, "run", "page-57-latin",
+                                       "--output-path", output_path)
+
+        expect(stdout).to include("run ID: #{record.fetch('run_id')}\n")
+      end
+    end
+
+    it "does not invent an identity for a failed definition load" do
+      with_checkout("page_57_duplicate.yml") do |repository, output_path|
+        stdout, _stderr, _status = cli(repository, "run", "page-57-latin",
+                                       "--output-path", output_path)
+
+        expect(stdout).not_to include("experiment ID:", "run ID:",
+                                      "review:")
+      end
+    end
+
     it "matches page 56 using its ID" do
       with_checkout do |repository, output_path|
         stdout, _stderr, _status = cli(

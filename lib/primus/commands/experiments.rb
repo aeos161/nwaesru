@@ -1,3 +1,5 @@
+require "shellwords"
+
 class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
   desc "validate ID", "check a saved experiment without executing it"
   option :input, type: :string
@@ -47,6 +49,7 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
     runner.run(rerun: options[:rerun], reason: options[:reason])
     entry = runner.log_entry
     say "#{entry.run_id}: #{entry.status} (#{entry.data["comparison"]})"
+    show_run_identity(entry)
     unless entry.status == "matched"
       raise Thor::Error, entry.data["errors"].map { |item|
         item["message"]
@@ -77,6 +80,18 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
   end
 
   private
+
+  def show_run_identity(entry)
+    experiment_id = entry.data.fetch("experiment_id")
+    say "experiment ID: #{experiment_id}"
+    say "run ID: #{entry.run_id}"
+    say "review: #{review_command(experiment_id, entry.run_id)}"
+  end
+
+  def review_command(experiment_id, run_id)
+    Shellwords.join(["bin/primus", "experiments", "review", experiment_id,
+                     run_id, "--output-path", options[:output_path]])
+  end
 
   def selected_experiment(id)
     if options[:input] || options[:recipe] || options[:hash] ||

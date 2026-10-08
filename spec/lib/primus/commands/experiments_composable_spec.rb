@@ -1,6 +1,7 @@
 require "json"
 require "open3"
 require "rbconfig"
+require "shellwords"
 require "tmpdir"
 
 RSpec.describe Primus::Commands::Experiments do
@@ -82,6 +83,70 @@ RSpec.describe Primus::Commands::Experiments do
   end
 
   describe "#execute" do
+    it "prints the generated identity of an ad-hoc composition" do
+      with_repository do |repository, output_path|
+        stdout, _stderr, _status = cli(repository, "run", *plaintext_options,
+                                       "--output-path", output_path)
+        record = saved_records(output_path).fetch(0)
+
+        expect(stdout).to include(
+          "experiment ID: #{record.fetch('experiment_id')}\n"
+        )
+      end
+    end
+
+    it "reviews the saved ad-hoc attempt through the printed command" do
+      with_repository do |repository, output_path|
+        stdout, _stderr, _status = cli(repository, "run", *plaintext_options,
+                                       "--output-path", output_path)
+        record = saved_records(output_path).fetch(0)
+        command = stdout.lines.find { |line| line.start_with?("review: ") }
+        argv = Shellwords.split(command.delete_prefix("review: "))
+
+        review, _error, _status = cli(repository, *argv.drop(2))
+
+        expect(review).to include(
+          "#{record.fetch('experiment_id')} #{record.fetch('run_id')}: matched match"
+        )
+      end
+    end
+
+    it "prints the named version-two identity from the saved attempt" do
+      with_repository do |repository, output_path|
+        write_v2_definition(repository)
+
+        stdout, _stderr, _status = cli(repository, "run", "page-57-composed",
+                                       "--output-path", output_path)
+        record = saved_records(output_path).fetch(0)
+
+        expect(stdout).to include(
+          "experiment ID: #{record.fetch('experiment_id')}\n"
+        )
+      end
+    end
+
+    it "reviews only the intended version-two attempt after a second run" do
+      with_repository do |repository, output_path|
+        write_v2_definition(repository)
+        cli(repository, "run", "page-57-composed", "--output-path",
+            output_path)
+        first_id = saved_records(output_path).fetch(0).fetch("run_id")
+        stdout, _stderr, _status = cli(repository, "run", "page-57-composed",
+                                       "--output-path", output_path)
+        record = saved_records(output_path).detect do |item|
+          item.fetch("run_id") != first_id
+        end
+        command = stdout.lines.find { |line| line.start_with?("review: ") }
+        argv = Shellwords.split(command.delete_prefix("review: "))
+
+        review, _error, _status = cli(repository, *argv.drop(2))
+
+        expect(review.scan(/^page-57-composed [^:]+: matched match$/)).to eq(
+          ["page-57-composed #{record.fetch('run_id')}: matched match"]
+        )
+      end
+    end
+
     it "retains the original version-one configuration and identity field" do
       with_repository do |repository, output_path|
         cli(repository, "run", "page-57-latin", "--output-path", output_path)

@@ -77,6 +77,19 @@ produced, provenance,
 and a JSON record. Invalid and interrupted attempts remain visible. Validation
 does not write an attempt.
 
+For example, a successful run prints its retained identity and review command:
+
+```text
+20261007T221654-96e2732ad650: matched (match)
+experiment ID: page-57-latin
+run ID: 20261007T221654-96e2732ad650
+review: bin/primus experiments review page-57-latin 20261007T221654-96e2732ad650 --output-path experiments/runs
+```
+
+Copy the command after `review: ` from the same working directory to inspect
+that attempt. It includes the actual output path, including a custom path when
+one was supplied to `run`.
+
 The callable API then provides `valid?` and `errors`;
 `Primus::Experiment::Runner.new(experiment: ..., output_path: ...)`
 offers the `run` command and `observation`, `assessment`, and `log_entry`
