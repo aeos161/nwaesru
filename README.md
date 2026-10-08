@@ -49,6 +49,9 @@ bin/primus experiments validate page-56-totient-latin
 bin/primus experiments run page-56-totient-latin --output-path experiments/runs
 bin/primus experiments run page-56-totient-latin --output-path experiments/runs --rerun --reason "Check repeatability"
 bin/primus experiments review page-56-totient-latin --output-path experiments/runs
+bin/primus experiments validate page-56-totient-latin-controls
+bin/primus experiments run page-56-totient-latin-controls
+bin/primus experiments review page-56-totient-latin-controls
 bin/primus experiments validate page-57-latin
 bin/primus experiments run page-57-latin
 bin/primus experiments review page-57-latin
@@ -79,6 +82,25 @@ same target to every selected hash. Available hashes are `sha512`,
 `--expect-digest=sha512=HEX` spellings work too. Every selected hash needs one
 expectation, and plaintext is optional. `validate` accepts the same composition
 flags without running the recipe or checking backend availability.
+
+The v2 `totient-latin` recipe works on any selected whole page. Its parameters
+default to `modulus: 29`, `prime_start: 2` and `skip_sequence: []`.
+`prime_start` is the first prime **value** consumed, and must itself be prime.
+Skips are unique, zero-based ordinals of the original GP runes; a skipped rune
+does not consume a prime. Other text, including the hexadecimal passage, does
+not consume an ordinal or prime. Use `--recipe-param KEY=JSON_VALUE` repeatedly
+on either `validate` or `run`. For page 56, skip 56 is explicit:
+
+```shell
+bin/primus experiments validate --input page-56 --recipe totient-latin --recipe-param 'skip_sequence=[56]' --expect-text experiments/expected/page-56-totient-latin.txt
+bin/primus experiments run --input page-56 --recipe totient-latin --recipe-param 'skip_sequence=[56]' --expect-text experiments/expected/page-56-totient-latin.txt
+```
+
+The named `page-56-totient-latin-controls` definition records the same recipe
+with SHA-512, BLAKE2b-512, original BLAKE-512, and exact plaintext checks.
+The literal answers and independent preparation are documented in
+`spec/fixtures/experiments/page_56_totient_oracle.md`. Check its review for
+four matches, zero mismatches, and zero errors.
 
 A multi-check run prints each check and a summary. Its `matching outcome` is
 `matched` if any check matches, even when another check mismatches or errors.
