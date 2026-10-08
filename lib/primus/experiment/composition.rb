@@ -9,7 +9,7 @@ class Primus::Experiment::Composition
   end
 
   def experiment
-    choices = { "input" => input, "recipe" => { "id" => @options[:recipe] },
+    choices = { "input" => input, "recipe" => recipe,
                 "output" => { "policy" => POLICY }, "checks" => checks }
     id = "ad-hoc-#{Digest::SHA256.hexdigest(JSON.generate(choices))[0, 16]}"
     Primus::Experiment.from_data({ "schema_version" => 2, "id" => id,
@@ -18,6 +18,25 @@ class Primus::Experiment::Composition
   end
 
   private
+
+  def recipe
+    supplied = values(:recipe_param)
+    raise Primus::Experiment::LoadError, "parameters require a recipe" if supplied.any? && !@options[:recipe]
+    selected = { "id" => @options[:recipe] }
+    selected["parameters"] = parsed_parameters(supplied) if supplied.any?
+    Primus::Experiment.canonical_recipe(selected)
+  end
+
+  def parsed_parameters(supplied)
+    supplied.each_with_object({}) do |item, result|
+      key, separator, encoded = item.to_s.partition("=")
+      raise Primus::Experiment::LoadError, "recipe parameter must be KEY=JSON_VALUE" if key.empty? || separator.empty? || encoded.empty?
+      raise Primus::Experiment::LoadError, "duplicate recipe parameter: #{key}" if result.key?(key)
+      result[key] = JSON.parse(encoded)
+    rescue JSON::ParserError => error
+      raise Primus::Experiment::LoadError, "invalid recipe parameter JSON: #{error.message}"
+    end
+  end
 
   def input
     id = @options[:input]

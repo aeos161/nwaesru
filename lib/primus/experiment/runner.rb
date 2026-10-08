@@ -97,6 +97,7 @@ class Primus::Experiment::Runner
 
   def v2_identity(head)
     identity = { source_sha256: @experiment.source_digest,
+                 input_selection: @experiment.input_path,
                  recipe: @experiment.recipe, output: @experiment.output,
                  git_head: head, ruby_version: RUBY_VERSION, version: 2 }
     Digest::SHA256.hexdigest(JSON.generate(sorted(identity)))
@@ -224,9 +225,10 @@ class Primus::Experiment::Runner
   end
 
   def derive(translated)
-    return translated if @experiment.v2? || @experiment.operation == "runes_to_latin"
+    return translated if @experiment.v2? && @experiment.recipe["id"] == "latin"
+    return translated if !@experiment.v2? && @experiment.operation == "runes_to_latin"
 
-    parameters = @experiment.parameters
+    parameters = @experiment.v2? ? @experiment.recipe.fetch("parameters") : @experiment.parameters
     primes = Prime.each.lazy.drop_while { |prime|
       prime < parameters.fetch("prime_start")
     }

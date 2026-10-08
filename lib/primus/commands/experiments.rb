@@ -5,6 +5,7 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
   desc "validate ID", "check a saved experiment without executing it"
   option :input, type: :string
   option :recipe, type: :string
+  option :recipe_param, type: :string, repeatable: true
   option :hash, type: :string, repeatable: true
   option :expect_digest, type: :string, repeatable: true
   option :expect_text, type: :string, repeatable: true
@@ -38,6 +39,7 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
   option :reason, type: :string
   option :input, type: :string
   option :recipe, type: :string
+  option :recipe_param, type: :string, repeatable: true
   option :hash, type: :string, repeatable: true
   option :expect_digest, type: :string, repeatable: true
   option :expect_text, type: :string, repeatable: true
@@ -103,7 +105,7 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
   end
 
   def selected_experiment(id)
-    if options[:input] || options[:recipe] || options[:hash] ||
+    if options[:input] || options[:recipe] || options[:recipe_param] || options[:hash] ||
         options[:expect_digest] || options[:expect_text]
       raise Thor::Error, "composition cannot include a preset ID" if id
       return Primus::Experiment::Composition.new(options).experiment
