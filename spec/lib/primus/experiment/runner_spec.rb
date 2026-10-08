@@ -30,6 +30,97 @@ RSpec.describe "Primus::Experiment::Runner" do
   end
 
   describe "#run" do
+    it "decodes the v2 page 56 control to the frozen 255-byte plaintext" do
+      Dir.mktmpdir do |output_path|
+        experiment = Primus::Experiment.load(path: fixture("page_56_totient_controls.yml"))
+        runner = Primus::Experiment::Runner.new(experiment: experiment,
+                                                output_path: output_path)
+
+        runner.run
+
+        expect(runner.observation.output_bytes).to eq(
+          File.binread("experiments/expected/page-56-totient-latin.txt")
+        )
+      end
+    end
+
+    it "retains all 85 original GP rune entries for the v2 control" do
+      Dir.mktmpdir do |output_path|
+        experiment = Primus::Experiment.load(path: fixture("page_56_totient_controls.yml"))
+        runner = Primus::Experiment::Runner.new(experiment: experiment,
+                                                output_path: output_path)
+
+        runner.run
+
+        expect(runner.observation.provenance.size).to eq(85)
+      end
+    end
+
+    it "keeps the skipped source rune and next decoded rune distinct" do
+      Dir.mktmpdir do |output_path|
+        experiment = Primus::Experiment.load(path: fixture("page_56_totient_controls.yml"))
+        runner = Primus::Experiment::Runner.new(experiment: experiment,
+                                                output_path: output_path)
+
+        runner.run
+
+        expect(runner.observation.provenance[56..57].map { |symbol|
+          symbol.values_at("ordinal", "rune", "decoded_rune", "latin")
+        }).to eq([[56, "ᚠ", "ᚠ", "f"], [57, "ᚫ", "ᛖ", "e"]])
+      end
+    end
+
+    it "changes the page 56 output when the default empty skip replaces 56" do
+      Dir.mktmpdir do |output_path|
+        definition = Psych.safe_load(File.binread(fixture("page_56_totient_controls.yml")))
+        definition.fetch("recipe").delete("parameters")
+        experiment = Primus::Experiment.from_data(definition)
+        runner = Primus::Experiment::Runner.new(experiment: experiment,
+                                                output_path: output_path)
+
+        runner.run
+
+        expect(runner.observation.output_bytes).not_to eq(
+          File.binread("experiments/expected/page-56-totient-latin.txt")
+        )
+      end
+    end
+
+    it "records four matches in one completed v2 control run" do
+      Dir.mktmpdir do |output_path|
+        experiment = Primus::Experiment.load(path: fixture("page_56_totient_controls.yml"))
+        runner = Primus::Experiment::Runner.new(experiment: experiment,
+                                                output_path: output_path)
+
+        runner.run
+
+        expect(runner.log_entry.data).to include(
+          "status" => "completed", "matching_outcome" => "matched",
+          "completion_summary" => { "match" => 4, "mismatch" => 0, "error" => 0 }
+        )
+      end
+    end
+
+    %w[sha512 blake2b512 blake512].each do |algorithm|
+      it "observes the independent page 56 #{algorithm} digest" do
+        Dir.mktmpdir do |output_path|
+          oracle = JSON.parse(File.binread(fixture("page_56_totient_oracle.json")))
+          experiment = Primus::Experiment.load(path: fixture("page_56_totient_controls.yml"))
+          runner = Primus::Experiment::Runner.new(experiment: experiment,
+                                                  output_path: output_path)
+
+          runner.run
+          assessment = runner.assessments.detect { |item|
+            item.fetch("check")["algorithm"] == algorithm
+          }
+
+          expect(assessment.dig("detail", "hash_check", "observed_digest")).to eq(
+            oracle.fetch("digests").fetch(algorithm)
+          )
+        end
+      end
+    end
+
     it "saves original coordinates for translated GP symbols" do
       Dir.mktmpdir do |output_path|
         experiment = Primus::Experiment.load(path: fixture("page_57_valid.yml"))
