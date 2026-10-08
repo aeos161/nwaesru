@@ -52,6 +52,12 @@ RSpec.describe Primus::Commands::Experiments do
      "--expect-provenance", "Independent page-56 oracle packet."]
   end
 
+  def page_56_plaintext_options
+    ["--input", "page-56", "--recipe", "totient-latin",
+     "--expect-text", "experiments/expected/page-56-totient-latin.txt",
+     "--expect-provenance", "Independent page-56 oracle packet."]
+  end
+
   def write_small_totient_definition(repository, page_id, experiment_id)
     source_path = "data/encoded/liber_primus/#{page_id.tr('-', '_')}.yml"
     File.write(File.join(repository, source_path), "---\nbody: |\n  ᚦ-ᚠ 9A\n  ᚢ\n")
@@ -143,6 +149,45 @@ RSpec.describe Primus::Commands::Experiments do
       end
     end
 
+    {
+      "duplicate parameter keys" => ["modulus=29", "modulus=29"],
+      "malformed JSON" => ["skip_sequence=[56"],
+      "a missing parameter key" => ["=29"],
+      "an unknown parameter key" => ["surprise=2"]
+    }.each do |case_name, values|
+      it "rejects #{case_name} at the CLI boundary" do
+        with_repository do |repository, _output_path|
+          flags = values.flat_map { |value| ["--recipe-param", value] }
+
+          _stdout, _stderr, status = cli(repository, "validate",
+                                         *page_56_plaintext_options, *flags)
+
+          expect(status).not_to be_success
+        end
+      end
+    end
+
+    it "rejects recipe parameters without a selected recipe" do
+      with_repository do |repository, _output_path|
+        _stdout, _stderr, status = cli(repository, "validate", "--input", "page-56",
+                                       "--recipe-param", "prime_start=2",
+                                       "--expect-text", "experiments/expected/page-56-totient-latin.txt")
+
+        expect(status).not_to be_success
+      end
+    end
+
+    it "rejects even an empty parameter mapping for the Latin recipe" do
+      with_repository do |repository, _output_path|
+        _stdout, _stderr, status = cli(repository, "validate", "--input", "page-57",
+                                       "--recipe", "latin", "--recipe-param",
+                                       "skip_sequence=[]", "--expect-text",
+                                       "experiments/expected/page-57-latin.txt")
+
+        expect(status).not_to be_success
+      end
+    end
+
     it "accepts a whole-page Latin composition with an independent plaintext oracle" do
       with_repository do |repository, _output_path|
         _stdout, _stderr, status = cli(repository, "validate", *plaintext_options)
@@ -164,6 +209,38 @@ RSpec.describe Primus::Commands::Experiments do
   end
 
   describe "#execute" do
+    it "assigns the same ad-hoc ID to implicit and explicit totient defaults" do
+      with_repository do |repository, output_path|
+        implicit = File.join(output_path, "implicit")
+        explicit = File.join(output_path, "explicit")
+        cli(repository, "run", *page_56_plaintext_options, "--output-path", implicit)
+        cli(repository, "run", *page_56_plaintext_options,
+            "--recipe-param", "modulus=29", "--recipe-param", "prime_start=2",
+            "--recipe-param", "skip_sequence=[]", "--output-path", explicit)
+        first = saved_records(implicit).find { |record| record["configuration"] }
+        second = saved_records(explicit).find { |record| record["configuration"] }
+
+        expect(second.fetch("experiment_id")).to eq(first.fetch("experiment_id"))
+      end
+    end
+
+    it "keeps ad-hoc identity independent of parameter flag order" do
+      with_repository do |repository, output_path|
+        forward = File.join(output_path, "forward")
+        reversed = File.join(output_path, "reversed")
+        cli(repository, "run", *page_56_plaintext_options,
+            "--recipe-param", "prime_start=3", "--recipe-param", "skip_sequence=[56]",
+            "--output-path", forward)
+        cli(repository, "run", *page_56_plaintext_options,
+            "--recipe-param", "skip_sequence=[56]", "--recipe-param", "prime_start=3",
+            "--output-path", reversed)
+        first = saved_records(forward).find { |record| record["configuration"] }
+        second = saved_records(reversed).find { |record| record["configuration"] }
+
+        expect(second.fetch("experiment_id")).to eq(first.fetch("experiment_id"))
+      end
+    end
+
     it "keeps non-GP separators while shifting a small page from prime 3" do
       with_repository do |repository, output_path|
         write_small_totient_definition(repository, "page-99", "moon-phase-control")
