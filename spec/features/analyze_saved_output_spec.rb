@@ -1,4 +1,5 @@
 require "json"
+require "digest"
 require "open3"
 require "tmpdir"
 
@@ -28,6 +29,11 @@ RSpec.describe "saved output analysis lifecycle" do
 
   def command(*arguments)
     Open3.capture3("bin/primus", "analyses", *arguments)
+  end
+
+  def observation_record(root, run_id)
+    path = File.join(root, "page-57-latin", run_id, "record.json")
+    [path, JSON.parse(File.binread(path))]
   end
 
   describe "analyses run" do
@@ -179,6 +185,86 @@ RSpec.describe "saved output analysis lifecycle" do
         expect([status.success?, stderr]).to match([false, /run.*id/i])
       end
     end
+
+    it "rejects an observation without the final representation manifest" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        run_id = completed_observation(root)
+        definition = analysis_definition(directory)
+        path, record = observation_record(root, run_id)
+        record.fetch("observation").delete("representations")
+        File.write(path, JSON.pretty_generate(record))
+
+        _stdout, stderr, status = command("run", "page-57-latin", run_id,
+                                           "--definition", definition,
+                                           "--output-path", root)
+
+        expect([status.success?, stderr]).to match([false, /recreat|manifest/i])
+      end
+    end
+
+    it "rejects changed output bytes before producing a result" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        run_id = completed_observation(root)
+        definition = analysis_definition(directory)
+        _path, record = observation_record(root, run_id)
+        output = record.fetch("artifacts").fetch("output.txt").fetch("path")
+        File.open(output, "ab") { |file| file.write("changed") }
+
+        _stdout, stderr, status = command("run", "page-57-latin", run_id,
+                                           "--definition", definition,
+                                           "--output-path", root)
+
+        expect([status.success?, stderr]).to match([false, /output.*(bytes|digest|sha|size)/i])
+      end
+    end
+
+    it "rejects artifact paths escaping the selected run" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        run_id = completed_observation(root)
+        definition = analysis_definition(directory)
+        path, record = observation_record(root, run_id)
+        output = record.fetch("artifacts").fetch("output.txt")
+        escaped = File.join(directory, "outside.txt")
+        File.binwrite(escaped, File.binread(output.fetch("path")))
+        output["path"] = escaped
+        File.write(path, JSON.pretty_generate(record))
+
+        _stdout, stderr, status = command("run", "page-57-latin", run_id,
+                                           "--definition", definition,
+                                           "--output-path", root)
+
+        expect([status.success?, stderr]).to match([false, /output.*path|escap|outside/i])
+      end
+    end
+
+    it "rejects reordered provenance even when checksums are updated" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        run_id = completed_observation(root)
+        definition = analysis_definition(directory)
+        path, record = observation_record(root, run_id)
+        artifact = record.fetch("artifacts").fetch("provenance.json")
+        rows = JSON.parse(File.binread(artifact.fetch("path")))
+        rows[1]["ordinal"] = 0
+        bytes = JSON.pretty_generate(rows)
+        File.binwrite(artifact.fetch("path"), bytes)
+        artifact["bytes"] = bytes.bytesize
+        artifact["sha256"] = Digest::SHA256.hexdigest(bytes)
+        record.fetch("observation").fetch("representations").each_value do |profile|
+          profile["provenance_sha256"] = artifact.fetch("sha256")
+        end
+        File.write(path, JSON.pretty_generate(record))
+
+        _stdout, stderr, status = command("run", "page-57-latin", run_id,
+                                           "--definition", definition,
+                                           "--output-path", root)
+
+        expect([status.success?, stderr]).to match([false, /ordinal/i])
+      end
+    end
   end
 
   describe "analyses review" do
@@ -190,6 +276,27 @@ RSpec.describe "saved output analysis lifecycle" do
         command("run", "page-57-latin", run_id,
                 "--definition", definition, "--output-path", root)
         File.delete(definition)
+
+        stdout, _stderr, status = command("review", "page-57-latin", run_id,
+                                          "--output-path", root)
+
+        expect([status.success?, stdout]).to match([true, a_string_including(
+          "gp-runes-v1", "gp-expanded-latin-v1", "raw IC",
+        )])
+      end
+    end
+
+    it "reviews retained measurements after the source artifacts disappear" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        run_id = completed_observation(root)
+        definition = analysis_definition(directory)
+        command("run", "page-57-latin", run_id,
+                "--definition", definition, "--output-path", root)
+        _path, record = observation_record(root, run_id)
+        artifacts = record.fetch("artifacts")
+        File.delete(artifacts.fetch("output.txt").fetch("path"))
+        File.delete(artifacts.fetch("provenance.json").fetch("path"))
 
         stdout, _stderr, status = command("review", "page-57-latin", run_id,
                                           "--output-path", root)
