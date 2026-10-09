@@ -5,7 +5,7 @@
 Analyze an existing saved experiment observation without rerunning its recipe:
 retain rune frequencies and raw index of coincidence (IC) as an owned
 AnalysisResult, linked to the exact saved final output and decoded-rune
-provenance. Keep measurements independent of expectation assessments and make
+provenance under a small explicit representation contract. Keep measurements independent of expectation assessments and make
 them reviewable without today's experiment definition, input file or hash backend.
 
 This is step 1 only, proposed for review before a test-writer handoff. No
@@ -36,16 +36,17 @@ page-55 analysis or new experiment execution is part of this planning task.
   coordinates. The original and decoded rune are different concepts.
 - `Store#saved_observation` currently trusts artifact paths and silently
   substitutes empty provenance if absent. It is insufficient for analysis.
-  Existing saved review may remain backward compatible; new analysis must use
-  a stricter, separate reader and must not call this permissive path first.
+  New analysis uses a stricter, separate reader and must not call this
+  permissive path first. Current runs are disposable test data; there is no
+  requirement to build a compatibility reader for them.
 - `Primus.index_of_coincidence` currently divides the pair denominator by
   alphabet size, returning normalized IC (29 times raw IC for GP unigrams).
   Its API and `GematriaPrimus#expected_index_of_coincidence` remain unchanged;
   neither defines this new measurement contract.
 
 No prerequisite refactor is required. New analysis collaborators can own the
-new responsibilities without expanding the already large Experiment, Runner,
-Store or Experiments command classes. The analysis store is a separate Store
+new responsibilities with a small producer integration for an explicit final
+rune manifest; no broad changes to Experiment, Runner or command classes. The analysis store is a separate Store
 responsibility, not an extension of assessment state. Existing plans do not
 identify an unmerged prerequisite for this bounded feature.
 
@@ -96,53 +97,60 @@ identify an unmerged prerequisite for this bounded feature.
   by a separate `analyses` list referencing stages. This increment implements
   only the analysis-list subset above, in its own file. No working `steps`
   syntax, generic stage selector or migration of existing recipes is promised.
-- Future migration of editable experiment-definition drafts to the latest
-  supported format is explicitly acceptable to the user. Preserving today's
-  draft format is not a permanent compatibility requirement. Migration is not
-  required in step 1 and no drafts are migrated by this plan; historical run
-  records and their retained definition snapshots remain immutable.
+- The user explicitly allows migration of editable experiment drafts and
+  considers all current runs disposable test data that may be deleted and
+  recreated when implementation warrants it. Neither current draft syntax nor
+  existing saved-run schemas impose permanent compatibility requirements.
+  No migration or deletion is performed by this planning task. The forward
+  design still keeps completed observations and appended analyses immutable
+  during normal operation; test-data cleanup is separate from analysis.
 
-### Verified saved representation
+### Explicit final-rune capture and verified reading
 
+- Add a minimal versioned representation manifest when a new observation is
+  saved. Reuse existing `provenance.json`; do not add a duplicate rune stream.
+  Store it under `observation.representations.gp-runes-v1`, containing
+  `schema_version: 1`, `stage: final`, `artifact: provenance.json`,
+  `symbol_field: decoded_rune`, the ordered 29-rune alphabet, sample size,
+  and the SHA-256 of both `output.txt` and `provenance.json`. The existing
+  artifact entries continue to own paths, byte counts and checksums. The
+  manifest binds this exact final rune representation to its output bytes.
+- The producer derives this manifest from the same final Observation that
+  supplies output and provenance, with checksums of the bytes actually saved.
+  Add one small capture collaborator/integration to existing persistence,
+  not a generic stage pipeline. Producer tests establish correct decoded rune,
+  original source mapping, GP-only selection and Latin expansion behavior.
+- Existing runs without this manifest are unsupported by the new analysis
+  reader, with an actionable message to recreate the test run using the new
+  capture contract. Do not retrofit unverifiable claims into old records or
+  promise to analyze every current run. Recreating desired baselines is a
+  later execution action; no page-55 run is executed or deleted now.
 - Resolve only the selected `(experiment_id, run_id)` record. Validate safe
-  single path components, record/object shape, supported run schema (1 or 2),
-  matching identities and an observation with saved artifacts. A historical
-  hash mismatch or hash backend failure does not invalidate intact output;
-  a currently `running` attempt is not an eligible finalized observation.
-- Verify output, provenance and source-body snapshots using their saved byte
-  counts and SHA-256 before parsing/using them. Require the recorded output
-  byte length to agree. Validate UTF-8 where text is required. Resolve each
-  expected named artifact inside the selected run's real directory, checking
-  the recorded absolute path as well as symlink containment. Missing files,
-  escaping paths, malformed metadata, invalid digest shapes and mismatches
-  fail closed. Do not silently relocate artifacts or fall back to live input.
-- Require saved `gp-latin-compatibility-v1` policy and a known current
-  `latin`/`totient-latin` recipe profile (including the equivalent v1 recipe).
-  Do not execute that recipe. Older artifacts without `decoded_rune` or
-  required evidence are reported as unsupported for analysis, even if old
-  experiment review still reads them. Do not infer decoded runes from Latin.
-- Parse provenance as data: array of entries, ordinal exactly `0...N`,
-  each decoded rune a single member of the 29-symbol GP alphabet, original
-  rune/source location valid, and canonical Latin expansion consistent with
-  decoded rune. Verify one-to-one correspondence with GP rune tokens in the
-  verified saved source-body snapshot: original offsets, original rune,
-  page/occurrence/rune index, order and count. These supported recipes preserve
-  source order. Duplicates, omissions, reordering and contradictory coordinates
-  fail; JSON duplicate keys must not silently win at this evidence boundary.
-- Verify that the saved decoded symbols and retained non-GP content render
-  to the exact saved output bytes under the recorded compatibility policy.
-  Reuse existing parsing/rendering behavior with the saved source and decoded
-  token mapping; do not apply a cipher, regenerate a recipe or re-tokenize
-  the Latin output to guess rune boundaries. This ties measured symbols to
-  the observed output, including page-56 non-GP hexadecimal content.
-- The measured sequence is precisely the ordered `decoded_rune` entries.
-  Exclude punctuation, whitespace and non-GP literals. An expansion such as
-  `th` or `ing` counts as one GP rune. Original source runes are provenance,
-  not a second measurement input. Version the representation/profile and
-  retain the alphabet order/mapping (or its exact snapshot and digest).
-- Load and hash the same bytes that are measured; persist their checksums.
-  Integrity checks establish consistency with the local retained record,
-  not authenticity against malicious coordinated edits of all evidence.
+  path components, record/manifest shape and version, matching identities,
+  finalized observation and the supported representation. A previous hash
+  mismatch or backend failure does not invalidate intact saved output;
+  a currently running producer or missing observation is ineligible.
+- Verify output and provenance against their saved byte counts/SHA-256 and
+  manifest bindings before use. Require the observation output byte count to
+  agree and validate UTF-8 where text is required. Resolve expected named
+  artifacts inside the selected run's real directory, checking recorded paths
+  and symlink containment. Missing files, escaping paths, malformed metadata
+  or mismatches fail closed. No fallback to live input or current presets.
+- Require the saved output policy `gp-latin-compatibility-v1` and exactly the
+  declared versioned GP alphabet. Parse provenance as an array of entries with
+  ordinal exactly `0...N`; each decoded rune is one declared GP symbol. Check
+  sample size, required source-coordinate fields and uniqueness of original
+  source identities. Missing/duplicate/out-of-order rows, invalid symbols and
+  malformed JSON fail explicitly; duplicate JSON keys must not silently win.
+- Measure precisely the ordered `decoded_rune` entries. Exclude punctuation,
+  whitespace and non-GP literals; `th` or `ing` counts as one GP rune.
+  Original `rune` and coordinates retain provenance, not a second measurement
+  input. The consumer does not re-parse a source body, execute a recipe,
+  reconstruct output, or infer runes by tokenizing rendered Latin.
+- Load and hash the same bytes that are measured. Producer integration tests
+  establish semantic correspondence; the reader verifies the declared saved
+  contract and byte identity. This is local evidence consistency, not a proof
+  against coordinated malicious edits of every artifact and its manifest.
 
 ### Measurements and owned result
 
@@ -179,8 +187,8 @@ identify an unmerged prerequisite for this bounded feature.
   analysis records by bounded directory lookup, not a mutable parent index.
 - Persist analysis schema/version, ID, exact definition digest/configuration,
   analyzer name/version, stage/representation, exclusion rules, observation
-  pair, output/provenance/source-body digests and byte lengths, saved policy,
-  source run-record digest, alphabet/profile identity, result, execution
+  pair, output/provenance digests and byte lengths, representation manifest, saved policy,
+  source run-record digest, alphabet/representation identity, result, execution
   timestamps, code revision and code-clean flag, and Ruby version. Record
   `status: completed` for a successful measurement; errors are execution
   errors, never scientific mismatches.
@@ -211,7 +219,8 @@ Likely files; names express responsibilities, not a mandate for extra layers:
 | Area | Change |
 | --- | --- |
 | `lib/primus/analysis/definition.rb` | Safe loading and validation of the standalone analyses list; no dependency on Experiment file validation. |
-| `lib/primus/analysis/saved_observation.rb` | Narrow verified saved-observation reader and compatibility-profile validation. Extract an artifact-verification collaborator only if the boundary warrants it. |
+| `lib/primus/experiment/final_rune_manifest.rb`, small `store.rb` integration | Declare the final GP representation from the Observation and saved artifact checksums. No recipe or intermediate-stage changes. |
+| `lib/primus/analysis/saved_observation.rb` | Verify the explicit representation manifest and saved artifacts; no legacy compatibility adapter. |
 | `lib/primus/analysis/rune_statistics.rb`, `result.rb` | Histogram/raw IC query and owned immutable scientific result, including the insufficient-sample state. |
 | `lib/primus/analysis/runner.rb`, `store.rb` | Execute against verified evidence; append/finalize analysis records and query historical results. No dependency on Experiment::Runner or Evaluator. |
 | `lib/primus/commands/analyses.rb`, `bin/primus`, `lib/primus.rb` | Thin CLI and registration/requires; own formatting in a presenter if it would otherwise mix with orchestration. |
@@ -229,7 +238,8 @@ The existing long Experiment/Store/Experiments classes are not an invitation
 to bolt in more responsibilities or conduct a broad refactor. New classes
 follow Ruby clean-code/Sandi Metz limits; use small domain boundaries rather
 than a generic registry or delegation-only object graph. Leave the legacy IC
-API, current experiment recipe format and existing review behavior intact.
+API intact. Keep the recipe format unchanged for this step; future draft/run
+migration is allowed rather than a compatibility obligation.
 
 ### Test-first handoff after plan review
 
@@ -238,9 +248,9 @@ API, current experiment recipe format and existing review behavior intact.
    definitions and live input. Assert literal scientific output and no change
    to original file bytes. This new command is genuinely red initially.
 2. Work inward on definition validation and verified reading. Exercise bad
-   digest/length/path, symlink escape, unsupported legacy provenance, malformed
-   JSON, duplicate keys/ordinals, wrong source mapping, missing decoded runes,
-   unknown symbols and output/provenance disagreement. Change checksum metadata
+   digest/length/path, symlink escape, absent/unsupported manifest, malformed
+   JSON, duplicate keys/ordinals/source identities, missing decoded runes,
+   unknown symbols and manifest/artifact disagreement. Change checksum metadata
    as well in a semantic-corruption fixture so hash validation cannot mask a
    missing representation check. Use small independent fixtures, not copies of
    the production serializer as expected values.
@@ -250,9 +260,10 @@ API, current experiment recipe format and existing review behavior intact.
    GP rune counted once. The empty-source fixture is a supported synthetic
    saved record, even though normal experiment validation requires GP input.
 4. Add narrowly focused page-56/page-57 saved-output integration regressions
-   generated in temporary stores through existing controls. Prove original
-   versus decoded rune distinction, preserved source mapping and exclusion of
-   the hexadecimal block. Do not use guessed plaintext statistics or English
+   generated in temporary stores through existing controls with the new capture
+   manifest. Pin producer output/provenance against literal expected examples,
+   including original versus decoded rune, preserved source mapping, Latin
+   expansion, GP-only sample size and exclusion of the hexadecimal block. Do not use guessed plaintext statistics or English
    thresholds as expected results; do not touch local page-55 runs.
 5. Cover append-only history, replay independence, historical hash-error output
    eligibility, concurrent unique IDs, incomplete/error records, and failure to
@@ -269,8 +280,9 @@ API, current experiment recipe format and existing review behavior intact.
 - A completed observation may have no matching expectation, or a check may
   have errored after output was saved. Eligibility depends on verified output,
   not scientific success; an absent output or unfinished producer fails.
-- An old run lacking required metadata remains historically reviewable by the
-  old workflow but cannot be safely analyzed. Never mutate it to invent evidence.
+- Current test runs lacking the manifest can be discarded and recreated after
+  implementation; no compatibility or migration adapter is required. Analysis
+  never mutates an old record to invent evidence.
 - No original-input stage or windows are included. Future selection must name
   its coordinate system explicitly; e.g. original GP ordinals `[0,55)` means
   0 through 54, not 55 characters of Latin. Do not apply a skip-55 hypothesis
@@ -286,12 +298,13 @@ API, current experiment recipe format and existing review behavior intact.
 ## Out of scope
 
 New transformation YAML execution, recipe migration, arbitrary chains,
-intermediate stage capture, original-input analysis, stage/window selection,
+intermediate stage capture (the final-rune manifest is in scope),
+original-input analysis, stage/window selection,
 synthetic layered controls, additional analyzers, n-grams, normalized IC,
 reference-language models, significance testing, rankings, automated search,
 hash reassessment, cross-ID cache reuse, preset overrides, new hash algorithms,
 input-image audit, source/transcription fixes, dependency changes, page-55
-analysis execution, and modifications to existing experiment state.
+analysis execution, and deletion/migration of current test data during planning.
 
 Later sequence: step 2 captures explicit transformation stages with an
 independently specified layered synthetic control; step 3 selects retained
@@ -301,7 +314,10 @@ then-current implementation. The separated `analyses` declaration and explicit
 
 ## Open questions
 
-No blocking requirement ambiguity remains. Proposed review choices are one
+No blocking requirement ambiguity remains. The tradeoff is explicit: a small
+producer capture change replaces backward-compatibility/reconstruction work,
+and current test observations must be recreated before the new reader accepts
+them. No data cleanup has happened. Proposed review choices are one
 combined rune-statistics result and the separate `analyses run/review` command
 family, which keeps measurement ownership clear and avoids expanding the
 existing experiment command. If a nested experiments command is preferred,
