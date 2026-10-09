@@ -96,6 +96,11 @@ identify an unmerged prerequisite for this bounded feature.
   by a separate `analyses` list referencing stages. This increment implements
   only the analysis-list subset above, in its own file. No working `steps`
   syntax, generic stage selector or migration of existing recipes is promised.
+- Future migration of editable experiment-definition drafts to the latest
+  supported format is explicitly acceptable to the user. Preserving today's
+  draft format is not a permanent compatibility requirement. Migration is not
+  required in step 1 and no drafts are migrated by this plan; historical run
+  records and their retained definition snapshots remain immutable.
 
 ### Verified saved representation
 
