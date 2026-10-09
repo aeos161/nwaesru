@@ -79,6 +79,106 @@ RSpec.describe "saved output analysis lifecycle" do
                                   "analyses", "*", "record.json")).size).to eq(2)
       end
     end
+
+    it "rejects duplicate analysis declaration IDs before reserving a result" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        run_id = completed_observation(root)
+        definition = analysis_definition(directory)
+        data = Psych.safe_load(File.binread(definition))
+        data.fetch("analyses")[1]["id"] = "statistics-1"
+        File.write(definition, Psych.dump(data))
+
+        _stdout, stderr, status = command("run", "page-57-latin", run_id,
+                                           "--definition", definition,
+                                           "--output-path", root)
+
+        records = Dir.glob(File.join(root, "page-57-latin", run_id,
+                                     "analyses", "*", "record.json"))
+
+        expect([status.success?, stderr, records]).to match([false, /duplicate.*id/i, []])
+      end
+    end
+
+    it "rejects a repeated representation before reserving a result" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        run_id = completed_observation(root)
+        definition = analysis_definition(directory,
+                                         representations: %w[gp-runes-v1 gp-runes-v1])
+
+        _stdout, stderr, status = command("run", "page-57-latin", run_id,
+                                           "--definition", definition,
+                                           "--output-path", root)
+
+        records = Dir.glob(File.join(root, "page-57-latin", run_id,
+                                     "analyses", "*", "record.json"))
+
+        expect([status.success?, stderr, records]).to match([false, /representation/i, []])
+      end
+    end
+
+    it "rejects an unsupported stage" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        run_id = completed_observation(root)
+        definition = analysis_definition(directory)
+        data = Psych.safe_load(File.binread(definition))
+        data.fetch("analyses").first.fetch("target")["stage"] = "input"
+        File.write(definition, Psych.dump(data))
+
+        _stdout, stderr, status = command("run", "page-57-latin", run_id,
+                                           "--definition", definition,
+                                           "--output-path", root)
+
+        expect([status.success?, stderr]).to match([false, /stage/i])
+      end
+    end
+
+    it "rejects unknown definition keys" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        run_id = completed_observation(root)
+        definition = analysis_definition(directory)
+        data = Psych.safe_load(File.binread(definition))
+        data["threshold"] = 0.1
+        File.write(definition, Psych.dump(data))
+
+        _stdout, stderr, status = command("run", "page-57-latin", run_id,
+                                           "--definition", definition,
+                                           "--output-path", root)
+
+        expect([status.success?, stderr]).to match([false, /threshold/])
+      end
+    end
+
+    it "rejects duplicate YAML keys rather than accepting the last value" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        run_id = completed_observation(root)
+        definition = analysis_definition(directory)
+        File.open(definition, "a") { |file| file.write("id: replaced\n") }
+
+        _stdout, stderr, status = command("run", "page-57-latin", run_id,
+                                           "--definition", definition,
+                                           "--output-path", root)
+
+        expect([status.success?, stderr]).to match([false, /duplicate.*id/i])
+      end
+    end
+
+    it "rejects missing explicit run identity" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        definition = analysis_definition(directory)
+
+        _stdout, stderr, status = command("run", "page-57-latin",
+                                           "--definition", definition,
+                                           "--output-path", root)
+
+        expect([status.success?, stderr]).to match([false, /run.*id/i])
+      end
+    end
   end
 
   describe "analyses review" do
