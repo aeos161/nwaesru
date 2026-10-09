@@ -1,9 +1,62 @@
 require "json"
 require "digest"
+require "fileutils"
 require "open3"
 require "tmpdir"
 
 RSpec.describe "saved output analysis lifecycle" do
+  GP_ALPHABET = %w[ᚠ ᚢ ᚦ ᚩ ᚱ ᚳ ᚷ ᚹ ᚻ ᚾ ᛁ ᛄ ᛇ ᛈ ᛉ ᛋ ᛏ ᛒ ᛖ ᛗ ᛚ ᛝ ᛟ ᛞ ᚪ ᚫ ᚣ ᛡ ᛠ].freeze
+  GP_EXPANSIONS = %w[f u th o r c g w h n i j eo p x s t b e m l ng oe d a ae y io ea].freeze
+
+  def independent_three_rune_observation(root)
+    id = "tiny-final"
+    run_id = "20261009T000000-000000000001"
+    directory = File.join(root, id, run_id)
+    FileUtils.mkdir_p(directory)
+    output = "thath"
+    runes = %w[ᚦ ᚪ ᚦ]
+    letters = %w[th a th]
+    rows = runes.each_with_index.map do |rune, index|
+      { "ordinal" => index, "rune" => rune, "decoded_rune" => rune,
+        "latin" => letters.fetch(index), "page_number" => 57,
+        "occurrence" => 0, "byte_start" => index * 3,
+        "byte_end" => (index + 1) * 3, "character_start" => index,
+        "character_end" => index + 1, "line" => 0,
+        "column" => index, "rune_index" => index }
+    end
+    provenance = JSON.pretty_generate(rows)
+    output_digest = Digest::SHA256.hexdigest(output)
+    provenance_digest = Digest::SHA256.hexdigest(provenance)
+    File.binwrite(File.join(directory, "output.txt"), output)
+    File.binwrite(File.join(directory, "provenance.json"), provenance)
+    common = { "schema_version" => 1, "stage" => "final",
+               "artifact" => "provenance.json", "symbol_field" => "decoded_rune",
+               "output_sha256" => output_digest,
+               "provenance_sha256" => provenance_digest }
+    profiles = {
+      "gp-runes-v1" => common.merge("alphabet" => GP_ALPHABET, "sample_size" => 3),
+      "gp-expanded-latin-v1" => common.merge(
+        "alphabet" => ("a".."z").to_a, "sample_size" => 5,
+        "expansion_map" => GP_ALPHABET.zip(GP_EXPANSIONS).to_h,
+      ),
+    }
+    record = {
+      "schema_version" => 2, "experiment_id" => id, "run_id" => run_id,
+      "status" => "completed", "completed_at" => "2026-10-09T00:00:00Z",
+      "configuration" => { "output" => { "policy" => "gp-latin-compatibility-v1" } },
+      "observation" => { "output_bytes" => 5, "representations" => profiles },
+      "artifacts" => {
+        "output.txt" => { "path" => File.join(directory, "output.txt"),
+                          "bytes" => 5, "sha256" => output_digest },
+        "provenance.json" => { "path" => File.join(directory, "provenance.json"),
+                               "bytes" => provenance.bytesize,
+                               "sha256" => provenance_digest },
+      },
+    }
+    File.write(File.join(directory, "record.json"), JSON.pretty_generate(record))
+    [id, run_id]
+  end
+
   def completed_observation(root)
     experiment = Primus::Experiment.load(
       path: "spec/fixtures/experiments/page_57_valid.yml",
@@ -37,6 +90,24 @@ RSpec.describe "saved output analysis lifecycle" do
   end
 
   describe "analyses run" do
+    it "retains the independently specified rune and expanded-Latin IC ratios" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        id, run_id = independent_three_rune_observation(root)
+        definition = analysis_definition(directory)
+
+        command("run", id, run_id, "--definition", definition,
+                "--output-path", root)
+        record_path = Dir.glob(File.join(root, id, run_id, "analyses", "*",
+                                         "record.json")).fetch(0)
+        results = JSON.parse(File.binread(record_path)).fetch("results")
+
+        expect(results.map { |entry| entry.fetch("result").fetch("ic").values_at(
+          "numerator", "denominator", "value",
+        ) }).to eq([[2, 6, (1.0 / 3)], [4, 20, (1.0 / 5)]])
+      end
+    end
+
     it "prints separate final GP and expanded Latin measurements" do
       Dir.mktmpdir do |directory|
         root = File.join(directory, "runs")
