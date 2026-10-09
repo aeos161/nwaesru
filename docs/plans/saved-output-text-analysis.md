@@ -1,14 +1,17 @@
-# Saved-output rune frequencies and index of coincidence
+# Saved-output symbol frequencies and index of coincidence
 
 ## Goal
 
 Analyze an existing saved experiment observation without rerunning its recipe:
-retain rune frequencies and raw index of coincidence (IC) as an owned
-AnalysisResult, linked to the exact saved final output and decoded-rune
-provenance under a small explicit representation contract. Keep measurements independent of expectation assessments and make
-them reviewable without today's experiment definition, input file or hash backend.
+retain separate GP-rune and expanded-Latin frequency/IC AnalysisResults, linked
+to the exact saved final output and decoded-rune provenance under a small
+explicit representation contract. Keep measurements independent of expectation
+assessments and reviewable without today's definition, input or hash backend.
 
-This is step 1 only, proposed for review before a test-writer handoff. No
+This is step 1 only, approved for test-writer handoff after this update.
+Until formal v1, current experiment formats, drafts and runs are disposable:
+we may migrate or recreate them rather than build legacy compatibility. No
+current files or runs are deleted or migrated by this planning update. No
 page-55 analysis or new experiment execution is part of this planning task.
 
 ## Inspected baseline and design boundary
@@ -61,20 +64,28 @@ identify an unmerged prerequisite for this bounded feature.
 
   ```yaml
   schema_version: 1
-  id: final-rune-statistics
+  id: final-symbol-statistics
   analyses:
     - id: rune-statistics
-      analyzer: rune-statistics
+      analyzer: symbol-statistics
       version: 1
       target:
         stage: final
         representation: gp-runes-v1
+    - id: latin-letter-statistics
+      analyzer: symbol-statistics
+      version: 1
+      target:
+        stage: final
+        representation: gp-expanded-latin-v1
   ```
 
   Save the reusable definition at
-  `experiments/analyses/final-rune-statistics.yml` during implementation.
-  This first version accepts exactly one analysis entry and only the shown
-  analyzer/version/target; absent, duplicate or unknown keys, aliases, invalid
+  `experiments/analyses/final-symbol-statistics.yml` during implementation.
+  This first version accepts one or two entries: either supported
+  representation alone or both, with unique declaration IDs and at most one
+  entry per representation. Only the shown analyzer/version and final stage
+  are supported; absent, duplicate or unknown keys, aliases, invalid
   IDs, unsupported stages/representations and unexpected parameters fail
   validation. Use safe YAML loading and duplicate-key rejection. No implicit
   defaults that can change the meaning of a historical analysis.
@@ -82,7 +93,7 @@ identify an unmerged prerequisite for this bounded feature.
 
   ```sh
   bin/primus analyses run EXPERIMENT_ID RUN_ID \
-    --definition experiments/analyses/final-rune-statistics.yml
+    --definition experiments/analyses/final-symbol-statistics.yml
   bin/primus analyses review EXPERIMENT_ID RUN_ID
   bin/primus analyses review EXPERIMENT_ID RUN_ID ANALYSIS_RUN_ID
   ```
@@ -105,16 +116,21 @@ identify an unmerged prerequisite for this bounded feature.
   design still keeps completed observations and appended analyses immutable
   during normal operation; test-data cleanup is separate from analysis.
 
-### Explicit final-rune capture and verified reading
+### Explicit final-symbol capture and verified reading
 
 - Add a minimal versioned representation manifest when a new observation is
   saved. Reuse existing `provenance.json`; do not add a duplicate rune stream.
   Store it under `observation.representations.gp-runes-v1`, containing
   `schema_version: 1`, `stage: final`, `artifact: provenance.json`,
   `symbol_field: decoded_rune`, the ordered 29-rune alphabet, sample size,
-  and the SHA-256 of both `output.txt` and `provenance.json`. The existing
-  artifact entries continue to own paths, byte counts and checksums. The
-  manifest binds this exact final rune representation to its output bytes.
+  and the SHA-256 of both `output.txt` and `provenance.json`. Declare the
+  second profile at `observation.representations.gp-expanded-latin-v1` with
+  the same final provenance source and digests, alphabet `a` through `z`,
+  expanded sample size and an exact snapshot of the canonical GP-rune-to-Latin
+  expansion map. Both profiles are emitted for each new observation. Existing
+  artifact entries own paths, byte counts and checksums; no second stream or
+  stage artifact is needed. The manifests bind both representations to the
+  same final output/provenance pair.
 - The producer derives this manifest from the same final Observation that
   supplies output and provenance, with checksums of the bytes actually saved.
   Add one small capture collaborator/integration to existing persistence,
@@ -137,16 +153,30 @@ identify an unmerged prerequisite for this bounded feature.
   and symlink containment. Missing files, escaping paths, malformed metadata
   or mismatches fail closed. No fallback to live input or current presets.
 - Require the saved output policy `gp-latin-compatibility-v1` and exactly the
-  declared versioned GP alphabet. Parse provenance as an array of entries with
+  declared versioned alphabets/expansion map. Parse provenance as an array of entries with
   ordinal exactly `0...N`; each decoded rune is one declared GP symbol. Check
-  sample size, required source-coordinate fields and uniqueness of original
+  both sample sizes, required source-coordinate fields and uniqueness of original
   source identities. Missing/duplicate/out-of-order rows, invalid symbols and
   malformed JSON fail explicitly; duplicate JSON keys must not silently win.
-- Measure precisely the ordered `decoded_rune` entries. Exclude punctuation,
-  whitespace and non-GP literals; `th` or `ing` counts as one GP rune.
-  Original `rune` and coordinates retain provenance, not a second measurement
-  input. The consumer does not re-parse a source body, execute a recipe,
-  reconstruct output, or infer runes by tokenizing rendered Latin.
+- `gp-runes-v1` measures ordered `decoded_rune` entries: a digraph rune is
+  one sample symbol. `gp-expanded-latin-v1` expands those same decoded runes
+  using the captured canonical map, concatenates expansions and counts their
+  individual lowercase ASCII letters. Validate each saved `latin` field
+  against that map; reject contradictions rather than silently choosing one.
+- Latin selection is specifically **letters expanded from decoded GP tokens**,
+  not every ASCII letter in `output.txt`. Both profiles exclude whitespace,
+  punctuation and non-GP passthrough literals by construction, including the
+  page-56 hexadecimal block. Literal-output-letter analysis is deferred and
+  must have a different representation name if added later.
+- Inspection of `data/gematria_primus.yml` confirms canonical expansions
+  `th`, `eo`, `ng`, `oe`, `ae`, `io`, `ea`; alternatives such as `ing`, `ia`,
+  `v`, `k` and `z` are not selected. Preserve canonical `u`, `c`, `s`, `ng`
+  and `io`; no English normalization, alternative spelling substitution or
+  extra case conversion is applied. The Latin alphabet has all 26 `a`–`z`
+  bins, including letters the canonical map cannot produce.
+- Original `rune` and coordinates retain provenance, not a second measurement
+  input. The consumer does not re-parse source text, execute a recipe,
+  reconstruct output or infer GP runes by tokenizing rendered Latin.
 - Load and hash the same bytes that are measured. Producer integration tests
   establish semantic correspondence; the reader verifies the declared saved
   contract and byte identity. This is local evidence consistency, not a proof
@@ -154,20 +184,25 @@ identify an unmerged prerequisite for this bounded feature.
 
 ### Measurements and owned result
 
-- A single `RuneStatistics` analyzer produces one owned immutable
-  `AnalysisResult` containing both measurements from one histogram. This is
-  a cohesive unigram summary, not two independent passes or a plugin registry.
-  It is neither an Assessment nor model validation.
-- Return all 29 GP symbols in canonical GP index order, with index, rune,
-  integer count and relative frequency `count / N`; record sample size `N`
-  and the number of distinct observed symbols. Counts sum to `N`; for `N>0`
-  proportions sum to one within documented display precision.
+- A single `SymbolStatistics` analyzer operates on either declared symbol
+  sequence/alphabet and produces one owned immutable AnalysisResult per
+  declaration. Each result contains frequencies and raw IC from its own
+  histogram, labeled with declaration ID, representation and alphabet size.
+  Two requested representations produce two separate results in declaration
+  order, not a blended histogram. No arbitrary alphabet/plugin framework is
+  needed. AnalysisResult is neither an Assessment nor model validation.
+- Return every symbol in its declared alphabet order (29 GP runes or 26
+  lowercase ASCII letters), with index, symbol, integer count and relative
+  frequency `count / N`. Record each representation's own sample size `N`
+  and distinct observed count. Counts sum to that `N`; for `N>0` proportions
+  sum to one within documented display precision.
 - Raw IC is `sum(count * (count - 1)) / (N * (N - 1))`. Store its exact
   integer numerator and denominator and a numeric value for `N >= 2`,
   explicitly labeled `normalization: none`. This counts ordered matching
   pairs among all ordered pairs of distinct sample positions. Do not multiply
-  by 29 or compare to a 26-letter English benchmark.
-- For `N=0`, retain 29 zero counts, zero distinct symbols and null proportions
+  by either alphabet size or compare either result to an English benchmark.
+- For `N=0`, retain all declared alphabet bins with zero counts, zero distinct
+  symbols and null proportions
   (relative frequency is undefined). For `N<2`, IC has
   `status: insufficient_sample`, numerator/denominator `0/0`, and null value.
   For `N=1`, its observed frequency is one and other frequencies zero.
@@ -176,7 +211,8 @@ identify an unmerged prerequisite for this bounded feature.
 - No threshold, match/mismatch, pass/fail, likelihood, ranking, inferred
   language, key length or plaintext claim is attached to the statistic.
   Analytical execution success and historical expectation outcomes stay
-  distinct in output and storage.
+  distinct in output and storage. A larger rune or Latin IC is not labeled
+  better, and the two sample spaces are never treated as interchangeable.
 
 ### Persistence and historical review
 
@@ -186,9 +222,10 @@ identify an unmerged prerequisite for this bounded feature.
   records, completion summary, matching outcome or prior analyses. Discover
   analysis records by bounded directory lookup, not a mutable parent index.
 - Persist analysis schema/version, ID, exact definition digest/configuration,
-  analyzer name/version, stage/representation, exclusion rules, observation
-  pair, output/provenance digests and byte lengths, representation manifest, saved policy,
-  source run-record digest, alphabet/representation identity, result, execution
+  an ordered results array with declaration ID on each entry, each analyzer
+  name/version, stage/representation, exclusion rules, alphabet cardinality/map,
+  and owned result. Retain observation pair, output/provenance digests and byte
+  lengths, manifests, saved policy, source run-record digest, execution
   timestamps, code revision and code-clean flag, and Ruby version. Record
   `status: completed` for a successful measurement; errors are execution
   errors, never scientific mismatches.
@@ -207,8 +244,9 @@ identify an unmerged prerequisite for this bounded feature.
   observation artifacts later disappear. Label saved measurement evidence;
   review is not a fresh assertion that source artifacts are still intact.
 - CLI execution prints observation/analysis IDs, stage, representation,
-  sample size, the 29-symbol frequency table, raw IC (or insufficient sample)
-  and a copyable review command. Review shows the same retained scientific
+  then each declaration ID, representation, alphabet size, sample size,
+  complete frequency table and raw IC (or insufficient sample), followed by
+  a copyable review command. Review shows the same retained scientific
   fields plus execution/provenance identity. Nonzero status means command or
   persistence failure, not an uninteresting IC or historical hash mismatch.
 
@@ -219,12 +257,12 @@ Likely files; names express responsibilities, not a mandate for extra layers:
 | Area | Change |
 | --- | --- |
 | `lib/primus/analysis/definition.rb` | Safe loading and validation of the standalone analyses list; no dependency on Experiment file validation. |
-| `lib/primus/experiment/final_rune_manifest.rb`, small `store.rb` integration | Declare the final GP representation from the Observation and saved artifact checksums. No recipe or intermediate-stage changes. |
+| `lib/primus/experiment/final_symbol_manifest.rb`, small `store.rb` integration | Declare both final symbol representations from the Observation and saved artifact checksums. No recipe or intermediate-stage changes. |
 | `lib/primus/analysis/saved_observation.rb` | Verify the explicit representation manifest and saved artifacts; no legacy compatibility adapter. |
-| `lib/primus/analysis/rune_statistics.rb`, `result.rb` | Histogram/raw IC query and owned immutable scientific result, including the insufficient-sample state. |
+| `lib/primus/analysis/symbol_statistics.rb`, `result.rb` | Histogram/raw IC query and owned immutable scientific result, including the insufficient-sample state. |
 | `lib/primus/analysis/runner.rb`, `store.rb` | Execute against verified evidence; append/finalize analysis records and query historical results. No dependency on Experiment::Runner or Evaluator. |
 | `lib/primus/commands/analyses.rb`, `bin/primus`, `lib/primus.rb` | Thin CLI and registration/requires; own formatting in a presenter if it would otherwise mix with orchestration. |
-| `experiments/analyses/final-rune-statistics.yml`, `README.md` | Supported declaration, distinction from checks, commands and precise symbol/IC contract. |
+| `experiments/analyses/final-symbol-statistics.yml`, `README.md` | Supported declaration, distinction from checks, commands and precise symbol/IC contract. |
 
 Use ActiveModel for the new definition if consistent with the existing
 configuration boundary; do not introduce Rails dependencies or gems. A pure
@@ -241,7 +279,7 @@ than a generic registry or delegation-only object graph. Leave the legacy IC
 API intact. Keep the recipe format unchanged for this step; future draft/run
 migration is allowed rather than a compatibility obligation.
 
-### Test-first handoff after plan review
+### Test-first handoff
 
 1. Start with a CLI feature using a small, independently specified saved run
    in a temporary root: analyze, append, review after removal/change of current
@@ -257,14 +295,21 @@ migration is allowed rather than a compatibility obligation.
 3. Pin arithmetic with literal samples: `ᚠᚠᚢᚢ` has counts 2/2, numerator 4,
    denominator 12 and IC 1/3; all identical has IC 1; all distinct has IC 0.
    Cover zero/one symbols, explicit zero bins, proportions, and a multi-letter
-   GP rune counted once. The empty-source fixture is a supported synthetic
+   GP rune counted once. For the same saved `ᚦᚪᚦ` sequence (TH A TH), rune
+   counts are TH=2/A=1, N=3 and IC=2/6=1/3; expanded `thath` has t=2/h=2/a=1,
+   N=5 and IC=4/20=1/5. Assert both exact ratios, distinct counts, proportions,
+   and all 29/26 bins using literal expectations. Include canonical `ᛝ` ->
+   `ng`, not alternate `ing`, and retain zero Latin bins such as `v` and `z`.
+   The empty-source fixture is a supported synthetic
    saved record, even though normal experiment validation requires GP input.
 4. Add narrowly focused page-56/page-57 saved-output integration regressions
    generated in temporary stores through existing controls with the new capture
    manifest. Pin producer output/provenance against literal expected examples,
    including original versus decoded rune, preserved source mapping, Latin
-   expansion, GP-only sample size and exclusion of the hexadecimal block. Do not use guessed plaintext statistics or English
-   thresholds as expected results; do not touch local page-55 runs.
+   expansion, both sample sizes and exclusion of hexadecimal passthrough from
+   both profiles. Cover each representation alone, both together, declaration
+   order and duplicate/unsupported declaration rejection. Do not use guessed
+   plaintext statistics or English thresholds; do not touch local page-55 runs.
 5. Cover append-only history, replay independence, historical hash-error output
    eligibility, concurrent unique IDs, incomplete/error records, and failure to
    persist. Test observable behavior at one appropriate level. Use literal
@@ -298,7 +343,7 @@ migration is allowed rather than a compatibility obligation.
 ## Out of scope
 
 New transformation YAML execution, recipe migration, arbitrary chains,
-intermediate stage capture (the final-rune manifest is in scope),
+intermediate stage capture (the two final representation manifests are in scope),
 original-input analysis, stage/window selection,
 synthetic layered controls, additional analyzers, n-grams, normalized IC,
 reference-language models, significance testing, rankings, automated search,
@@ -317,10 +362,8 @@ then-current implementation. The separated `analyses` declaration and explicit
 No blocking requirement ambiguity remains. The tradeoff is explicit: a small
 producer capture change replaces backward-compatibility/reconstruction work,
 and current test observations must be recreated before the new reader accepts
-them. No data cleanup has happened. Proposed review choices are one
-combined rune-statistics result and the separate `analyses run/review` command
-family, which keeps measurement ownership clear and avoids expanding the
-existing experiment command. If a nested experiments command is preferred,
-settle that spelling before test-writer handoff; it does not change the domain
-contract. Broader transformation syntax and analysis windows intentionally need
-later design, not provisional working syntax here.
+them. No data cleanup has happened. Use separate rune and expanded-Latin
+results through the `analyses run/review` command family. The Latin selection
+choice is explicit: canonical GP expansions only, not literal output letters.
+The user has requested the test-writer handoff after this plan update. Broader
+transformation syntax and analysis windows need later design.
