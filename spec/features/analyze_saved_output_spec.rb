@@ -170,6 +170,38 @@ RSpec.describe "saved output analysis lifecycle" do
       end
     end
 
+    it "creates distinct analysis records for simultaneous invocations" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        id, run_id = independent_three_rune_observation(root)
+        definition = analysis_definition(directory)
+        arguments = ["run", id, run_id, "--definition", definition,
+                     "--output-path", root]
+
+        statuses = Array.new(2) { Thread.new { command(*arguments).last } }.
+                   map { |thread| thread.value.success? }
+        records = Dir.glob(File.join(root, id, run_id, "analyses", "*",
+                                     "record.json"))
+
+        expect([statuses, records.size]).to eq([[true, true], 2])
+      end
+    end
+
+    it "reports an analysis persistence failure as an execution error" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        id, run_id = independent_three_rune_observation(root)
+        definition = analysis_definition(directory)
+        File.write(File.join(root, id, run_id, "analyses"), "not a directory")
+
+        _stdout, stderr, status = command("run", id, run_id,
+                                           "--definition", definition,
+                                           "--output-path", root)
+
+        expect([status.success?, stderr]).to match([false, /persist|write|director|file exists/i])
+      end
+    end
+
     it "rejects duplicate analysis declaration IDs before reserving a result" do
       Dir.mktmpdir do |directory|
         root = File.join(directory, "runs")
@@ -614,6 +646,24 @@ RSpec.describe "saved output analysis lifecycle" do
         expect([status.success?, stdout]).to match([true, a_string_including(
           "gp-runes-v1", "gp-expanded-latin-v1", "raw IC",
         )])
+      end
+    end
+
+    it "reports a corrupt retained analysis record explicitly" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        id, run_id = independent_three_rune_observation(root)
+        definition = analysis_definition(directory)
+        command("run", id, run_id, "--definition", definition,
+                "--output-path", root)
+        record_path = Dir.glob(File.join(root, id, run_id, "analyses", "*",
+                                         "record.json")).fetch(0)
+        File.write(record_path, "{broken")
+
+        _stdout, stderr, status = command("review", id, run_id,
+                                           "--output-path", root)
+
+        expect([status.success?, stderr]).to match([false, /record|json|parse/i])
       end
     end
   end
