@@ -14,7 +14,8 @@ class Primus::Analysis::SavedObservation
     @experiment_id, @run_id = experiment_id, run_id
     raise Error, "invalid experiment ID" unless ID.match?(experiment_id)
     raise Error, "invalid run ID" unless RUN_ID.match?(run_id)
-    @directory = File.realpath(File.join(output_path, experiment_id, run_id))
+    @recorded_directory = File.expand_path(File.join(output_path, experiment_id, run_id))
+    @directory = File.realpath(@recorded_directory)
     @record_bytes = File.binread(File.join(@directory, "record.json"))
     @record = Primus::Analysis::StrictData.json(@record_bytes)
     validate_record!
@@ -49,9 +50,9 @@ class Primus::Analysis::SavedObservation
   def artifact_bytes(name)
     metadata = record.fetch("artifacts").fetch(name)
     path = File.expand_path(metadata.fetch("path"))
-    expected = File.join(directory, name)
+    expected = File.join(@recorded_directory, name)
     raise Error, "#{name} path mismatch" unless path == expected
-    raise Error, "#{name} symlink escapes run" unless File.realpath(path) == expected
+    raise Error, "#{name} symlink escapes run" unless File.realpath(path) == File.join(directory, name)
     bytes = File.binread(path)
     raise Error, "#{name} byte count mismatch" unless metadata["bytes"] == bytes.bytesize
     raise Error, "#{name} SHA-256 mismatch" unless metadata["sha256"] == Digest::SHA256.hexdigest(bytes)
