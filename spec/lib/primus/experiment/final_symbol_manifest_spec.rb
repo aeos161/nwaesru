@@ -67,6 +67,20 @@ RSpec.describe Primus::Experiment::Runner do
       end
     end
 
+    it "snapshots the canonical GP expansion choices" do
+      Dir.mktmpdir do |output_path|
+        record = saved_run("spec/fixtures/experiments/page_57_valid.yml",
+                           output_path)
+
+        map = record.fetch("observation").fetch("representations").
+              fetch("gp-expanded-latin-v1").fetch("expansion_map")
+
+        expect(map.values_at("ᚢ", "ᚳ", "ᛋ", "ᚦ", "ᛝ", "ᛡ", "ᚫ", "ᛠ")).to eq(
+          %w[u c s th ng io ae ea],
+        )
+      end
+    end
+
     it "keeps original and decoded page-56 runes distinct in saved provenance" do
       Dir.mktmpdir do |output_path|
         record = saved_run("spec/fixtures/experiments/page_56_totient_controls.yml",
@@ -99,6 +113,18 @@ RSpec.describe Primus::Experiment::Runner do
                                    "artifact" => "provenance.json",
                                    "symbol_field" => "decoded_rune",
                                    "sample_size" => 85)
+      end
+    end
+
+    it "excludes the page-56 hexadecimal passthrough from Latin sample size" do
+      Dir.mktmpdir do |output_path|
+        record = saved_run("spec/fixtures/experiments/page_56_totient_controls.yml",
+                           output_path)
+
+        profile = record.fetch("observation").fetch("representations").
+                  fetch("gp-expanded-latin-v1")
+
+        expect(profile.fetch("sample_size")).to eq(91)
       end
     end
   end
