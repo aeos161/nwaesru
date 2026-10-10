@@ -20,6 +20,9 @@ module Primus
     desc "experiments", "validate, run, and review saved experiments"
     subcommand "experiments", Primus::Commands::Experiments
 
+    desc "analyses", "run and review saved output statistics"
+    subcommand "analyses", Primus::Commands::Analyses
+
     desc "words", "work with words"
     subcommand "words", Primus::Commands::Words
 
