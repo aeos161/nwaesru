@@ -1,3 +1,5 @@
+require "shellwords"
+
 class Primus::Commands::Analyses < Primus::Commands::SubCommandBase
   desc "run EXPERIMENT_ID RUN_ID", "analyze a saved final output"
   map "run" => :execute
@@ -13,7 +15,9 @@ class Primus::Commands::Analyses < Primus::Commands::SubCommandBase
                                           observation: observation)
     runner.run
     show(runner.record)
-    say "review: bin/primus analyses review #{experiment_id} #{run_id} #{runner.record.fetch('analysis_run_id')} --output-path #{options[:output_path]}"
+    say "review: #{Shellwords.join(['bin/primus', 'analyses', 'review', experiment_id,
+                                    run_id, runner.record.fetch('analysis_run_id'),
+                                    '--output-path', options[:output_path]])}"
   rescue Primus::Analysis::Definition::Error, Primus::Analysis::SavedObservation::Error,
          Primus::Analysis::Store::Error => error
     raise Thor::Error, "analysis run: #{error.message}"
@@ -24,6 +28,8 @@ class Primus::Commands::Analyses < Primus::Commands::SubCommandBase
   def review(experiment_id, run_id, analysis_run_id = nil)
     validate_identity!(experiment_id, run_id, analysis_run_id)
     directory = File.realpath(File.join(options[:output_path], experiment_id, run_id))
+    root = File.realpath(options[:output_path])
+    raise Thor::Error, "selected run escapes output root" unless directory.start_with?("#{root}/")
     store = Primus::Analysis::Store.new(directory: directory)
     store.review(analysis_run_id).each do |record|
       raise Thor::Error, "analysis observation identity mismatch" unless record.values_at("experiment_id", "run_id") == [experiment_id, run_id]
@@ -48,6 +54,9 @@ class Primus::Commands::Analyses < Primus::Commands::SubCommandBase
   def show(record)
     say "experiment ID: #{record.fetch('experiment_id')} run ID: #{record.fetch('run_id')} analysis ID: #{record.fetch('analysis_run_id')}"
     say "status: #{record.fetch('status')}"
+    say "saved output SHA-256: #{record.dig('observation_output', 'sha256')} provenance SHA-256: #{record.dig('observation_provenance', 'sha256')}"
+    say "definition SHA-256: #{record.fetch('definition_sha256')} code: #{record['git_head']} Ruby: #{record['ruby_version']}"
+    say "started: #{record['started_at']} completed: #{record['completed_at']}"
     record.fetch("results").each { |entry| show_result(entry) }
   end
 

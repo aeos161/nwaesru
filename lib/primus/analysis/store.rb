@@ -48,14 +48,18 @@ class Primus::Analysis::Store
   def read(path)
     raise Error, "invalid analysis run ID" unless Primus::Analysis::SavedObservation::RUN_ID.match?(File.basename(path))
     raise Error, "analysis path escapes run" unless File.realpath(path) == path
-    record = Primus::Analysis::StrictData.json(File.binread(File.join(path, "record.json")))
-    definition = File.binread(File.join(path, "definition.yml"))
-    raise Error, "analysis schema version" unless record["schema_version"] == 1
+    record_path = File.join(path, "record.json")
+    raise Error, "analysis record path escapes run" unless File.realpath(record_path) == record_path
+    record = Primus::Analysis::StrictData.json(File.binread(record_path))
+    definition_path = File.join(path, "definition.yml")
+    raise Error, "analysis definition path escapes run" unless File.realpath(definition_path) == definition_path
+    definition = File.binread(definition_path)
+    Primus::Analysis::RetainedRecord.new(record).validate!
     raise Error, "analysis identity mismatch" unless record["analysis_run_id"] == File.basename(path)
     raise Error, "definition digest mismatch" unless record["definition_sha256"] == Digest::SHA256.hexdigest(definition)
-    raise Error, "malformed analysis results" unless record["results"].is_a?(Array)
     record
-  rescue SystemCallError, Primus::Analysis::StrictData::Error => error
+  rescue SystemCallError, Primus::Analysis::StrictData::Error,
+         Primus::Analysis::RetainedRecord::Error => error
     raise Error, "analysis record: #{error.message}"
   end
 end

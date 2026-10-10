@@ -21,7 +21,7 @@ class Primus::Analysis::Definition
   def validate!
     fields!(data, %w[schema_version id analyses])
     raise Error, "schema version must be 1" unless data["schema_version"] == 1
-    raise Error, "invalid analysis ID" unless ID.match?(data["id"].to_s)
+    raise Error, "invalid analysis ID" unless data["id"].is_a?(String) && ID.match?(data["id"])
     validate_declarations!
   end
 
@@ -35,7 +35,7 @@ class Primus::Analysis::Definition
 
   def validate_entry!(entry)
     fields!(entry, %w[id analyzer version target])
-    raise Error, "invalid declaration id" unless ID.match?(entry["id"].to_s)
+    raise Error, "invalid declaration id" unless entry["id"].is_a?(String) && ID.match?(entry["id"])
     raise Error, "unsupported analyzer/version" unless entry["analyzer"] == "symbol-statistics" && entry["version"] == 1
     fields!(entry["target"], %w[stage representation])
     raise Error, "unsupported stage" unless entry["target"]["stage"] == "final"

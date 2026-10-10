@@ -16,7 +16,11 @@ class Primus::Analysis::SavedObservation
     raise Error, "invalid run ID" unless RUN_ID.match?(run_id)
     @recorded_directory = File.expand_path(File.join(output_path, experiment_id, run_id))
     @directory = File.realpath(@recorded_directory)
-    @record_bytes = File.binread(File.join(@directory, "record.json"))
+    root = File.realpath(output_path)
+    raise Error, "selected run escapes output root" unless @directory.start_with?("#{root}/")
+    record_path = File.join(@directory, "record.json")
+    raise Error, "record path escapes run" unless File.realpath(record_path) == record_path
+    @record_bytes = File.binread(record_path)
     @record = Primus::Analysis::StrictData.json(@record_bytes)
     validate_record!
     @output_bytes = artifact_bytes("output.txt")
