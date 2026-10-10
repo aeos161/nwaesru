@@ -54,7 +54,7 @@ class Primus::Analysis::SavedObservation
     raise Error, "#{name} path mismatch" unless path == expected
     raise Error, "#{name} symlink escapes run" unless File.realpath(path) == File.join(directory, name)
     bytes = File.binread(path)
-    raise Error, "#{name} byte count mismatch" unless metadata["bytes"] == bytes.bytesize
+    raise Error, "#{name} bytes mismatch" unless metadata["bytes"] == bytes.bytesize
     raise Error, "#{name} SHA-256 mismatch" unless metadata["sha256"] == Digest::SHA256.hexdigest(bytes)
     bytes
   end
