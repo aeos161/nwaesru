@@ -8,14 +8,12 @@ RSpec.describe "saved output analysis lifecycle" do
   GP_ALPHABET = %w[ᚠ ᚢ ᚦ ᚩ ᚱ ᚳ ᚷ ᚹ ᚻ ᚾ ᛁ ᛄ ᛇ ᛈ ᛉ ᛋ ᛏ ᛒ ᛖ ᛗ ᛚ ᛝ ᛟ ᛞ ᚪ ᚫ ᚣ ᛡ ᛠ].freeze
   GP_EXPANSIONS = %w[f u th o r c g w h n i j eo p x s t b e m l ng oe d a ae y io ea].freeze
 
-  def independent_three_rune_observation(root)
+  def independent_three_rune_observation(root, runes: %w[ᚦ ᚪ ᚦ],
+                                         letters: %w[th a th], output: "thath")
     id = "tiny-final"
     run_id = "20261009T000000-000000000001"
     directory = File.join(root, id, run_id)
     FileUtils.mkdir_p(directory)
-    output = "thath"
-    runes = %w[ᚦ ᚪ ᚦ]
-    letters = %w[th a th]
     rows = runes.each_with_index.map do |rune, index|
       { "ordinal" => index, "rune" => rune, "decoded_rune" => rune,
         "latin" => letters.fetch(index), "page_number" => 57,
@@ -34,9 +32,10 @@ RSpec.describe "saved output analysis lifecycle" do
                "output_sha256" => output_digest,
                "provenance_sha256" => provenance_digest }
     profiles = {
-      "gp-runes-v1" => common.merge("alphabet" => GP_ALPHABET, "sample_size" => 3),
+      "gp-runes-v1" => common.merge("alphabet" => GP_ALPHABET,
+                                    "sample_size" => runes.size),
       "gp-expanded-latin-v1" => common.merge(
-        "alphabet" => ("a".."z").to_a, "sample_size" => 5,
+        "alphabet" => ("a".."z").to_a, "sample_size" => letters.join.length,
         "expansion_map" => GP_ALPHABET.zip(GP_EXPANSIONS).to_h,
       ),
     }
@@ -44,10 +43,11 @@ RSpec.describe "saved output analysis lifecycle" do
       "schema_version" => 2, "experiment_id" => id, "run_id" => run_id,
       "status" => "completed", "completed_at" => "2026-10-09T00:00:00Z",
       "configuration" => { "output" => { "policy" => "gp-latin-compatibility-v1" } },
-      "observation" => { "output_bytes" => 5, "representations" => profiles },
+      "observation" => { "output_bytes" => output.bytesize,
+                         "representations" => profiles },
       "artifacts" => {
         "output.txt" => { "path" => File.join(directory, "output.txt"),
-                          "bytes" => 5, "sha256" => output_digest },
+                          "bytes" => output.bytesize, "sha256" => output_digest },
         "provenance.json" => { "path" => File.join(directory, "provenance.json"),
                                "bytes" => provenance.bytesize,
                                "sha256" => provenance_digest },
@@ -388,6 +388,27 @@ RSpec.describe "saved output analysis lifecycle" do
       end
     end
 
+    it "retains an empty synthetic observation with insufficient IC" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        id, run_id = independent_three_rune_observation(root,
+                                                         runes: [], letters: [],
+                                                         output: "")
+        definition = analysis_definition(directory)
+
+        command("run", id, run_id, "--definition", definition,
+                "--output-path", root)
+        record_path = Dir.glob(File.join(root, id, run_id, "analyses", "*",
+                                         "record.json")).fetch(0)
+        results = JSON.parse(File.binread(record_path)).fetch("results")
+
+        expect(results.map { |entry| entry.fetch("result").fetch("ic") }).to all(
+          include("status" => "insufficient_sample", "numerator" => 0,
+                  "denominator" => 0, "value" => nil),
+        )
+      end
+    end
+
     it "measures an intact final output after a historical hash error" do
       Dir.mktmpdir do |directory|
         root = File.join(directory, "runs")
@@ -460,6 +481,98 @@ RSpec.describe "saved output analysis lifecycle" do
                                            "--output-path", root)
 
         expect([status.success?, stderr]).to match([false, /source|identity|rune_index/i])
+      end
+    end
+
+    it "rejects a decoded symbol outside the declared GP alphabet" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        id, run_id = independent_three_rune_observation(root)
+        definition = analysis_definition(directory)
+        _path, record = observation_record(root, run_id, id: id)
+        provenance_path = record.fetch("artifacts").fetch("provenance.json").fetch("path")
+        rows = JSON.parse(File.binread(provenance_path))
+        rows.first["decoded_rune"] = "?"
+        replace_provenance(root, id, run_id, rows)
+
+        _stdout, stderr, status = command("run", id, run_id,
+                                           "--definition", definition,
+                                           "--output-path", root)
+
+        expect([status.success?, stderr]).to match([false, /decoded|symbol|alphabet/i])
+      end
+    end
+
+    it "rejects an unsupported saved output policy" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        id, run_id = independent_three_rune_observation(root)
+        definition = analysis_definition(directory)
+        path, record = observation_record(root, run_id, id: id)
+        record.fetch("configuration").fetch("output")["policy"] = "other-policy"
+        File.write(path, JSON.pretty_generate(record))
+
+        _stdout, stderr, status = command("run", id, run_id,
+                                           "--definition", definition,
+                                           "--output-path", root)
+
+        expect([status.success?, stderr]).to match([false, /policy/i])
+      end
+    end
+
+    it "rejects an unsupported representation manifest version" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        id, run_id = independent_three_rune_observation(root)
+        definition = analysis_definition(directory)
+        path, record = observation_record(root, run_id, id: id)
+        record.fetch("observation").fetch("representations").
+          fetch("gp-runes-v1")["schema_version"] = 2
+        File.write(path, JSON.pretty_generate(record))
+
+        _stdout, stderr, status = command("run", id, run_id,
+                                           "--definition", definition,
+                                           "--output-path", root)
+
+        expect([status.success?, stderr]).to match([false, /version|schema/i])
+      end
+    end
+
+    it "rejects duplicate keys in a saved run record" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        id, run_id = independent_three_rune_observation(root)
+        definition = analysis_definition(directory)
+        path, _record = observation_record(root, run_id, id: id)
+        bytes = File.binread(path)
+        File.binwrite(path, bytes.sub('"status": "completed",',
+                                      '"status": "completed", "status": "running",'))
+
+        _stdout, stderr, status = command("run", id, run_id,
+                                           "--definition", definition,
+                                           "--output-path", root)
+
+        expect([status.success?, stderr]).to match([false, /duplicate.*status/i])
+      end
+    end
+
+    it "rejects a saved artifact symlink escaping its run directory" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        id, run_id = independent_three_rune_observation(root)
+        definition = analysis_definition(directory)
+        _path, record = observation_record(root, run_id, id: id)
+        output = record.fetch("artifacts").fetch("output.txt").fetch("path")
+        outside = File.join(directory, "outside.txt")
+        File.binwrite(outside, File.binread(output))
+        File.delete(output)
+        File.symlink(outside, output)
+
+        _stdout, stderr, status = command("run", id, run_id,
+                                           "--definition", definition,
+                                           "--output-path", root)
+
+        expect([status.success?, stderr]).to match([false, /symlink|escap|path/i])
       end
     end
   end

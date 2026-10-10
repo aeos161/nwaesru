@@ -111,6 +111,17 @@ RSpec.describe "Primus::Analysis::SymbolStatistics" do
       )
     end
 
+    it "marks a one-symbol sample insufficient without serializing NaN" do
+      symbols = %w[ᚦ]
+
+      result = statistics(symbols, GP_ALPHABET, "gp-runes-v1")
+
+      expect(result.fetch("ic")).to include(
+        "status" => "insufficient_sample", "numerator" => 0,
+        "denominator" => 0, "value" => nil,
+      )
+    end
+
     it "does not attach a language or pass/fail judgment" do
       symbols = %w[ᚠ ᚠ]
 
