@@ -84,9 +84,22 @@ RSpec.describe "saved output analysis lifecycle" do
     Open3.capture3("bin/primus", "analyses", *arguments)
   end
 
-  def observation_record(root, run_id)
-    path = File.join(root, "page-57-latin", run_id, "record.json")
+  def observation_record(root, run_id, id: "page-57-latin")
+    path = File.join(root, id, run_id, "record.json")
     [path, JSON.parse(File.binread(path))]
+  end
+
+  def replace_provenance(root, id, run_id, rows)
+    path, record = observation_record(root, run_id, id: id)
+    artifact = record.fetch("artifacts").fetch("provenance.json")
+    bytes = JSON.pretty_generate(rows)
+    File.binwrite(artifact.fetch("path"), bytes)
+    artifact["bytes"] = bytes.bytesize
+    artifact["sha256"] = Digest::SHA256.hexdigest(bytes)
+    record.fetch("observation").fetch("representations").each_value do |profile|
+      profile["provenance_sha256"] = artifact.fetch("sha256")
+    end
+    File.write(path, JSON.pretty_generate(record))
   end
 
   describe "analyses run" do
@@ -334,6 +347,119 @@ RSpec.describe "saved output analysis lifecycle" do
                                            "--output-path", root)
 
         expect([status.success?, stderr]).to match([false, /ordinal/i])
+      end
+    end
+
+    it "runs a single Latin declaration without creating a rune result" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        id, run_id = independent_three_rune_observation(root)
+        definition = analysis_definition(directory,
+                                         representations: ["gp-expanded-latin-v1"])
+
+        command("run", id, run_id, "--definition", definition,
+                "--output-path", root)
+        record_path = Dir.glob(File.join(root, id, run_id, "analyses", "*",
+                                         "record.json")).fetch(0)
+        results = JSON.parse(File.binread(record_path)).fetch("results")
+
+        expect(results.map { |entry| entry.fetch("representation") }).to eq(
+          ["gp-expanded-latin-v1"],
+        )
+      end
+    end
+
+    it "retains declaration order when Latin precedes runes" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        id, run_id = independent_three_rune_observation(root)
+        definition = analysis_definition(directory,
+                                         representations: %w[gp-expanded-latin-v1 gp-runes-v1])
+
+        command("run", id, run_id, "--definition", definition,
+                "--output-path", root)
+        record_path = Dir.glob(File.join(root, id, run_id, "analyses", "*",
+                                         "record.json")).fetch(0)
+        results = JSON.parse(File.binread(record_path)).fetch("results")
+
+        expect(results.map { |entry| entry.fetch("representation") }).to eq(
+          %w[gp-expanded-latin-v1 gp-runes-v1],
+        )
+      end
+    end
+
+    it "measures an intact final output after a historical hash error" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        id, run_id = independent_three_rune_observation(root)
+        definition = analysis_definition(directory)
+        path, record = observation_record(root, run_id, id: id)
+        record["status"] = "error"
+        record["comparison"] = "not_checked"
+        record["errors"] = [{ "stage" => "assessment", "message" => "backend unavailable" }]
+        File.write(path, JSON.pretty_generate(record))
+
+        _stdout, _stderr, status = command("run", id, run_id,
+                                           "--definition", definition,
+                                           "--output-path", root)
+
+        expect(status).to be_success
+      end
+    end
+
+    it "rejects an unfinished observation" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        id, run_id = independent_three_rune_observation(root)
+        definition = analysis_definition(directory)
+        path, record = observation_record(root, run_id, id: id)
+        record["status"] = "running"
+        record["completed_at"] = nil
+        File.write(path, JSON.pretty_generate(record))
+
+        _stdout, stderr, status = command("run", id, run_id,
+                                           "--definition", definition,
+                                           "--output-path", root)
+
+        expect([status.success?, stderr]).to match([false, /running|unfinished|incomplete/i])
+      end
+    end
+
+    it "rejects a saved Latin expansion that contradicts the canonical map" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        id, run_id = independent_three_rune_observation(root)
+        definition = analysis_definition(directory)
+        _path, record = observation_record(root, run_id, id: id)
+        provenance_path = record.fetch("artifacts").fetch("provenance.json").fetch("path")
+        rows = JSON.parse(File.binread(provenance_path))
+        rows.first["latin"] = "ing"
+        replace_provenance(root, id, run_id, rows)
+
+        _stdout, stderr, status = command("run", id, run_id,
+                                           "--definition", definition,
+                                           "--output-path", root)
+
+        expect([status.success?, stderr]).to match([false, /latin|expansion/i])
+      end
+    end
+
+    it "rejects repeated original source identities after checksum repair" do
+      Dir.mktmpdir do |directory|
+        root = File.join(directory, "runs")
+        id, run_id = independent_three_rune_observation(root)
+        definition = analysis_definition(directory)
+        _path, record = observation_record(root, run_id, id: id)
+        provenance_path = record.fetch("artifacts").fetch("provenance.json").fetch("path")
+        rows = JSON.parse(File.binread(provenance_path))
+        rows[1]["rune_index"] = 0
+        replace_provenance(root, id, run_id, rows)
+
+        _stdout, stderr, status = command("run", id, run_id,
+                                           "--definition", definition,
+                                           "--output-path", root)
+
+        expect([status.success?, stderr]).to match([false, /source|identity|rune_index/i])
       end
     end
   end
