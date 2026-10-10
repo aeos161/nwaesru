@@ -226,7 +226,17 @@ class Primus::Experiment::Store
       snapshot(data, directory, "provenance.json",
                JSON.pretty_generate(observation.provenance))
     end
+    if observation
+      data["observation"] = observation_data(observation, entry)
+    end
     atomic_record(directory, data)
+  end
+
+  def observation_data(observation, entry)
+    { "output_bytes" => observation.output_bytes.bytesize,
+      "representations" => Primus::Experiment::FinalSymbolManifest.new(
+        observation: observation, artifacts: entry.data.fetch("artifacts"),
+      ).to_h }
   end
 
   def snapshot(data, directory, name, bytes)
