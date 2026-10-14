@@ -1,0 +1,122 @@
+require "digest"
+
+class Primus::Analysis::ObservationReader
+  class Error < StandardError; end
+  COORDINATES = %w[page_number occurrence byte_start byte_end character_start
+                   character_end line column rune_index].freeze
+
+  def initialize(output_path:, experiment_id:, run_id:)
+    @output_path, @experiment_id, @run_id = output_path, experiment_id, run_id
+  end
+
+  def to_observation
+    raise Error, "invalid experiment ID" unless Primus::Analysis::ID.match?(@experiment_id)
+    raise Error, "invalid run ID" unless Primus::Analysis::RUN_ID.match?(@run_id)
+    @recorded_directory = File.expand_path(File.join(@output_path, @experiment_id, @run_id))
+    @directory = File.realpath(@recorded_directory)
+    root = File.realpath(@output_path)
+    raise Error, "selected run escapes output root" unless @directory.start_with?("#{root}/")
+    record_path = File.join(@directory, "record.json")
+    raise Error, "record path escapes run" unless File.realpath(record_path) == record_path
+    @record_bytes = File.binread(record_path)
+    @record = Primus::Analysis::StrictData.json(@record_bytes)
+    validate_record!
+    @output_bytes = artifact_bytes("output.txt")
+    @provenance_bytes = artifact_bytes("provenance.json")
+    @rows = Primus::Analysis::StrictData.json(@provenance_bytes)
+    validate_profiles!
+    validate_rows!
+    verified_observation
+  rescue Primus::Analysis::StrictData::Error, Errno::ENOENT,
+         Errno::ENOTDIR, KeyError, TypeError => error
+    raise Error, error.message
+  end
+
+  private
+
+  attr_reader :record, :profiles, :output_bytes, :directory
+
+  def symbols(representation)
+    runes = @rows.map { |row| row.fetch("decoded_rune") }
+    return runes if representation == "gp-runes-v1"
+    runes.flat_map { |rune| Primus::Analysis::MAP.fetch(rune).chars }
+  end
+
+  def verified_observation
+    Primus::Analysis::Observation.new(
+      experiment_id: @experiment_id, run_id: @run_id, directory: directory,
+      symbols_by_representation: Primus::Analysis::REPRESENTATIONS.to_h { |name| [name, symbols(name)] },
+      profiles: profiles, evidence: evidence,
+    )
+  end
+
+  def evidence
+    { "observation_record_sha256" => Digest::SHA256.hexdigest(@record_bytes),
+      "observation_output" => record.dig("artifacts", "output.txt"),
+      "observation_provenance" => record.dig("artifacts", "provenance.json"),
+      "representations" => profiles,
+      "output_policy" => record.dig("configuration", "output", "policy") }
+  end
+
+  def validate_record!
+    raise Error, "record identity mismatch" unless record["experiment_id"] == @experiment_id && record["run_id"] == @run_id
+    raise Error, "unsupported record schema version" unless [1, 2].include?(record["schema_version"])
+    raise Error, "running or unfinished observation" if record["status"] == "running" || !record["completed_at"]
+    raise Error, "missing observation" unless record["observation"].is_a?(Hash)
+    unless record.dig("configuration", "output", "policy") == "gp-latin-compatibility-v1"
+      raise Error, "unsupported output policy"
+    end
+  end
+
+  def artifact_bytes(name)
+    metadata = record.fetch("artifacts").fetch(name)
+    path = File.expand_path(metadata.fetch("path"))
+    expected = File.join(@recorded_directory, name)
+    raise Error, "#{name} path mismatch" unless path == expected
+    raise Error, "#{name} symlink escapes run" unless File.realpath(path) == File.join(directory, name)
+    bytes = File.binread(path)
+    raise Error, "#{name} bytes mismatch" unless metadata["bytes"] == bytes.bytesize
+    raise Error, "#{name} SHA-256 mismatch" unless metadata["sha256"] == Digest::SHA256.hexdigest(bytes)
+    bytes
+  end
+
+  def validate_profiles!
+    @profiles = record.dig("observation", "representations")
+    raise Error, "missing representation manifest; recreate the run" unless profiles.is_a?(Hash)
+    raise Error, "output byte count mismatch" unless record.dig("observation", "output_bytes") == output_bytes.bytesize
+    Primus::Analysis::StrictData.utf8(output_bytes)
+    Primus::Analysis::REPRESENTATIONS.each { |name| validate_profile!(name) }
+  end
+
+  def validate_profile!(name)
+    profile = profiles.fetch(name)
+    expected_alphabet = name == "gp-runes-v1" ? Primus::Analysis::RUNES : Primus::Analysis::LATIN
+    raise Error, "#{name} schema version" unless profile["schema_version"] == 1
+    raise Error, "#{name} final provenance contract" unless profile.values_at("stage", "artifact", "symbol_field") == %w[final provenance.json decoded_rune]
+    raise Error, "#{name} alphabet mismatch" unless profile["alphabet"] == expected_alphabet
+    raise Error, "#{name} output digest mismatch" unless profile["output_sha256"] == record.dig("artifacts", "output.txt", "sha256")
+    raise Error, "#{name} provenance digest mismatch" unless profile["provenance_sha256"] == record.dig("artifacts", "provenance.json", "sha256")
+    if name == "gp-expanded-latin-v1"
+      raise Error, "canonical expansion map mismatch" unless profile["expansion_map"] == Primus::Analysis::MAP
+    end
+  end
+
+  def validate_rows!
+    raise Error, "provenance must be an array" unless @rows.is_a?(Array)
+    @rows.each_with_index { |row, index| validate_row!(row, index) }
+    identities = @rows.map { |row| row.values_at("page_number", "occurrence", "rune_index") }
+    raise Error, "duplicate source identity" unless identities.uniq.size == identities.size
+    raise Error, "rune sample size mismatch" unless profiles.dig("gp-runes-v1", "sample_size") == @rows.size
+    raise Error, "Latin sample size mismatch" unless profiles.dig("gp-expanded-latin-v1", "sample_size") == symbols("gp-expanded-latin-v1").size
+  end
+
+  def validate_row!(row, index)
+    raise Error, "invalid provenance row" unless row.is_a?(Hash)
+    raise Error, "provenance ordinal mismatch" unless row["ordinal"] == index
+    raise Error, "missing source coordinates" unless COORDINATES.all? { |key| row[key].is_a?(Integer) }
+    rune = row["decoded_rune"]
+    raise Error, "invalid decoded rune symbol" unless Primus::Analysis::MAP.key?(rune)
+    raise Error, "Latin expansion contradiction" unless row["latin"] == Primus::Analysis::MAP.fetch(rune)
+    raise Error, "missing original rune" unless row["rune"].is_a?(String)
+  end
+end

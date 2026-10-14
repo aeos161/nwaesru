@@ -1,0 +1,15 @@
+schema_version: 1
+id: final-symbol-statistics
+analyses:
+  - id: rune-statistics
+    analyzer: symbol-statistics
+    version: 1
+    target:
+      stage: final
+      representation: gp-runes-v1
+  - id: latin-letter-statistics
+    analyzer: symbol-statistics
+    version: 1
+    target:
+      stage: final
+      representation: gp-expanded-latin-v1

@@ -158,6 +158,32 @@ description or compile flags does not.
 Git HEAD does not identify the entire host environment, so a saved attempt
 is evidence of this local run rather than a fully portable build recipe.
 
+### Saved final-output statistics
+
+New observations retain versioned final-symbol profiles alongside their
+output and provenance. To analyze a specific saved run, use its printed run
+ID and the separate analysis definition:
+
+```sh
+bin/primus analyses run EXPERIMENT_ID RUN_ID --definition experiments/analyses/final-symbol-statistics.yml --output-path experiments/runs
+bin/primus analyses review EXPERIMENT_ID RUN_ID --output-path experiments/runs
+bin/primus analyses review EXPERIMENT_ID RUN_ID ANALYSIS_RUN_ID --output-path experiments/runs
+```
+
+Each invocation appends a separate retained analysis. Review reads those
+measurements without rerunning the experiment or requiring today's input,
+definition or hash backend. Runs saved before the final-symbol manifest was
+added need to be recreated before they can be analyzed.
+
+The GP profile counts the final decoded runes in provenance (29 bins). The
+expanded-Latin profile counts only the canonical lowercase letters for those
+same runes (26 bins); punctuation and passthrough output such as page 56's
+hexadecimal block are excluded. `ᚦᚪᚦ` is three GP symbols with raw IC 1/3,
+while its Latin expansion `thath` is five letters with raw IC 1/5. Raw IC is
+the number of ordered matching pairs divided by `N × (N - 1)`, without
+alphabet normalization. Samples shorter than two symbols report an
+insufficient statistic. These are measurements, not a plaintext verdict.
+
 ## License
 
 Primus is free  software, and may be redistributed under the terms specified in

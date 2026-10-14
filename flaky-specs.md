@@ -1,5 +1,34 @@
 # Observed test failures
 
+## 2026-10-10: saved-output statistics TDD and integration
+
+On `codex/saved-output-text-analysis` at clean test-head `6473f8b`, MRI
+Ruby 2.7.4p191, Bundler 2.1.4 and `RUBYOPT=-EUTF-8`, the focused command
+`bundle exec rspec spec/features/analyze_saved_output_spec.rb
+spec/lib/primus/experiment/final_symbol_manifest_spec.rb
+spec/lib/primus/analysis/symbol_statistics_spec.rb` reported 51 examples,
+51 expected new-feature failures (seed 21185). The producer lacked the
+representation manifest and the analysis classes and CLI were absent. These
+were TDD reds, not observed flakiness.
+
+After the first producer/statistics checkpoint `7573144`, the 20 corresponding
+examples passed with zero failures (seed 21896). Producer-backed feature
+examples run while implementation files were dirty recorded invalid
+observations under the existing executable-code-clean guard; those failures
+were a known fixture precondition, not stochastic behavior. Once the code was
+committed, the focused feature run had one remaining failure (31 examples,
+seed 46250): the output byte-count rejection message said `byte count` where
+the literal expectation matched `bytes`. Commit `2dc402e` corrected that
+message. The full focused command then passed 51 examples, zero failures
+(seed 14238), and passed again after review hardening at `33fd9eb` (seed
+56335). No unexpected or reproduced flaky failure was observed.
+
+The full suite at clean implementation revision `2dc402e`, with the same Ruby
+and UTF-8 setup, passed 659 examples, zero failures and 12 existing pending
+(seed 44449). The final full-suite retry at clean implementation revision
+`33fd9eb` also passed 659 examples, zero failures and 12 existing pending
+(seed 30514). No new failure remains.
+
 ## 2026-10-08: reusable totient implementation baseline
 
 At clean revision `05b3bbb`, MRI Ruby 2.7.4 with `RUBYOPT=-EUTF-8`,

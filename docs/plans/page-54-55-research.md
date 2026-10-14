@@ -12,6 +12,22 @@ plaintext/hash evaluation extends Assessment behavior, not model validation.
 The page-57 plan governs the concrete API; this record adds no implementation
 scope before its existing gate.
 
+## Focused planning update — 2026-10-08
+
+Local main now contains reusable totient and the complete page-56 control at
+`d98c722`; the previous reusable-totient gate is historical. The
+[page-55 initial experiment plan](page-55-initial-experiments.md) selects only
+two existing-recipe baselines (direct Latin and totient with modulus 29,
+prime_start 2, no skips), three target-hash comparisons each. This is planning,
+not a report of six completed checks. The next step after review/authorization
+is input/target audit, frozen definitions, validation and one run per baseline.
+The broader key/reversal, normalization and ranking directions below remain
+hypotheses and are not the scope of this first batch. New structural chains
+need their own synthetic layered control; that does not block existing recipes.
+Page 54–55 input remains separate, and reassessment/reuse and general preset
+overrides stay deferred. Cached origin/main is still 45d4380; no remote refresh
+or remote merge is asserted.
+
 ## Delivery status — 2026-10-03
 
 Local main `e996a6e` contains page 57 (`45cab84`), page 56 (`946431c`) and
@@ -301,3 +317,42 @@ Resolve during detailed implementation planning: the original BLAKE-512 dependen
 ## 15. Out of scope for the initial software delivery
 
 Automated large searches, probabilistic pruning of encrypted intermediates, a general-purpose cryptanalysis framework, arbitrary skip-combination searches, proving the self-reference thesis, or assuming the target must hash plaintext. No repository push is part of this plan.
+
+
+## Deferred follow-up: transformation checkpoints and text analysis
+
+Record each future transformation chain's intermediate output, not only its
+final rendered text. Keep immutable stage artifacts, ordered operations and
+parameters, parent-stage references, exact bytes and checksums, and source
+coordinate/provenance associations. Existing recipes currently retain final
+output.txt; intermediate checkpoint storage is future work, not an implemented
+capability. Preserve encrypted-looking intermediate states for later analysis.
+
+Allow separate analyses of original input, intermediate stages and final output
+without rerunning transformations. Index of coincidence is an initial candidate.
+Each analysis must identify its stage/artifact checksum, symbol representation
+(GP rune tokens versus rendered Latin), alphabet/tokenization, punctuation and
+whitespace treatment, sample length, method/version and result. GP digraph
+expansions can change Latin symbol counts without removing an encryption layer.
+Simple bijective substitutions preserve IC for the same tokenization; some
+position-dependent layers can obscure frequency structure. A changed IC is
+exploratory evidence, not proof of decryption, especially on short page 55.
+
+Validate new chains using independently specified synthetic layered controls,
+including intermediate bytes and source mapping, before page-55 chain trials.
+Keep analysis results separate from hash match assessments; do not rank or
+prune candidates solely by English appearance or IC. Plan storage and analysis
+interfaces when that use case is taken up. This note authorizes neither chain
+implementation nor additional experiments in the initial two-baseline batch.
+
+
+## Experiment definition wording convention
+
+For future definitions, describe separately the input being tested, the recipe
+and its historical precedent (when relevant), and the source of the expected
+text or target hash. State any unconfirmed relationship explicitly. Do not call
+an expectation a page's target merely because that page demonstrated the recipe.
+For example, the page-55 direct-Latin baseline uses the approach demonstrated
+by page 57 but compares against the hash disclosed on page 56; that hash's
+relationship to page 55 remains unconfirmed. Describe intentional departures
+from a precedent, such as omitting page 56's skipped rune, in the purpose too.
