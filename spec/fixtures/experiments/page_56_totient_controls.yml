@@ -5,12 +5,16 @@ purpose: Compare the whole-page totient decoding with four independent answers.
 input:
   id: page-56
   sha256: 05ef023a9165ed3300712bfacec538863e7e82b7a4b0327bde0abb9182e71e7e
-recipe:
-  id: totient-latin
-  parameters:
-    modulus: 29
-    prime_start: 2
-    skip_sequence: [56]
+steps:
+  - id: totient
+    operation: totient
+    parameters:
+      modulus: 29
+      prime_start: 2
+      skip_sequence: [56]
+  - id: letters
+    operation: latin
+    parameters: {}
 output:
   policy: gp-latin-compatibility-v1
 checks:

@@ -70,10 +70,10 @@ RSpec.describe Primus::Experiment::Runner do
       end
     end
 
-    it "changes the page 56 output when the default empty skip replaces 56" do
+    it "changes the page 56 output when an empty skip replaces 56" do
       Dir.mktmpdir do |output_path|
         definition = Psych.safe_load(File.binread(fixture("page_56_totient_controls.yml")))
-        definition.fetch("recipe").delete("parameters")
+        definition.fetch("steps").first.fetch("parameters")["skip_sequence"] = []
         experiment = Primus::Experiment.from_data(definition)
         runner = Primus::Experiment::Runner.new(experiment: experiment,
                                                 output_path: output_path)

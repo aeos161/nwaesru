@@ -16,8 +16,10 @@ RSpec.describe Primus::Experiment do
         input:
           id: page-57
           sha256: c7055db0173e43eb231608812f5d52569e4c0817934b1a65427cebf332759fff
-        recipe:
-          id: latin
+        steps:
+          - id: letters
+            operation: latin
+            parameters: {}
         output:
           policy: gp-latin-compatibility-v1
         checks:
@@ -46,45 +48,35 @@ RSpec.describe Primus::Experiment do
       expect(experiment).to be_valid
     end
 
-    it "uses page-independent defaults when the totient parameter mapping is absent" do
+    it "requires explicit totient parameters in YAML" do
       definition = page_56_totient_definition
-      definition.fetch("recipe").delete("parameters")
+      definition.fetch("steps").first.delete("parameters")
       experiment = Primus::Experiment.from_data(definition)
 
-      experiment.valid?
-
-      expect(experiment.canonical_configuration.fetch("recipe")).to eq(
-        "id" => "totient-latin",
-        "parameters" => { "modulus" => 29, "prime_start" => 2,
-                          "skip_sequence" => [] }
-      )
+      expect(experiment).not_to be_valid
     end
 
-    it "fills omitted totient keys without changing an explicit skip" do
+    it "requires every totient parameter in YAML" do
       definition = page_56_totient_definition
-      definition.fetch("recipe")["parameters"] = { "skip_sequence" => [56] }
+      definition.fetch("steps").first["parameters"] = { "skip_sequence" => [56] }
       experiment = Primus::Experiment.from_data(definition)
 
-      experiment.valid?
-
-      expect(experiment.canonical_configuration.fetch("recipe").fetch("parameters")).to eq(
-        "modulus" => 29, "prime_start" => 2, "skip_sequence" => [56]
-      )
+      expect(experiment).not_to be_valid
     end
 
     it "sorts a valid set of GP skip ordinals in canonical configuration" do
       definition = page_56_totient_definition
-      definition.fetch("recipe").fetch("parameters")["skip_sequence"] = [57, 56]
+      definition.fetch("steps").first.fetch("parameters")["skip_sequence"] = [57, 56]
       experiment = Primus::Experiment.from_data(definition)
 
       experiment.valid?
 
-      expect(experiment.canonical_configuration.fetch("recipe").fetch("parameters").fetch("skip_sequence")).to eq([56, 57])
+      expect(experiment.canonical_configuration.fetch("steps").first.fetch("parameters").fetch("skip_sequence")).to eq([56, 57])
     end
 
     it "accepts the last page 56 GP ordinal as a skip" do
       definition = page_56_totient_definition
-      definition.fetch("recipe").fetch("parameters")["skip_sequence"] = [84]
+      definition.fetch("steps").first.fetch("parameters")["skip_sequence"] = [84]
       experiment = Primus::Experiment.from_data(definition)
 
       expect(experiment).to be_valid
@@ -92,7 +84,7 @@ RSpec.describe Primus::Experiment do
 
     it "accepts a custom prime value as the start" do
       definition = page_56_totient_definition
-      definition.fetch("recipe").fetch("parameters")["prime_start"] = 263
+      definition.fetch("steps").first.fetch("parameters")["prime_start"] = 263
       experiment = Primus::Experiment.from_data(definition)
 
       expect(experiment).to be_valid
@@ -113,7 +105,8 @@ RSpec.describe Primus::Experiment do
     }.each do |case_name, parameters|
       it "rejects #{case_name}" do
         definition = page_56_totient_definition
-        definition.fetch("recipe")["parameters"] = parameters
+        current = definition.fetch("steps").first.fetch("parameters")
+        definition.fetch("steps").first["parameters"] = parameters.is_a?(Hash) ? current.merge(parameters) : parameters
         experiment = Primus::Experiment.from_data(definition)
 
         expect(experiment).not_to be_valid

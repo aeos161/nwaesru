@@ -15,7 +15,8 @@ RSpec.describe Primus::Experiment::Runner do
       "schema_version" => 2, "id" => "page-57-multiple",
       "title" => "Multiple hash checks", "purpose" => "Compare each digest.",
       "input" => { "id" => "page-57", "sha256" => "c7055db0173e43eb231608812f5d52569e4c0817934b1a65427cebf332759fff" },
-      "recipe" => { "id" => "latin" },
+      "steps" => [{ "id" => "letters", "operation" => "latin",
+                    "parameters" => {} }],
       "output" => { "policy" => "gp-latin-compatibility-v1" },
       "checks" => checks
     )

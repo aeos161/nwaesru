@@ -23,4 +23,8 @@ class Primus::Experiment::LogEntry
   def rerun_reason
     data["rerun_reason"]
   end
+
+  def checkpoints
+    data.fetch("checkpoints", [])
+  end
 end

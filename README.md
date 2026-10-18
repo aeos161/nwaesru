@@ -83,10 +83,16 @@ same target to every selected hash. Available hashes are `sha512`,
 expectation, and plaintext is optional. `validate` accepts the same composition
 flags without running the recipe or checking backend availability.
 
-The v2 `totient-latin` recipe works on any selected whole page. Its parameters
+Saved v2 definitions declare ordered `steps`: zero or more independent
+`totient` layers followed by one terminal `latin` step. Each totient layer
+declares `modulus`, `prime_start`, and `skip_sequence`; the output of one
+layer becomes the next layer's input. The CLI `latin` and `totient-latin`
+recipe shortcuts expand into these explicit steps before execution.
+
+The CLI `totient-latin` shortcut works on any selected whole page. Its parameters
 default to `modulus: 29`, `prime_start: 2` and `skip_sequence: []`.
 `prime_start` is the first prime **value** consumed, and must itself be prime.
-Skips are unique, zero-based ordinals of the original GP runes; a skipped rune
+Skips are unique, zero-based ordinals of the current layer's GP runes; a skipped rune
 does not consume a prime. Other text, including the hexadecimal passage, does
 not consume an ordinal or prime. Use `--recipe-param KEY=JSON_VALUE` repeatedly
 on either `validate` or `run`. For page 56, skip 56 is explicit:
@@ -96,7 +102,7 @@ bin/primus experiments validate --input page-56 --recipe totient-latin --recipe-
 bin/primus experiments run --input page-56 --recipe totient-latin --recipe-param 'skip_sequence=[56]' --expect-text experiments/expected/page-56-totient-latin.txt
 ```
 
-The named `page-56-totient-latin-controls` definition records the same recipe
+The named `page-56-totient-latin-controls` definition records the same steps
 with SHA-512, BLAKE2b-512, original BLAKE-512, and exact plaintext checks.
 The literal answers and independent preparation are documented in
 `spec/fixtures/experiments/page_56_totient_oracle.md`. Check its review for

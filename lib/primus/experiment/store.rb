@@ -24,11 +24,14 @@ class Primus::Experiment::Store
   end
 
   def review(id:, run_id: nil)
-    entries = attempts(id: id)
-    return entries if run_id.nil?
-    entry = entries.detect { |attempt| attempt.run_id == run_id }
-    raise ReadError, "#{id}/#{run_id}: saved attempt not found" unless entry
-    entry
+    return attempts(id: id) if run_id.nil?
+    unless id.match?(/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/) &&
+        run_id.match?(/\A[0-9]{8}T[0-9]{6}-[0-9a-f]+\z/)
+      raise ReadError, "invalid selected attempt"
+    end
+    path = File.join(output_path, id, run_id, "record.json")
+    raise ReadError, "#{id}/#{run_id}: saved attempt not found" unless File.file?(path)
+    read_record(path)
   end
 
   def reserve(experiment:, fingerprint:, git_head:, code_clean:,
@@ -75,6 +78,29 @@ class Primus::Experiment::Store
   def record_observation(entry, observation)
     entry.data["observation"] = { "output_bytes" => observation.output_bytes.bytesize }
     save(entry, directory: record_directory(entry), observation: observation)
+  end
+
+  def record_checkpoint(entry, checkpoint)
+    directory = File.join(record_directory(entry), "checkpoints", checkpoint.step.fetch("id"))
+    FileUtils.mkdir_p(directory)
+    data = { "artifacts" => {} }
+    snapshot(data, directory, "output.txt", checkpoint.output_bytes)
+    snapshot(data, directory, "symbols.json", JSON.pretty_generate(checkpoint.symbols))
+    snapshot(data, directory, "lexemes.json", JSON.pretty_generate(checkpoint.lexemes))
+    item = checkpoint.record.merge("output" => data["artifacts"].fetch("output.txt"),
+                                   "symbols" => data["artifacts"].fetch("symbols.json"),
+                                   "lexemes" => data["artifacts"].fetch("lexemes.json"),
+                                   "source" => { "path" => entry.data.fetch("source_path"),
+                                                   "sha256" => entry.data.fetch("source_actual_sha256") })
+    entry.data["checkpoints"] ||= []
+    entry.data["checkpoints"] << item
+    entry.data["final_checkpoint_id"] = item.fetch("id") if checkpoint.step["operation"] == "latin"
+    atomic_record(record_directory(entry), entry.data)
+  end
+
+  def record_failed_step(entry, failure)
+    entry.data["failed_step"] = failure
+    atomic_record(record_directory(entry), entry.data)
   end
 
   def reserve_assessment(entry, check, policy)
@@ -254,6 +280,9 @@ class Primus::Experiment::Store
 
   def read_record(path)
     data = JSON.parse(File.binread(path))
+    if data.key?("checkpoints")
+      Primus::Experiment::CheckpointEvidence.new(record_path: path, data: data).verify!
+    end
     assessment = if data["assessment"]
                    attributes = data["assessment"].dup
                    hash_check = attributes.delete("hash_check")
@@ -268,7 +297,8 @@ class Primus::Experiment::Store
                                      observation: saved_observation(data),
                                      assessment: assessment,
                                      assessments: assessments)
-  rescue JSON::ParserError, SystemCallError => error
+  rescue JSON::ParserError, SystemCallError,
+         Primus::Experiment::CheckpointEvidence::Invalid => error
     raise ReadError, "#{path}: #{error.class}: #{error.message}"
   end
 
@@ -323,9 +353,9 @@ class Primus::Experiment::Store
   public
 
   def snapshots(input_bytes:, source_body:, expected_bytes:, definition_bytes:)
-    @input_bytes = input_bytes
-    @source_body = source_body
-    @expected_bytes = expected_bytes
-    @definition_bytes = definition_bytes
+    @input_bytes = input_bytes&.dup&.freeze
+    @source_body = source_body&.dup&.freeze
+    @expected_bytes = expected_bytes&.dup&.freeze
+    @definition_bytes = definition_bytes&.dup&.freeze
   end
 end

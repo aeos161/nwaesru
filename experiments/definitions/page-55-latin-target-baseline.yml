@@ -6,8 +6,10 @@ purpose: Apply the direct rune-to-Latin approach demonstrated by page 57 to page
 input:
   id: page-55
   sha256: e8594c0257d70c4cd8d7cf70749241ce0fe42add14e109d010e6b82128922c95
-recipe:
-  id: latin
+steps:
+  - id: letters
+    operation: latin
+    parameters: {}
 output:
   policy: gp-latin-compatibility-v1
 checks:

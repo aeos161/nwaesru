@@ -6,12 +6,16 @@ purpose: Apply the prime-totient shift followed by rune-to-Latin translation dem
 input:
   id: page-55
   sha256: e8594c0257d70c4cd8d7cf70749241ce0fe42add14e109d010e6b82128922c95
-recipe:
-  id: totient-latin
-  parameters:
-    modulus: 29
-    prime_start: 2
-    skip_sequence: []
+steps:
+  - id: totient
+    operation: totient
+    parameters:
+      modulus: 29
+      prime_start: 2
+      skip_sequence: []
+  - id: letters
+    operation: latin
+    parameters: {}
 output:
   policy: gp-latin-compatibility-v1
 checks:

@@ -9,7 +9,7 @@ class Primus::Experiment::Composition
   end
 
   def experiment
-    choices = { "input" => input, "recipe" => recipe,
+    choices = { "input" => input, "steps" => steps,
                 "output" => { "policy" => POLICY }, "checks" => checks }
     id = "ad-hoc-#{Digest::SHA256.hexdigest(JSON.generate(choices))[0, 16]}"
     Primus::Experiment.from_data({ "schema_version" => 2, "id" => id,
@@ -25,6 +25,19 @@ class Primus::Experiment::Composition
     selected = { "id" => @options[:recipe] }
     selected["parameters"] = parsed_parameters(supplied) if supplied.any?
     Primus::Experiment.canonical_recipe(selected)
+  end
+
+  def steps
+    selected = recipe
+    raise Primus::Experiment::LoadError, "Latin recipe accepts no parameters" if selected["id"] == "latin" && selected.key?("parameters")
+    return [{ "id" => "letters", "operation" => "latin", "parameters" => {} }] if selected["id"] == "latin"
+    return [totient_step(selected), { "id" => "letters", "operation" => "latin", "parameters" => {} }] if selected["id"] == "totient-latin"
+    raise Primus::Experiment::LoadError, "unsupported recipe shortcut"
+  end
+
+  def totient_step(selected)
+    { "id" => "totient", "operation" => "totient",
+      "parameters" => selected.fetch("parameters", Primus::Experiment::V2_TOTIENT_DEFAULTS) }
   end
 
   def parsed_parameters(supplied)

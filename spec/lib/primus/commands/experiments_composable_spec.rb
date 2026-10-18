@@ -68,8 +68,12 @@ RSpec.describe Primus::Commands::Experiments do
       "title" => "Small totient control", "purpose" => "Check a page-independent recipe.",
       "input" => { "id" => page_id,
                    "sha256" => Digest::SHA256.file(File.join(repository, source_path)).hexdigest },
-      "recipe" => { "id" => "totient-latin",
-                    "parameters" => { "prime_start" => 3, "skip_sequence" => [1] } },
+      "steps" => [
+        { "id" => "totient", "operation" => "totient",
+          "parameters" => { "modulus" => 29, "prime_start" => 3,
+                            "skip_sequence" => [1] } },
+        { "id" => "letters", "operation" => "latin", "parameters" => {} }
+      ],
       "output" => { "policy" => "gp-latin-compatibility-v1" },
       "checks" => [{ "id" => "check-1", "strategy" => "plaintext",
                      "expectation" => { "path" => expected_path,
@@ -91,8 +95,10 @@ RSpec.describe Primus::Commands::Experiments do
       input:
         id: page-57
         sha256: c7055db0173e43eb231608812f5d52569e4c0817934b1a65427cebf332759fff
-      recipe:
-        id: latin
+      steps:
+        - id: letters
+          operation: latin
+          parameters: {}
       output:
         policy: gp-latin-compatibility-v1
       checks:
@@ -253,8 +259,8 @@ RSpec.describe Primus::Commands::Experiments do
         cli_record = saved_records(cli_path).find { |record| record["configuration"] }
         yaml_record = saved_records(yaml_path).find { |record| record["configuration"] }
 
-        expect(cli_record.fetch("configuration").fetch("recipe")).to eq(
-          yaml_record.fetch("configuration").fetch("recipe")
+        expect(cli_record.fetch("configuration").fetch("steps")).to eq(
+          yaml_record.fetch("configuration").fetch("steps")
         )
       end
     end
@@ -264,9 +270,10 @@ RSpec.describe Primus::Commands::Experiments do
         write_small_totient_definition(repository, "page-99", "moon-phase-control")
 
         cli(repository, "run", "moon-phase-control", "--output-path", output_path)
-        outputs = Dir.glob("#{output_path}/**/output.txt").map { |path| File.binread(path) }
+        record = saved_records(output_path).find { |item| item["configuration"] }
+        artifact = record.fetch("artifacts").fetch("output.txt")
 
-        expect(outputs).to eq(["f f 9A\ny"])
+        expect(File.binread(artifact.fetch("path"))).to eq("f f 9A\ny")
       end
     end
 
@@ -392,11 +399,10 @@ RSpec.describe Primus::Commands::Experiments do
         cli(repository, "run", *plaintext_options,
             "--output-path", output_path)
 
-        outputs = Dir.glob("#{output_path}/**/output.txt").map do |path|
-          File.binread(path)
-        end
+        record = saved_records(output_path).find { |item| item["configuration"] }
+        artifact = record.fetch("artifacts").fetch("output.txt")
 
-        expect(outputs).to eq([File.binread(expected_path)])
+        expect(File.binread(artifact.fetch("path"))).to eq(File.binread(expected_path))
       end
     end
 
@@ -411,7 +417,8 @@ RSpec.describe Primus::Commands::Experiments do
           "schema_version" => 2,
           "configuration" => include(
             "input" => include("id" => "page-57"),
-            "recipe" => include("id" => "latin"),
+            "steps" => [{ "id" => "letters", "operation" => "latin",
+                          "parameters" => {} }],
             "output" => { "policy" => "gp-latin-compatibility-v1" },
             "checks" => [include("strategy" => "plaintext")]
           ),
@@ -433,7 +440,7 @@ RSpec.describe Primus::Commands::Experiments do
         choices = [cli_runs, yaml_runs].flat_map do |path|
           saved_records(path)
         end.map do |record|
-          record.fetch("configuration").slice("input", "recipe", "output",
+          record.fetch("configuration").slice("input", "steps", "output",
                                                "checks")
         end
 

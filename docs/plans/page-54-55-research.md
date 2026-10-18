@@ -1,5 +1,19 @@
 # Final plan: Liber Primus page 55 and pages 54–55
 
+## Current milestone — 2026-10-14
+
+Saved-output GP-rune and expanded-Latin frequencies/raw IC, verified
+ObservationReader/Observation, and analysis LogEntry/RecordValidator are merged
+on local main at `daddc5a`. Reusable totient/page-56 controls are present at
+`d98c722`. The next selected milestone is now concretely planned in
+[explicit transformation steps and immutable checkpoints](transformation-checkpoints.md):
+ordered independent steps, exact immutable intermediates and an independent
+synthetic layered control. Stage-targeted analyses and further analyzers follow
+later; page-55 chain trials remain gated on that control. Older “current”,
+“next”, pending-review and cached-main statements below describe their dated
+milestones, not unfinished prerequisites to this plan. No run data is deleted
+or migrated by this update, and no research trial is performed here.
+
 The approved harness vocabulary is Experiment (`ActiveModel::Model`) for
 saved definition/preconditions, Observation for actual output, Assessment for
 evaluation against the declared expectation. The approved LogEntry describes one attempt, separate from scientific

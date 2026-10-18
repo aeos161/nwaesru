@@ -18,6 +18,7 @@ class Primus::Experiment::Runner
 
   def run(rerun: false, reason: nil)
     return run_v2(rerun: rerun, reason: reason) if @experiment.v2?
+    @chain = nil
     @observation = @assessment = @log_entry = nil
     @assessments = nil
     if rerun && reason.to_s.strip.empty?
@@ -64,6 +65,7 @@ class Primus::Experiment::Runner
   private
 
   def run_v2(rerun:, reason:)
+    @chain = nil
     @observation = @assessment = @log_entry = nil
     @assessments = nil
     @hash_runtime = nil
@@ -98,7 +100,8 @@ class Primus::Experiment::Runner
   def v2_identity(head)
     identity = { source_sha256: @experiment.source_digest,
                  input_selection: @experiment.input_path,
-                 recipe: @experiment.recipe, output: @experiment.output,
+                 steps: @experiment.canonical_steps, output: @experiment.output,
+                 rune_policy: Primus::Experiment::Checkpoint::RUNE_POLICY,
                  git_head: head, ruby_version: RUBY_VERSION, version: 2 }
     Digest::SHA256.hexdigest(JSON.generate(sorted(identity)))
   end
@@ -206,8 +209,9 @@ class Primus::Experiment::Runner
   end
 
   def produce_observation
+    return produce_chain_observation if @experiment.v2?
     page = Primus::LiberPrimus::Page.new(
-      number: @experiment.v2? ? @experiment.v2_page_number : @experiment.input.fetch("page_number"),
+      number: @experiment.input.fetch("page_number"),
       data: @experiment.source_body.rstrip,
       source_body: @experiment.source_body,
       artifact_bytes: @experiment.input_bytes,
@@ -224,11 +228,25 @@ class Primus::Experiment::Runner
     )
   end
 
-  def derive(translated)
-    return translated if @experiment.v2? && @experiment.recipe["id"] == "latin"
-    return translated if !@experiment.v2? && @experiment.operation == "runes_to_latin"
+  def produce_chain_observation
+    page = Primus::LiberPrimus::Page.new(
+      number: @experiment.v2_page_number, data: @experiment.source_body.rstrip,
+      source_body: @experiment.source_body, artifact_bytes: @experiment.input_bytes,
+      source_path: @experiment.input_path
+    )
+    transcription = Primus::Lexer::SourceScan.new(page: page, strategy: :runic).to_transcription
+    @chain = Primus::Experiment::Chain.new(
+      steps: @experiment.canonical_steps, transcription: transcription,
+      publisher: ->(checkpoint) { @store.record_checkpoint(@log_entry, checkpoint) }
+    )
+    @chain.run
+    @chain.observation
+  end
 
-    parameters = @experiment.v2? ? @experiment.recipe.fetch("parameters") : @experiment.parameters
+  def derive(translated)
+    return translated if @experiment.operation == "runes_to_latin"
+
+    parameters = @experiment.parameters
     primes = Prime.each.lazy.drop_while { |prime|
       prime < parameters.fetch("prime_start")
     }
@@ -338,6 +356,7 @@ class Primus::Experiment::Runner
   end
 
   def record_execution_error(error)
+    @store.record_failed_step(@log_entry, @chain.failed_step) if @chain && @chain.failed_step
     failure = { "stage" => "execution", "type" => error.class.name,
                 "message" => error.message }
     if @log_entry.data.key?("assessment_records")

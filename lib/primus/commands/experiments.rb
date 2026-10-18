@@ -192,6 +192,7 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
     say "Git HEAD: #{data["git_head"]} Ruby: #{data["runtime_version"]}"
     say "input: #{data["source_path"]}"
     say "input SHA-256: #{data["source_actual_sha256"]}"
+    show_checkpoints(entry)
     if data.key?("assessment_records")
       show_collection(entry)
       return show_artifacts(entry)
@@ -255,5 +256,14 @@ class Primus::Commands::Experiments < Primus::Commands::SubCommandBase
       File.file?(artifacts[name]["path"])
     }
     say "missing artifact: #{missing.join(", ")}" if missing.any?
+  end
+
+  def show_checkpoints(entry)
+    entry.checkpoints.each do |checkpoint|
+      artifact = checkpoint.fetch("output")
+      say "checkpoint #{checkpoint.fetch('ordinal')} #{checkpoint.fetch('step_id')} " \
+          "(#{checkpoint.fetch('operation')}): #{checkpoint.fetch('id')} " \
+          "parent=#{checkpoint['parent_id'] || 'none'} #{artifact.fetch('path')}"
+    end
   end
 end

@@ -230,3 +230,56 @@ All runs below used MRI Ruby 2.7.4p191, Bundler 2.1.4 and
   `05149ec` confirmed mixed match/mismatch exit 0, all-mismatch exit 0, and
   three qualified hash/plaintext matches exit 0. No unclassified test failure
   remains.
+
+## 2026-10-16: transformation checkpoint focused verification
+
+At clean revision `6fd726f`, MRI Ruby 2.7.4p191, command
+`PATH="$HOME/.asdf/shims:$PATH" bundle exec rspec spec/lib/primus/experiment/runner_checkpoints_spec.rb --format progress`
+reported 32 examples, 6 failures, seed 39464. Four failures compared
+`File.binread` output (ASCII-8BIT) to UTF-8 rune literals at spec lines 83
+(original, first, second) and 293 (mixed punctuation). The displayed byte
+sequences match; this is an assertion encoding mismatch, not differing
+checkpoint bytes. Test-writer has been notified; implementation must not
+change the immutable spec.
+
+Two further failures arose in the fixture helper's local Git clone, before
+the example body: `Errno::ENOENT` for temporary `.git/38049.tags.tmp` and
+`.git/38173.tags`, followed by `Errno::ENOTEMPTY` while `Dir.mktmpdir`
+cleaned the two repositories. A rerun is needed to establish whether these
+temporary Git failures reproduce. No production checkpoint assertion was
+reached in those examples.
+The two exact examples at lines 155 and 245 passed on rerun (2 examples,
+0 failures, seed 43583) with `RUBYOPT=-EUTF-8` and the same Ruby 2.7.4.
+
+At revision `745a205`, the full command
+`PATH="$HOME/.asdf/shims:$PATH" RUBYOPT=-EUTF-8 bundle exec rspec --format progress`
+reported 775 examples, 82 failures, 12 pending, seed 45771. The 32 new
+checkpoint runner examples failed because the newly extracted Checkpoint
+used `transcription` after removing that reader (`NameError` at
+`lib/primus/experiment/checkpoint.rb:26`); this implementation error was
+fixed immediately. The remaining failures were older version-two specs that
+still construct `recipe` definitions after the approved change to `steps`;
+their test fixtures require migration by test-writer. Four byte assertions
+also still require the previously reported encoding correction. These are
+not classified as flaky. The full suite will be rerun after the fixture
+handoff and source fix.
+
+At clean revision `534b54b`, the focused checkpoint runner command with
+`RUBYOPT=-EUTF-8` reported 32 examples, 6 failures, seed 10669. The four
+known binary/UTF-8 assertions remained. Two fixture helper Git clone races
+recurred, this time at examples 110 and 88: missing temporary
+`.git/42479.tags` and `.git/42639.tags` followed by temporary-directory
+`Errno::ENOTEMPTY` cleanup errors. This establishes intermittent helper
+behavior; exact examples 155 and 245 had passed on the earlier rerun.
+
+At clean revision `7d93714`, the four-file focused command with UTF-8
+reported 66 examples, 4 failures, seed 62730: only the four identified
+binary/UTF-8 rune-byte assertions failed. The full UTF-8 suite reported
+775 examples, 42 failures, 12 pending, seed 32730. Of those, 37 are
+pre-existing version-two specs still expressing disposable `recipe`
+definitions or records that the approved `steps` schema replaces; four are
+the same binary/UTF-8 assertions; one is another clone helper race at
+runner_checkpoints_spec.rb:335 (missing `.git/47660.tags`, then
+`Errno::ENOTEMPTY` during cleanup). No additional source regression was
+identified from that failure list. The test-writer must migrate affected
+fixtures and correct the test-only encoding and clone setup.

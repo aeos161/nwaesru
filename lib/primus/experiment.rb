@@ -25,7 +25,7 @@ class Primus::Experiment
                          "skip_sequence" => [56] }.freeze
   ROOT_KEYS = %w[schema_version id title purpose input operation output
                  expectation parameters].freeze
-  V2_ROOT_KEYS = %w[schema_version id title purpose input recipe output checks].freeze
+  V2_ROOT_KEYS = %w[schema_version id title purpose input steps output checks].freeze
   NESTED_KEYS = {
     "input" => %w[page_number path sha256],
     "output" => %w[policy],
@@ -45,7 +45,7 @@ class Primus::Experiment
                           "skip_sequence" => [] }.freeze
 
   attr_accessor :schema_version, :id, :title, :purpose, :input, :operation,
-                :output, :expectation, :parameters, :recipe, :checks
+                :output, :expectation, :parameters, :recipe, :steps, :checks
   attr_reader :definition_path, :definition_bytes, :definition_data,
               :input_bytes, :source_body, :expected_bytes, :expected_bytes_by_check
 
@@ -69,7 +69,6 @@ class Primus::Experiment
 
   def self.from_data(data, path: nil, bytes: nil)
     attributes = data.slice(*(ROOT_KEYS | V2_ROOT_KEYS))
-    attributes["recipe"] = canonical_recipe(attributes["recipe"]) if data["schema_version"] == 2
     new(**attributes.transform_keys(&:to_sym)).tap do |model|
       model.instance_variable_set(:@definition_path, path)
       model.instance_variable_set(:@definition_bytes, bytes || JSON.generate(data))
@@ -116,11 +115,16 @@ class Primus::Experiment
   end
 
   def canonical_configuration
-    definition_data.slice("input", "output", "checks").merge("recipe" => recipe)
+    definition_data.slice("input", "output", "checks").merge("steps" => canonical_steps)
   end
 
   def persisted_configuration
-    v2? ? definition_data.merge("recipe" => recipe) : definition_data
+    v2? ? definition_data.merge("steps" => canonical_steps) : definition_data
+  end
+
+  def canonical_steps
+    model = Primus::Experiment::Steps.new(steps)
+    model.valid? ? model.canonical : steps
   end
 
   def v2?
@@ -276,7 +280,7 @@ class Primus::Experiment
     reject(:title, "is required") unless title.is_a?(String) && !title.strip.empty?
     reject(:purpose, "is required") unless purpose.is_a?(String) && !purpose.strip.empty?
     reject(:input, "must select a whole page") unless input.is_a?(Hash) && input["id"].is_a?(String) && input["id"].match?(/\Apage-[0-9]+\z/)
-    validate_v2_recipe
+    validate_v2_steps
     reject(:input, "unknown fields") if input.is_a?(Hash) && (input.keys - %w[id sha256]).any?
     reject(:output, "policy must be #{V2_POLICY}") unless output == { "policy" => V2_POLICY }
     reject(:checks, "must contain checks") unless checks.is_a?(Array) && checks.any?
@@ -290,28 +294,15 @@ class Primus::Experiment
     reject(:base, "unknown fields") if (definition_data.keys - V2_ROOT_KEYS).any?
   end
 
-  def validate_v2_recipe
-    return if recipe == { "id" => "latin" }
-    unless recipe.is_a?(Hash) && recipe["id"] == "totient-latin" &&
-        (recipe.keys - %w[id parameters]).empty?
-      return reject(:recipe, "must be latin or totient-latin")
-    end
-    values = recipe["parameters"]
-    return reject(:recipe, "parameters must be a mapping") unless values.is_a?(Hash)
-    reject(:recipe, "unknown parameters") unless (values.keys - V2_TOTIENT_DEFAULTS.keys).empty?
-    reject(:recipe, "modulus must be 29") unless values["modulus"].instance_of?(Integer) && values["modulus"] == 29
-    start = values["prime_start"]
-    reject(:recipe, "prime_start must be prime") unless start.instance_of?(Integer) && start >= 2 && Prime.prime?(start)
-    skips = values["skip_sequence"]
-    valid_skips = skips.is_a?(Array) && skips.all? { |item| item.instance_of?(Integer) && item >= 0 }
-    reject(:recipe, "skip_sequence must contain unique nonnegative integers") unless valid_skips && skips.uniq == skips
+  def validate_v2_steps
+    return if Primus::Experiment::Steps.new(steps).valid?
+    reject(:steps, "must be ordered totient steps followed by Latin; use steps instead of recipe")
   end
 
   def validate_v2_skip_bounds
-    return unless recipe.is_a?(Hash) && recipe["id"] == "totient-latin" && source_body
-    skips = recipe["parameters"]["skip_sequence"] if recipe["parameters"].is_a?(Hash)
-    return unless skips.is_a?(Array) && skips.all? { |item| item.instance_of?(Integer) }
-    reject(:recipe, "skip_sequence exceeds GP rune count") unless skips.all? { |item| item < gp_rune_count }
+    return unless source_body && Primus::Experiment::Steps.new(steps).valid?
+    reject(:steps, "skip_sequence exceeds GP rune count") unless
+      Primus::Experiment::Steps.new(steps, rune_count: gp_rune_count).valid?
   end
 
   def gp_rune_count
