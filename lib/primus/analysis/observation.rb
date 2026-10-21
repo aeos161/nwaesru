@@ -23,6 +23,10 @@ class Primus::Analysis::Observation
     @profiles.fetch(representation)
   end
 
+  def checkpoint
+    @evidence.fetch("checkpoint")
+  end
+
   private
 
   def owned(value)

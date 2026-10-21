@@ -16,6 +16,11 @@ class Primus::Analysis::Result
   def sample_size; @data.fetch("sample_size"); end
   def distinct_count; @data.fetch("distinct_count"); end
   def ic; @data.fetch("ic"); end
+  def interpretation; @data["interpretation"]; end
+
+  def with_interpretation(snapshot)
+    self.class.new(@data.merge("interpretation" => snapshot))
+  end
 
   private
 

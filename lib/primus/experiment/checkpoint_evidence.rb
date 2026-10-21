@@ -8,16 +8,30 @@ class Primus::Experiment::CheckpointEvidence
   end
 
   def verify!
+    @snapshots = nil
+    @final_output_bytes = nil
     items = @data.fetch("checkpoints")
     invalid!("invalid checkpoint list") unless items.is_a?(Array)
     ids = items.map { |item| item.fetch("id") }
     invalid!("duplicate checkpoint ID") unless ids.uniq == ids
-    items.each_with_index { |item, index| verify_item(item, index, items) }
+    snapshots = items.each_with_index.map { |item, index| verify_item(item, index, items) }
     verify_original(items.first) if items.first
     verify_final(items)
+    @snapshots = snapshots.to_h { |snapshot| [snapshot.fetch("step_id"), owned(snapshot)] }.freeze
+    nil
   rescue KeyError, IndexError, NoMethodError, TypeError, JSON::ParserError,
-         SystemCallError => error
+         SystemCallError, Primus::Analysis::StrictData::Error => error
     invalid!("invalid checkpoint evidence: #{error.class}: #{error.message}")
+  end
+
+  def checkpoint(step_id)
+    invalid!("checkpoint evidence has not been verified") unless @snapshots
+    @snapshots.fetch(step_id) { invalid!("uncaptured checkpoint #{step_id}") }
+  end
+
+  def final_output_bytes
+    invalid!("checkpoint evidence has not been verified") unless @snapshots
+    @final_output_bytes
   end
 
   private
@@ -40,11 +54,13 @@ class Primus::Experiment::CheckpointEvidence
                         "sha256" => @data.fetch("source_actual_sha256") }
     invalid!("checkpoint source identity mismatch") unless item["source"] == expected_source
     output = artifact(item, "output", "output.txt")
-    symbols = JSON.parse(artifact(item, "symbols", "symbols.json"))
-    lexemes = JSON.parse(artifact(item, "lexemes", "lexemes.json"))
+    Primus::Analysis::StrictData.utf8(output)
+    symbols = Primus::Analysis::StrictData.json(artifact(item, "symbols", "symbols.json"))
+    lexemes = Primus::Analysis::StrictData.json(artifact(item, "lexemes", "lexemes.json"))
     verify_mapping(item, output, symbols, lexemes)
     verify_lineage(index, lexemes)
     verify_spans(item, output, lexemes)
+    item.merge("output_bytes" => output, "symbols_rows" => symbols, "lexemes_rows" => lexemes)
   end
 
   def expected_step(index)
@@ -71,13 +87,19 @@ class Primus::Experiment::CheckpointEvidence
     invalid!("checkpoint symbols mismatch") unless runes.size == symbols.size
     symbols.each_with_index do |symbol, ordinal|
       token = runes.fetch(ordinal)
+      coordinates = Primus::Transcription::SourceLocation::ATTRIBUTES
+      invalid!("invalid checkpoint coordinates") unless coordinates.all? { |name|
+        symbol[name.to_s].is_a?(Integer) && token["source_#{name}"].is_a?(Integer) }
       coordinates_match = Primus::Transcription::SourceLocation::ATTRIBUTES.all? { |name|
         symbol[name.to_s] == token["source_#{name}"] }
-      expected_latin = Primus::GematriaPrimus.build.find_by(rune: token["lexeme"]).letter
+      expected_latin = Primus::Analysis::MAP[token["lexeme"]]
+      invalid!("unknown checkpoint rune") unless expected_latin
       invalid!("checkpoint source mismatch") unless symbol["ordinal"] == ordinal &&
         symbol["rune"] == token["lexeme"] && symbol["latin"] == expected_latin &&
         coordinates_match
     end
+    identities = symbols.map { |symbol| symbol.values_at("page_number", "occurrence", "rune_index") }
+    invalid!("duplicate checkpoint source identity") unless identities.uniq.size == identities.size
     if item["operation"] != "latin"
       invalid!("checkpoint output mismatch") unless lexemes.map { |token| token["lexeme"] }.join.b == output
     end
@@ -129,6 +151,14 @@ class Primus::Experiment::CheckpointEvidence
     invalid!("final checkpoint mismatch") unless @data["final_checkpoint_id"] == terminal["id"]
     root = @data.fetch("artifacts").fetch("output.txt")
     invalid!("final output mismatch") unless root["sha256"] == terminal.fetch("output").fetch("sha256")
+    path = root.fetch("path")
+    expected = File.join(File.dirname(@record_path), "output.txt")
+    invalid!("final output path mismatch") unless path == expected &&
+      File.realpath(path) == File.join(@directory, "output.txt")
+    bytes = File.binread(path)
+    invalid!("final output artifact changed") unless root["bytes"] == bytes.bytesize &&
+      root["sha256"] == Digest::SHA256.hexdigest(bytes)
+    @final_output_bytes = bytes.dup.freeze
   end
 
   def verify_original(original)
@@ -146,5 +176,13 @@ class Primus::Experiment::CheckpointEvidence
 
   def invalid!(message)
     raise Invalid, "#{@record_path}: #{message}"
+  end
+
+  def owned(value)
+    case value
+    when Hash then value.each_with_object({}) { |(key, item), copy| copy[owned(key)] = owned(item) }.freeze
+    when Array then value.map { |item| owned(item) }.freeze
+    else value.dup.freeze
+    end
   end
 end

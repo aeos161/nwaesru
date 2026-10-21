@@ -1,6 +1,6 @@
 require "tmpdir"
 
-RSpec.describe "Primus::Analysis::ObservationReader" do
+RSpec.describe Primus::Analysis::ObservationReader do
   include SavedAnalysisHelper
 
   describe "#to_observation" do
@@ -76,6 +76,23 @@ RSpec.describe "Primus::Analysis::ObservationReader" do
         }
 
         expect(action).to raise_error(Primus::Analysis::ObservationReader::Error)
+      end
+    end
+
+    it "rejects a saved run without checkpoint metadata" do
+      Dir.mktmpdir do |root|
+        experiment_id, run_id = independent_three_rune_observation(root)
+        path = File.join(root, experiment_id, run_id, "record.json")
+        record = JSON.parse(File.binread(path))
+        record.delete("checkpoints")
+        File.binwrite(path, JSON.pretty_generate(record))
+
+        action = -> {
+          described_class.new(output_path: root, experiment_id: experiment_id,
+                              run_id: run_id).to_observation
+        }
+
+        expect(action).to raise_error(described_class::Error)
       end
     end
   end

@@ -283,3 +283,75 @@ runner_checkpoints_spec.rb:335 (missing `.git/47660.tags`, then
 `Errno::ENOTEMPTY` during cleanup). No additional source regression was
 identified from that failure list. The test-writer must migrate affected
 fixtures and correct the test-only encoding and clone setup.
+
+At revision `26092b1` with uncommitted checkpoint-analysis source changes,
+MRI Ruby 2.7.4, the focused definition, checkpoint reader, evidence and
+validator specs with `RUBYOPT=-EUTF-8 LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8`
+reported 29 examples, 1 failure, seed 45151. The failing example was
+`observation_reader_checkpoint_spec.rb:33`; its temporary local Git clone
+lost `.git/18492.tags`, followed by `Errno::ENOTEMPTY` during cleanup. This
+matches the previously observed clone helper race; no observation assertion
+was reached. Later focused checkpoint suites passed 50/50 at seeds 4876,
+53937, and 21122 without reproducing this cleanup race.
+
+At committed revision `b837c46`, the full Ruby 2.7.4 UTF-8 suite
+(`PATH="$HOME/.asdf/shims:$HOME/.asdf/bin:$PATH" RUBYOPT=-EUTF-8
+LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 bundle exec rspec --format progress`)
+reported 822 examples, 9 failures, 12 pending, seed 48194. All nine
+failures were in `spec/features/analyze_saved_output_spec.rb` at lines
+135, 152, 168, 316, 333, 350, 370, 667, and 685. Their shared
+`completed_observation` helper produced a version-one page-57 run with no
+`checkpoints` array. The new analysis reader rejected that run as required
+by the approved plan. These are fixture-migration failures, not intermittent
+flakes; test-writer handoff is required before the full suite can be green.
+
+After the page-57 fixture migration at `0e82782`, a full UTF-8 run started
+with source files being edited concurrently. It reported 822 examples, 29
+failures, 12 pending, seed 4721. Twenty-eight Runner examples were invalid
+because the repo's clean-code guard saw those edits during execution; this
+was a mixed-state run and does not describe committed behavior. The other
+failure was the known clone helper race at
+`observation_reader_checkpoint_spec.rb:168`: missing temporary
+`.git/26991.tags`, then `Errno::ENOTEMPTY` cleanup. That exact example
+passed on retry at clean `6288c79` (1 example, 0 failures, seed 64949).
+
+At clean revision `6288c79`, the fixed-revision UTF-8 full suite reported
+822 examples, 1 failure, 12 pending, seed 9598. The sole failure was the
+same temporary clone helper race at
+`observation_reader_checkpoint_spec.rb:99`: missing `.git/33648.tags`,
+then `Errno::ENOTEMPTY` cleanup. The example body did not reach its
+duplicate-key assertion. Its exact retry passed (1 example, 0 failures,
+seed 38429). A second clean full-suite run follows.
+
+At clean revision `2862337`, the second fixed-revision UTF-8 full suite
+reported 822 examples, 2 failures, 12 pending, seed 49983. Both failures
+were the established temporary Git clone race before assertions:
+`runner_checkpoints_spec.rb:206` lost `.git/35990.tags` and
+`observation_reader_checkpoint_spec.rb:84` lost `.git/37253.tags`, each
+followed by `Errno::ENOTEMPTY` cleanup. Their exact examples passed together
+on retry (2 examples, 0 failures, seed 32953). No source assertion failed
+in either fixed-revision full run.
+
+During IC interpretation implementation at `52dbafb`, a full Ruby 2.7.4
+UTF-8 run (`PATH="$HOME/.asdf/shims:$HOME/.asdf/bin:$PATH"
+RUBYOPT=-EUTF-8 LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 bundle exec rspec
+--format progress`) was interrupted after 480 examples, 51 failures and
+5 pending, seed 31132. The uncommitted edit to
+`lib/primus/analysis/ic_reference_packet.rb` made the existing experiment
+guard record `DirtyCode: executable code differs from Git HEAD`; resulting
+invalid runs caused the 51 reported assertions to fail. This was an
+expected mixed-state run, not a flaky test or committed regression. After
+committing the edit at `bd19966`, the previously failing
+`spec/features/run_page_56_experiment_spec.rb:12` passed (1 example,
+0 failures, seed 15769). A clean full-suite run follows.
+
+At clean revision `0b25967`, the Ruby 2.7.4 UTF-8 full suite reported
+859 examples, 2 failures, 12 pending, seed 23349. Both failures were the
+established temporary Git clone race in `runner_checkpoints_spec.rb`:
+the examples at lines 77 and 65 lost `.git/6951.tags` and
+`.git/7208.tags`, respectively, before their assertions, followed by
+`Errno::ENOTEMPTY` during cleanup. No IC interpretation assertion failed.
+An exact two-example retry yielded one pass and the same race for line 65
+(missing `.git/10744.tags`, seed 10141). The line-65 example then passed
+alone (1 example, 0 failures, seed 31138). The line-77 example passed
+in the two-example retry.

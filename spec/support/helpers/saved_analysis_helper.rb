@@ -1,6 +1,7 @@
 require "digest"
 require "fileutils"
 require "json"
+require "securerandom"
 
 module SavedAnalysisHelper
   GP_ALPHABET = %w[ᚠ ᚢ ᚦ ᚩ ᚱ ᚳ ᚷ ᚹ ᚻ ᚾ ᛁ ᛄ ᛇ ᛈ ᛉ ᛋ ᛏ ᛒ ᛖ ᛗ ᛚ ᛝ ᛟ ᛞ ᚪ ᚫ ᚣ ᛡ ᛠ].freeze
@@ -25,6 +26,61 @@ module SavedAnalysisHelper
     provenance_digest = Digest::SHA256.hexdigest(provenance)
     File.binwrite(File.join(directory, "output.txt"), output)
     File.binwrite(File.join(directory, "provenance.json"), provenance)
+    source_body = runes.join
+    source = Psych.dump("body" => source_body)
+    source_path = File.join(directory, "source.yml")
+    File.binwrite(source_path, source)
+    File.binwrite(File.join(directory, "source-body.txt"), source_body)
+    source_identity = { "path" => source_path,
+                        "sha256" => Digest::SHA256.hexdigest(source) }
+    original_id = SecureRandom.uuid
+    final_id = SecureRandom.uuid
+    coordinates = %w[page_number occurrence byte_start byte_end character_start
+                     character_end line column rune_index]
+    symbol_rows = rows.map { |row| row.slice("ordinal", "rune", "latin", *coordinates) }
+    original_lexemes = rows.map do |row|
+      { "lexeme" => row.fetch("rune"), "kind" => "rune",
+        "rendering" => "retained", "output_byte_start" => row.fetch("byte_start"),
+        "output_byte_end" => row.fetch("byte_end") }.merge(
+          coordinates.to_h { |name| ["source_#{name}", row.fetch(name)] }
+        )
+    end
+    cursor = 0
+    final_lexemes = rows.map do |row|
+      first = cursor
+      cursor += row.fetch("latin").bytesize
+      { "lexeme" => row.fetch("rune"), "kind" => "rune",
+        "rendering" => "rendered", "output_byte_start" => first,
+        "output_byte_end" => cursor }.merge(
+          coordinates.to_h { |name| ["source_#{name}", row.fetch(name)] }
+        )
+    end
+    checkpoint = lambda do |step_id, id_value, ordinal, parent_id, operation,
+                            policy, representation, bytes, lexemes|
+      checkpoint_directory = File.join(directory, "checkpoints", step_id)
+      FileUtils.mkdir_p(checkpoint_directory)
+      artifacts = { "output" => ["output.txt", bytes],
+                    "symbols" => ["symbols.json", JSON.pretty_generate(symbol_rows)],
+                    "lexemes" => ["lexemes.json", JSON.pretty_generate(lexemes)] }
+      metadata = artifacts.transform_values do |filename, content|
+        path = File.join(checkpoint_directory, filename)
+        File.binwrite(path, content)
+        { "path" => path, "bytes" => content.bytesize,
+          "sha256" => Digest::SHA256.hexdigest(content) }
+      end
+      { "id" => id_value, "step_id" => step_id, "ordinal" => ordinal,
+        "parent_id" => parent_id, "operation" => operation, "parameters" => {},
+        "policy" => policy, "representation" => representation,
+        "source" => source_identity }.merge(metadata)
+    end
+    checkpoints = [
+      checkpoint.call("original", original_id, 0, nil, "capture",
+                      "gp-runes-lossless-v1", "gp-runes", source_body,
+                      original_lexemes),
+      checkpoint.call("letters", final_id, 1, original_id, "latin",
+                      "gp-latin-compatibility-v1", "latin", output,
+                      final_lexemes),
+    ]
     common = { "schema_version" => 1, "stage" => "final",
                "artifact" => "provenance.json", "symbol_field" => "decoded_rune",
                "output_sha256" => output_digest,
@@ -40,10 +96,19 @@ module SavedAnalysisHelper
     record = {
       "schema_version" => 2, "experiment_id" => id, "run_id" => run_id,
       "status" => "completed", "completed_at" => "2026-10-09T00:00:00Z",
-      "configuration" => { "output" => { "policy" => "gp-latin-compatibility-v1" } },
+      "configuration" => { "steps" => [{ "id" => "letters", "operation" => "latin",
+                                        "parameters" => {} }],
+                           "output" => { "policy" => "gp-latin-compatibility-v1" } },
+      "source_path" => source_path,
+      "source_actual_sha256" => source_identity.fetch("sha256"),
+      "checkpoints" => checkpoints,
+      "final_checkpoint_id" => final_id,
       "observation" => { "output_bytes" => output.bytesize,
                          "representations" => profiles },
       "artifacts" => {
+        "source-body.txt" => { "path" => File.join(directory, "source-body.txt"),
+                               "bytes" => source_body.bytesize,
+                               "sha256" => Digest::SHA256.hexdigest(source_body) },
         "output.txt" => { "path" => File.join(directory, "output.txt"),
                           "bytes" => output.bytesize, "sha256" => output_digest },
         "provenance.json" => { "path" => File.join(directory, "provenance.json"),

@@ -1,5 +1,13 @@
 # Explicit transformation steps and immutable checkpoints
 
+## Completion and next milestone — 2026-10-18
+
+Implemented on local main at `abc54e1`. The next bounded plan is
+[saved-checkpoint symbol analysis](checkpoint-symbol-analysis.md), using the
+retained original and declared step captures. Further analyzers follow in
+separate plans. Position windows are deferred to the very end of the broader
+roadmap; this does not authorize page-55 chain trials.
+
 ## Goal
 
 Execute a finite, explicitly ordered transformation chain from YAML and retain

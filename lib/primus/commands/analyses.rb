@@ -1,7 +1,7 @@
 require "shellwords"
 
 class Primus::Commands::Analyses < Primus::Commands::SubCommandBase
-  desc "run EXPERIMENT_ID RUN_ID", "analyze a saved final output"
+  desc "run EXPERIMENT_ID RUN_ID", "analyze a saved checkpoint"
   map "run" => :execute
   option :definition, type: :string, required: true
   option :output_path, type: :string, default: "experiments/runs"
@@ -10,6 +10,7 @@ class Primus::Commands::Analyses < Primus::Commands::SubCommandBase
     definition = Primus::Analysis::Definition.new(path: options[:definition])
     observation = Primus::Analysis::ObservationReader.new(
       output_path: options[:output_path], experiment_id: experiment_id, run_id: run_id,
+      stage: definition.stage,
     ).to_observation
     runner = Primus::Analysis::Runner.new(definition: definition,
                                           observation: observation)
@@ -57,17 +58,42 @@ class Primus::Commands::Analyses < Primus::Commands::SubCommandBase
     say "experiment ID: #{entry.experiment_id} run ID: #{entry.run_id} analysis ID: #{entry.analysis_run_id}"
     say "status: #{entry.status}"
     say "saved output SHA-256: #{entry.output_sha256} provenance SHA-256: #{entry.provenance_sha256}"
+    checkpoint = entry.checkpoint
+    if checkpoint
+      say "checkpoint: #{checkpoint['requested_stage']} resolved #{checkpoint['step_id']} #{checkpoint['id']}"
+      say "checkpoint output SHA-256: #{checkpoint.dig('output', 'sha256')} symbols SHA-256: #{checkpoint.dig('symbols', 'sha256')}"
+    end
     say "definition SHA-256: #{entry.definition_sha256} code: #{entry.git_head} Ruby: #{entry.ruby_version}"
     say "started: #{entry.started_at} completed: #{entry.completed_at}"
-    entry.measurements.each { |measurement| show_result(measurement) }
+    entry.measurements.each { |measurement| show_result(measurement, checkpoint) }
   end
 
-  def show_result(result)
-    say "#{result.declaration_id} final #{result.representation} alphabet size #{result.alphabet_size} sample size #{result.sample_size} distinct #{result.distinct_count}"
+  def show_result(result, checkpoint)
+    stage = checkpoint ? checkpoint.fetch("requested_stage") : "final"
+    say "#{result.declaration_id} #{stage} #{result.representation} alphabet size #{result.alphabet_size} sample size #{result.sample_size} distinct #{result.distinct_count}"
     result.frequencies.each do |bin|
       say "#{bin.fetch('index')} #{bin.fetch('symbol')} #{bin.fetch('count')} #{bin.fetch('relative_frequency').inspect}"
     end
     ic = result.ic
     say "raw IC: #{ic.fetch('status')} #{ic.fetch('numerator')}/#{ic.fetch('denominator')} #{ic.fetch('value').inspect}"
+    show_interpretation(result)
+  end
+
+  def show_interpretation(result)
+    snapshot = result.interpretation
+    unless snapshot
+      say "English comparison: insufficient evidence — this historical analysis did not retain an interpretation; create a new analysis for a versioned comparison."
+      return
+    end
+    say "#{snapshot.fetch('text')} (N=#{snapshot.fetch('sample_size')})"
+    snapshot.fetch("references").each do |reference|
+      difference = snapshot.fetch("differences")[reference.fetch("id")]
+      next unless difference
+      say "#{reference.fetch('id')}: #{reference.fetch('numerator')}/#{reference.fetch('denominator')} (N=#{reference.fetch('sample_size')}); signed difference #{difference.fetch('numerator')}/#{difference.fetch('denominator')}"
+    end
+    uniform = snapshot["theoretical_uniform"]
+    say "Theoretical uniform benchmark: #{uniform.fetch('numerator')}/#{uniform.fetch('denominator')}" if uniform
+    say snapshot.fetch("repetition_note")
+    say snapshot.fetch("limitations") if snapshot["limitations"]
   end
 end

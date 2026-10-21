@@ -164,24 +164,26 @@ description or compile flags does not.
 Git HEAD does not identify the entire host environment, so a saved attempt
 is evidence of this local run rather than a fully portable build recipe.
 
-### Saved final-output statistics
+### Saved checkpoint statistics
 
-New observations retain versioned final-symbol profiles alongside their
+New observations retain versioned checkpoint captures alongside their final
 output and provenance. To analyze a specific saved run, use its printed run
-ID and the separate analysis definition:
+ID and an analysis definition:
 
 ```sh
 bin/primus analyses run EXPERIMENT_ID RUN_ID --definition experiments/analyses/final-symbol-statistics.yml --output-path experiments/runs
+bin/primus analyses run EXPERIMENT_ID RUN_ID --definition experiments/analyses/original-symbol-statistics.yml --output-path experiments/runs
 bin/primus analyses review EXPERIMENT_ID RUN_ID --output-path experiments/runs
 bin/primus analyses review EXPERIMENT_ID RUN_ID ANALYSIS_RUN_ID --output-path experiments/runs
 ```
 
-Each invocation appends a separate retained analysis. Review reads those
-measurements without rerunning the experiment or requiring today's input,
-definition or hash backend. Runs saved before the final-symbol manifest was
-added need to be recreated before they can be analyzed.
+Set both targets' `stage` to `original`, `final`, or the same declared step ID
+to measure that capture. Each invocation appends a separate retained analysis.
+Review reads those measurements without rerunning the experiment or requiring
+today's input, definition or hash backend. Runs saved before checkpoint
+capture was added need to be recreated before they can be analyzed.
 
-The GP profile counts the final decoded runes in provenance (29 bins). The
+The GP profile counts the selected captured runes (29 bins). The
 expanded-Latin profile counts only the canonical lowercase letters for those
 same runes (26 bins); punctuation and passthrough output such as page 56's
 hexadecimal block are excluded. `ᚦᚪᚦ` is three GP symbols with raw IC 1/3,
@@ -189,6 +191,26 @@ while its Latin expansion `thath` is five letters with raw IC 1/5. Raw IC is
 the number of ordered matching pairs divided by `N × (N - 1)`, without
 alphabet normalization. Samples shorter than two symbols report an
 insufficient statistic. These are measurements, not a plaintext verdict.
+
+Each raw IC now has an English comparison saved with the measurement and
+printed by both `analyses run` and `analyses review`. The comparison uses
+`solved-gp-english-controls-v1`: solved pages 56 and 57 measured separately
+as GP runes and canonical expanded Latin letters. The GP control ICs are
+500/7140 (N=85) and 560/8930 (N=95); the expanded-Latin ICs are 638/8190
+(N=91) and 640/9900 (N=100). The theoretical uniform benchmarks are 1/29
+for GP runes and 1/26 for independently drawn Latin letters. Uniform GP
+runes expanded into letters do not make uniform Latin letters.
+
+The judgment describes whether a sample's exact raw IC is within or above
+the controls' observed range, or whether a below-range IC is closer to a
+control or the theoretical uniform benchmark. Equal distances are marked
+inconclusive. N below two is undefined; a known measurement without a
+compatible reference has insufficient evidence for comparison. These two
+short controls have different lengths, so sample variation can be substantial.
+IC measures symbol repetition, not word order, readability, English
+probability or correctness of a decryption. A higher IC does not mean closer
+to English. Historical analyses without a saved interpretation retain their
+raw IC and explicitly say that no versioned comparison was retained.
 
 ## License
 

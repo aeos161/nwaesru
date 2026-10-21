@@ -16,6 +16,10 @@ class Primus::Analysis::Definition
     data.fetch("analyses")
   end
 
+  def stage
+    declarations.first.fetch("target").fetch("stage")
+  end
+
   private
 
   def validate!
@@ -31,6 +35,7 @@ class Primus::Analysis::Definition
     entries.each { |entry| validate_entry!(entry) }
     raise Error, "duplicate analysis id" unless entries.map { |entry| entry["id"] }.uniq.size == entries.size
     raise Error, "duplicate representation" unless entries.map { |entry| entry.dig("target", "representation") }.uniq.size == entries.size
+    raise Error, "mixed checkpoint stages" unless entries.map { |entry| entry.dig("target", "stage") }.uniq.size == 1
   end
 
   def validate_entry!(entry)
@@ -38,7 +43,8 @@ class Primus::Analysis::Definition
     raise Error, "invalid declaration id" unless entry["id"].is_a?(String) && ID.match?(entry["id"])
     raise Error, "unsupported analyzer/version" unless entry["analyzer"] == "symbol-statistics" && entry["version"] == 1
     fields!(entry["target"], %w[stage representation])
-    raise Error, "unsupported stage" unless entry["target"]["stage"] == "final"
+    stage = entry["target"]["stage"]
+    raise Error, "unsafe checkpoint stage" unless stage.is_a?(String) && ID.match?(stage) && !stage.match?(/\A\d+\z/)
     unless Primus::Analysis::REPRESENTATIONS.include?(entry["target"]["representation"])
       raise Error, "unsupported representation"
     end

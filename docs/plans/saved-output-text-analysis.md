@@ -1,18 +1,20 @@
 # Saved-output symbol frequencies and index of coincidence
 
-## Current milestone — 2026-10-14
+## Current milestone — 2026-10-18
 
-Saved-output GP-rune and expanded-Latin frequencies/raw IC, verified
-ObservationReader/Observation, and analysis LogEntry/RecordValidator are merged
-on local main at `daddc5a`. Reusable totient/page-56 controls are present at
-`d98c722`. The next selected milestone is now concretely planned in
-[explicit transformation steps and immutable checkpoints](transformation-checkpoints.md):
-ordered independent steps, exact immutable intermediates and an independent
-synthetic layered control. Stage-targeted analyses and further analyzers follow
-later; page-55 chain trials remain gated on that control. Older “current”,
-“next”, pending-review and cached-main statements below describe their dated
-milestones, not unfinished prerequisites to this plan. No run data is deleted
-or migrated by this update, and no research trial is performed here.
+Explicit transformation checkpoints are merged on local `main` at `abc54e1`,
+after saved-output analysis (`daddc5a`) and reusable totient/page-56 controls
+(`d98c722`). The next bounded milestone is
+[saved-checkpoint symbol analysis](checkpoint-symbol-analysis.md): select original,
+a declared step ID, or final; verify retained evidence; compute the existing
+GP-rune/expanded-Latin statistics without rerunning transformations.
+
+Further analyzers and other separately authorized research capabilities follow
+through fresh plans. **Position windows are deferred to the VERY END of the
+broader roadmap**, not the next increment or a prerequisite. Older current/next
+and pending-review statements below are dated history. No page-55 trial, run
+deletion or migration is authorized by this planning update.
+
 
 ## Review refactor — 2026-10-10 (current work)
 
@@ -530,7 +532,8 @@ analysis execution, and deletion/migration of current test data during planning.
 
 Later sequence: step 2 captures explicit transformation stages with an
 independently specified layered synthetic control; step 3 selects retained
-stages for analysis; step 4 adds further analyzers. Re-plan each against the
+stages for analysis; step 4 adds further analyzers. Position windows come at the
+very end of the broader roadmap, after the other deferred capabilities. Re-plan each against the
 then-current implementation. The separated `analyses` declaration and explicit
 `final` representation provide continuity without implementing those steps now.
 

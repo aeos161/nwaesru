@@ -25,10 +25,15 @@ class Primus::Analysis::Runner
 
   def result_for(entry)
     name = entry.fetch("target").fetch("representation")
-    Primus::Analysis::SymbolStatistics.new(
+    measurement = Primus::Analysis::SymbolStatistics.new(
       symbols: @observation.symbols(name), alphabet: @observation.alphabet(name),
       declaration_id: entry.fetch("id"), representation: name,
     ).to_result
+    references = Primus::Analysis::ICReferencePacket.new.for_representation(name)
+    snapshot = Primus::Analysis::ICInterpretation.new(
+      measurement: measurement, references: references,
+    ).to_h
+    measurement.with_interpretation(snapshot)
   end
 
   def initial_data

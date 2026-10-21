@@ -31,6 +31,7 @@ class Primus::Analysis::LogEntry
   def status; @data.fetch("status"); end
   def errors; @data.fetch("errors"); end
   def measurements; @measurements; end
+  def checkpoint; @data["checkpoint"]; end
   def definition_sha256; @data.fetch("definition_sha256"); end
   def git_head; @data["git_head"]; end
   def ruby_version; @data["ruby_version"]; end
@@ -46,8 +47,12 @@ class Primus::Analysis::LogEntry
   private
 
   def result_envelope(result)
+    checkpoint = @data.fetch("checkpoint")
     { "declaration_id" => result.declaration_id, "analyzer" => "symbol-statistics",
-      "version" => 1, "stage" => "final", "representation" => result.representation,
+      "version" => 1, "stage" => checkpoint.fetch("requested_stage"),
+      "checkpoint_id" => checkpoint.fetch("id"),
+      "checkpoint_step_id" => checkpoint.fetch("step_id"),
+      "representation" => result.representation,
       "profile" => @data.fetch("representations").fetch(result.representation),
       "exclusions" => "non-GP passthrough literals", "result" => result.to_h }
   end
