@@ -176,7 +176,7 @@ class Primus::Experiment::CheckpointEvidence
       metadata["sha256"] == Digest::SHA256.hexdigest(bytes)
     Primus::Experiment::OrderedSourceEvidence.new(
       record_path: @record_path, data: @data, directory: @directory
-    ).verify!(bytes) if @data.key?("source_manifest")
+    ).verify!(bytes, original.fetch("lexemes_rows")) if @data.key?("source_manifest")
     invalid!("original checkpoint differs from source body") unless
       original.fetch("output").fetch("sha256") == metadata["sha256"]
   end

@@ -5,6 +5,8 @@ class Primus::Experiment::InputSource
     @number = selection.fetch("id").delete_prefix("page-").to_i
     @occurrence = occurrence
     @path = "data/encoded/liber_primus/page_#{number}.yml".freeze
+    raise ArgumentError, "source path escapes repository" unless
+      File.realpath(path).start_with?("#{Dir.pwd}/")
     @yaml_bytes = File.binread(path).force_encoding(Encoding::UTF_8)
     raise ArgumentError, "invalid UTF-8 source" unless @yaml_bytes.valid_encoding?
     parsed = Psych.safe_load(@yaml_bytes, aliases: false)
