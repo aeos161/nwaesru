@@ -87,6 +87,31 @@ RSpec.describe Primus::Experiment do
   end
 
   describe "Primus::Experiment::Runner#run" do
+    it "keeps distinct fingerprints for commuting Atbash and reversal orders" do
+      Dir.mktmpdir do |output_path|
+        first_definition = warning_definition
+        reversal = { "id" => "reverse", "operation" => "reverse-runes",
+                     "parameters" => { "scope" => "composed-input", "non_runes" => "fixed" } }
+        first_definition.fetch("steps").insert(1, reversal)
+        second_definition = warning_definition
+        second_definition.fetch("steps").unshift(reversal)
+        first = Primus::Experiment::Runner.new(
+          experiment: described_class.from_data(first_definition), output_path: output_path
+        )
+        second = Primus::Experiment::Runner.new(
+          experiment: described_class.from_data(second_definition), output_path: output_path
+        )
+
+        first.run
+        second.run
+        fingerprints = [first, second].map do |runner|
+          runner.log_entry.data.fetch("execution_identity")
+        end
+
+        expect(fingerprints.uniq.size).to eq(2)
+      end
+    end
+
     it "matches the full verified Warning plaintext" do
       Dir.mktmpdir do |output_path|
         runner = run_warning(output_path)
