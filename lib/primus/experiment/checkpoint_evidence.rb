@@ -50,8 +50,12 @@ class Primus::Experiment::CheckpointEvidence
     invalid!("checkpoint policy mismatch") unless item["policy"] == policy
     representation = expected["operation"] == "latin" ? "latin" : "gp-runes"
     invalid!("checkpoint representation mismatch") unless item["representation"] == representation
-    expected_source = { "path" => @data.fetch("source_path"),
-                        "sha256" => @data.fetch("source_actual_sha256") }
+    expected_source = if @data.key?("source_manifest")
+                        @data.fetch("source_manifest")
+                      else
+                        { "path" => @data.fetch("source_path"),
+                          "sha256" => @data.fetch("source_actual_sha256") }
+                      end
     invalid!("checkpoint source identity mismatch") unless item["source"] == expected_source
     output = artifact(item, "output", "output.txt")
     Primus::Analysis::StrictData.utf8(output)
@@ -170,6 +174,9 @@ class Primus::Experiment::CheckpointEvidence
     bytes = File.binread(path)
     invalid!("source-body artifact changed") unless metadata["bytes"] == bytes.bytesize &&
       metadata["sha256"] == Digest::SHA256.hexdigest(bytes)
+    Primus::Experiment::OrderedSourceEvidence.new(
+      record_path: @record_path, data: @data, directory: @directory
+    ).verify!(bytes) if @data.key?("source_manifest")
     invalid!("original checkpoint differs from source body") unless
       original.fetch("output").fetch("sha256") == metadata["sha256"]
   end

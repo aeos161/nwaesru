@@ -10,7 +10,7 @@ class Primus::Experiment::Latin
     @output_map = map_output(translated, output)
     Primus::Experiment::Observation.new(
       output_bytes: output,
-      provenance: provenance(translated, transcription.pages.first.source_body)
+      provenance: provenance(translated, transcription.pages)
     )
   end
 
@@ -36,14 +36,14 @@ class Primus::Experiment::Latin
     [node]
   end
 
-  def provenance(document, source_body)
+  def provenance(document, pages)
     document.tokens.select { |token|
       token.respond_to?(:index) && !token.index.nil? &&
         token.source_location && token.source_location.rune_index
     }.each_with_index.map do |token, ordinal|
       source = token.source_location
       { "ordinal" => ordinal,
-        "rune" => source_body.byteslice(source.byte_start...source.byte_end),
+        "rune" => pages.fetch(source.occurrence).source_body.byteslice(source.byte_start...source.byte_end),
         "decoded_rune" => token.rune, "latin" => token.letter,
         **Primus::Transcription::SourceLocation::ATTRIBUTES.to_h { |name|
           [name.to_s, source.public_send(name)] } }

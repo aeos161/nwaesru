@@ -47,7 +47,8 @@ class Primus::Experiment
   attr_accessor :schema_version, :id, :title, :purpose, :input, :operation,
                 :output, :expectation, :parameters, :recipe, :steps, :checks
   attr_reader :definition_path, :definition_bytes, :definition_data,
-              :input_bytes, :source_body, :expected_bytes, :expected_bytes_by_check
+              :input_bytes, :source_body, :expected_bytes, :expected_bytes_by_check,
+              :input_collection
 
   def self.load(path:)
     bytes = File.binread(path).force_encoding(Encoding::UTF_8)
@@ -135,11 +136,21 @@ class Primus::Experiment
     input.fetch("id").delete_prefix("page-").to_i
   end
 
+  def input_paths
+    return [input_path] unless ordered_input?
+    input.fetch("pages").map { |item| "data/encoded/liber_primus/#{item.fetch('id').tr('-', '_')}.yml" }
+  end
+
+  def ordered_input?
+    v2? && input.is_a?(Hash) && input.key?("pages")
+  end
+
   def v2_expectation
     checks.first.fetch("expectation")
   end
 
   def source_digest
+    return Digest::SHA256.hexdigest(JSON.generate(input_collection.manifest)) if input_collection
     Digest::SHA256.hexdigest(input_bytes) if input_bytes
   end
 
@@ -265,8 +276,13 @@ class Primus::Experiment
 
   def validate_files
     @input_bytes = @source_body = @expected_bytes = nil
+    @input_collection = nil
     @expected_bytes_by_check = {}
-    validate_source if safe_path?(input_path, :input)
+    if ordered_input?
+      validate_ordered_sources
+    else
+      validate_source if safe_path?(input_path, :input)
+    end
     validate_v2_skip_bounds if v2?
     return validate_v2_expectation_file if v2?
     if expectation.is_a?(Hash) && expectation["kind"] == "plaintext" &&
@@ -279,9 +295,8 @@ class Primus::Experiment
     reject(:id, "is required") unless id.is_a?(String) && id.match?(/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/)
     reject(:title, "is required") unless title.is_a?(String) && !title.strip.empty?
     reject(:purpose, "is required") unless purpose.is_a?(String) && !purpose.strip.empty?
-    reject(:input, "must select a whole page") unless input.is_a?(Hash) && input["id"].is_a?(String) && input["id"].match?(/\Apage-[0-9]+\z/)
+    validate_v2_input
     validate_v2_steps
-    reject(:input, "unknown fields") if input.is_a?(Hash) && (input.keys - %w[id sha256]).any?
     reject(:output, "policy must be #{V2_POLICY}") unless output == { "policy" => V2_POLICY }
     reject(:checks, "must contain checks") unless checks.is_a?(Array) && checks.any?
     if checks.is_a?(Array)
@@ -292,6 +307,28 @@ class Primus::Experiment
       reject(:checks, "duplicate check strategy or algorithm") unless kinds.uniq == kinds
     end
     reject(:base, "unknown fields") if (definition_data.keys - V2_ROOT_KEYS).any?
+  end
+
+  def validate_v2_input
+    return reject(:input, "must select a whole page") unless input.is_a?(Hash)
+    if input.key?("pages")
+      validate_page_list
+    else
+      reject(:input, "must select a whole page") unless valid_page_selection?(input)
+    end
+  end
+
+  def validate_page_list
+    reject(:input, "unknown fields") unless input.keys == ["pages"]
+    pages = input["pages"]
+    return reject(:input, "must contain at least two pages") unless pages.is_a?(Array) && pages.size >= 2
+    pages.each { |item| reject(:input, "invalid page selection") unless valid_page_selection?(item) }
+  end
+
+  def valid_page_selection?(selection)
+    selection.is_a?(Hash) && (selection.keys - %w[id sha256]).empty? &&
+      selection["id"].is_a?(String) && selection["id"].match?(/\Apage-[0-9]+\z/) &&
+      selection["sha256"].is_a?(String) && selection["sha256"].match?(/\A[0-9a-f]{64}\z/)
   end
 
   def validate_v2_steps
@@ -306,9 +343,20 @@ class Primus::Experiment
   end
 
   def gp_rune_count
+    return input_collection.rune_count if input_collection
     page = Primus::Page.new(data: source_body)
     scan = Primus::Lexer::SourceScan.new(page: page, strategy: :runic)
     scan.to_transcription.tokens.count { |token| token.kind == :rune }
+  end
+
+  def validate_ordered_sources
+    return unless input["pages"].is_a?(Array) && input["pages"].size >= 2
+    return unless input["pages"].all? { |item| valid_page_selection?(item) }
+    @input_collection = Primus::Experiment::InputCollection.new(input["pages"])
+    @source_body = input_collection.source_body
+    reject(:input, "body must contain GP runes") unless gp_rune_count.positive?
+  rescue Psych::Exception, SystemCallError, ArgumentError => error
+    reject(:input, error.message, type: error.class.name)
   end
 
   def validate_v2_check(check)

@@ -44,6 +44,7 @@ class Primus::Experiment::Store
     FileUtils.mkdir_p(directory)
     data = initial_data(experiment, run_id, fingerprint, git_head,
                         code_clean, previous_run_ids, rerun_reason)
+    data["source_manifest"] = experiment.input_collection.manifest if experiment.input_collection
     data["hash_runtime"] = hash_runtime if hash_runtime
     if experiment.v2? && experiment.checks.is_a?(Array) && experiment.checks.size > 1
       data.merge!("comparison" => "not_applicable", "assessment_records" => [],
@@ -90,12 +91,17 @@ class Primus::Experiment::Store
     item = checkpoint.record.merge("output" => data["artifacts"].fetch("output.txt"),
                                    "symbols" => data["artifacts"].fetch("symbols.json"),
                                    "lexemes" => data["artifacts"].fetch("lexemes.json"),
-                                   "source" => { "path" => entry.data.fetch("source_path"),
-                                                   "sha256" => entry.data.fetch("source_actual_sha256") })
+                                   "source" => checkpoint_source(entry))
     entry.data["checkpoints"] ||= []
     entry.data["checkpoints"] << item
     entry.data["final_checkpoint_id"] = item.fetch("id") if checkpoint.step["operation"] == "latin"
     atomic_record(record_directory(entry), entry.data)
+  end
+
+  def checkpoint_source(entry)
+    return entry.data.fetch("source_manifest") if entry.data.key?("source_manifest")
+    { "path" => entry.data.fetch("source_path"),
+      "sha256" => entry.data.fetch("source_actual_sha256") }
   end
 
   def record_failed_step(entry, failure)
@@ -215,9 +221,9 @@ class Primus::Experiment::Store
       "definition_sha256" => Digest::SHA256.hexdigest(experiment.definition_bytes),
       "definition_path" => experiment.definition_path,
       "configuration" => experiment.persisted_configuration,
-      "source_path" => experiment.input_path,
-      "source_declared_sha256" => source_checksum,
-      "source_actual_sha256" => experiment.source_digest,
+      "source_path" => experiment.input_collection ? nil : experiment.input_path,
+      "source_declared_sha256" => experiment.input_collection ? nil : source_checksum,
+      "source_actual_sha256" => experiment.input_collection ? nil : experiment.source_digest,
       "oracle_path" => experiment.checks.is_a?(Array) && experiment.checks.size > 1 ? nil : experiment.expectation_path,
       "oracle_declared_sha256" => oracle_checksum,
       "oracle_actual_sha256" => experiment.expectation_digest,
@@ -242,6 +248,12 @@ class Primus::Experiment::Store
       end
       snapshot(data, directory, "input.yml", @input_bytes) if @input_bytes
       snapshot(data, directory, "source-body.txt", @source_body) if @source_body
+      if @input_collection
+        @input_collection.sources.each do |source|
+          snapshot(data, directory, "source-#{source.occurrence}.yml", source.yaml_bytes)
+          snapshot(data, directory, "source-#{source.occurrence}-body.txt", source.body)
+        end
+      end
       if @expected_bytes
         snapshot(data, directory, "expected.txt",
                  @expected_bytes)
@@ -352,10 +364,12 @@ class Primus::Experiment::Store
 
   public
 
-  def snapshots(input_bytes:, source_body:, expected_bytes:, definition_bytes:)
+  def snapshots(input_bytes:, source_body:, expected_bytes:, definition_bytes:,
+                input_collection: nil)
     @input_bytes = input_bytes&.dup&.freeze
     @source_body = source_body&.dup&.freeze
     @expected_bytes = expected_bytes&.dup&.freeze
     @definition_bytes = definition_bytes&.dup&.freeze
+    @input_collection = input_collection
   end
 end

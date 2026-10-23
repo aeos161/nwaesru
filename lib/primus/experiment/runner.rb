@@ -79,7 +79,8 @@ class Primus::Experiment::Runner
     @store.snapshots(input_bytes: @experiment.input_bytes,
                      source_body: @experiment.source_body,
                      expected_bytes: @experiment.checks.size > 1 ? nil : @experiment.expected_bytes,
-                     definition_bytes: @experiment.definition_bytes)
+                     definition_bytes: @experiment.definition_bytes,
+                     input_collection: @experiment.input_collection)
     @log_entry = @store.reserve(
       experiment: @experiment, fingerprint: v2_identity(head), git_head: head,
       code_clean: clean, hash_runtime: @hash_runtime,
@@ -99,7 +100,7 @@ class Primus::Experiment::Runner
 
   def v2_identity(head)
     identity = { source_sha256: @experiment.source_digest,
-                 input_selection: @experiment.input_path,
+                 input_selection: @experiment.input,
                  steps: @experiment.canonical_steps, output: @experiment.output,
                  rune_policy: Primus::Experiment::Checkpoint::RUNE_POLICY,
                  git_head: head, ruby_version: RUBY_VERSION, version: 2 }
@@ -229,6 +230,7 @@ class Primus::Experiment::Runner
   end
 
   def produce_chain_observation
+    return produce_ordered_chain_observation if @experiment.input_collection
     page = Primus::LiberPrimus::Page.new(
       number: @experiment.v2_page_number, data: @experiment.source_body.rstrip,
       source_body: @experiment.source_body, artifact_bytes: @experiment.input_bytes,
@@ -237,6 +239,16 @@ class Primus::Experiment::Runner
     transcription = Primus::Lexer::SourceScan.new(page: page, strategy: :runic).to_transcription
     @chain = Primus::Experiment::Chain.new(
       steps: @experiment.canonical_steps, transcription: transcription,
+      publisher: ->(checkpoint) { @store.record_checkpoint(@log_entry, checkpoint) }
+    )
+    @chain.run
+    @chain.observation
+  end
+
+  def produce_ordered_chain_observation
+    @chain = Primus::Experiment::Chain.new(
+      steps: @experiment.canonical_steps,
+      transcription: @experiment.input_collection.transcription,
       publisher: ->(checkpoint) { @store.record_checkpoint(@log_entry, checkpoint) }
     )
     @chain.run
@@ -332,7 +344,7 @@ class Primus::Experiment::Runner
 
   def reject_output_overlap!
     output = resolved_path(@output_path)
-    paths = [@experiment.input_path]
+    paths = @experiment.input_paths
     if @experiment.v2? && @experiment.checks.is_a?(Array)
       paths.concat(@experiment.checks.filter_map { |check|
         check.dig("expectation", "path") if check.is_a?(Hash) && check["expectation"].is_a?(Hash)
