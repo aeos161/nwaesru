@@ -138,7 +138,10 @@ class Primus::Experiment
 
   def input_paths
     return [input_path] unless ordered_input?
-    input.fetch("pages").map { |item| "data/encoded/liber_primus/#{item.fetch('id').tr('-', '_')}.yml" }
+    return [] unless input["pages"].is_a?(Array)
+    input["pages"].filter_map do |item|
+      "data/encoded/liber_primus/#{item['id'].tr('-', '_')}.yml" if valid_page_selection?(item)
+    end
   end
 
   def ordered_input?

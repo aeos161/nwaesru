@@ -99,8 +99,9 @@ class Primus::Experiment::Runner
   end
 
   def v2_identity(head)
+    selection = @experiment.input_collection ? @experiment.input : @experiment.input_path
     identity = { source_sha256: @experiment.source_digest,
-                 input_selection: @experiment.input,
+                 input_selection: selection,
                  steps: @experiment.canonical_steps, output: @experiment.output,
                  rune_policy: Primus::Experiment::Checkpoint::RUNE_POLICY,
                  git_head: head, ruby_version: RUBY_VERSION, version: 2 }
