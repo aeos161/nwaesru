@@ -6,7 +6,7 @@ require "tmpdir"
 
 RSpec.describe Primus::Experiment do
   def with_ordered_input(bodies: ["ᚳ-ᚻ", "ᚷᚻ"], page_numbers: [99, 100],
-                         skip_sequence: [], input_override: nil)
+                         skip_sequence: [])
     directory = Dir.mktmpdir
     begin
       repository = File.join(directory, "repository")
@@ -25,7 +25,7 @@ RSpec.describe Primus::Experiment do
           "schema_version" => 2, "id" => "ordered-input-control",
           "title" => "Ordered two-page control",
           "purpose" => "Check continuous GP and retained source evidence.",
-          "input" => input_override || { "pages" => pages },
+          "input" => { "pages" => pages },
           "steps" => [
             { "id" => "totient", "operation" => "totient",
               "parameters" => { "modulus" => 29, "prime_start" => 2,
@@ -41,7 +41,7 @@ RSpec.describe Primus::Experiment do
         definition_path = "experiments/definitions/ordered-input-control.yml"
         File.binwrite(definition_path, Psych.dump(definition))
         experiment = described_class.load(path: definition_path)
-        yield experiment, File.join(directory, "runs"), definition, pages
+        yield experiment, File.join(directory, "runs"), definition
       end
     ensure
       FileUtils.rm_rf(directory)
