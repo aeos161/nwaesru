@@ -171,6 +171,16 @@ RSpec.describe Primus::Experiment do
       end
     end
 
+    it "applies a configured skip at the second page's global ordinal" do
+      with_ordered_input(skip_sequence: [2]) do |experiment, output_path|
+        runner = run_ordered(experiment, output_path)
+
+        actual = checkpoint_bytes(runner, "totient")
+
+        expect(actual).to eq("ᚱ-ᚷᚷᚱ")
+      end
+    end
+
     it "retains source-relative coordinates and global GP ordinals" do
       with_ordered_input do |experiment, output_path|
         runner = run_ordered(experiment, output_path)
@@ -288,6 +298,22 @@ RSpec.describe Primus::Experiment do
         expect(second.log_entry.data.fetch("execution_identity")).not_to eq(
           first.log_entry.data.fetch("execution_identity")
         )
+      end
+    end
+
+    it "supports original-stage analysis from retained sources alone" do
+      with_ordered_input do |experiment, output_path|
+        runner = run_ordered(experiment, output_path)
+        File.delete("data/encoded/liber_primus/page_99.yml")
+        File.delete("data/encoded/liber_primus/page_100.yml")
+        reader = Primus::Analysis::ObservationReader.new(
+          output_path: output_path, experiment_id: experiment.id,
+          run_id: runner.log_entry.run_id, stage: "original"
+        )
+
+        observation = reader.to_observation
+
+        expect(observation.symbols("gp-runes-v1")).to eq(%w[ᚳ ᚻ ᚷ ᚻ])
       end
     end
   end
