@@ -19,6 +19,8 @@ operation under test.
 
 Frozen fixture SHA-256 values:
 
+* `warning_original_runes.txt`:
+  `37f796ad978ef7300a34dca76c238955082db11315dcc5073cb09192190771be`
 * `warning_atbash_runes.txt`:
   `bcebb8ea5cb8d1cf6902561c2b003147d366c9a31778313856941b21e9fde353`
 * `warning_atbash_latin.txt`:

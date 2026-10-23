@@ -5,6 +5,7 @@ require "tmpdir"
 RSpec.describe Primus::Experiment do
   ENCODED_WARNING_SHA256 = "86a0a2a4d68c2fff1af86d3e7aa62bec05eb46a2bdbc480d4243bcf282561718"
   DECODED_WARNING_SHA256 = "d359714fdba2c8d3a557dd7c745659ffb1137cb58ce5844e28e830f0217c1d1f"
+  ORIGINAL_RUNES_SHA256 = "37f796ad978ef7300a34dca76c238955082db11315dcc5073cb09192190771be"
   ATBASH_RUNES_SHA256 = "bcebb8ea5cb8d1cf6902561c2b003147d366c9a31778313856941b21e9fde353"
   ATBASH_LATIN_SHA256 = "8d130adee72285dbde3a94576cba6a1492660286fcd764561bd1215b0f8d7222"
 
@@ -167,9 +168,7 @@ RSpec.describe Primus::Experiment do
 
         actual = File.binread(path)
 
-        expect(actual).to eq(Psych.safe_load(File.binread(
-          "data/encoded/liber_primus/page_warning.yml"
-        )).fetch("body").b)
+        expect(actual).to eq(File.binread("spec/fixtures/experiments/warning_original_runes.txt"))
       end
     end
 
@@ -233,6 +232,14 @@ RSpec.describe Primus::Experiment do
       ).hexdigest
 
       expect(actual).to eq(ATBASH_RUNES_SHA256)
+    end
+
+    it "pins the reviewed original rune bytes" do
+      actual = Digest::SHA256.file(
+        "spec/fixtures/experiments/warning_original_runes.txt"
+      ).hexdigest
+
+      expect(actual).to eq(ORIGINAL_RUNES_SHA256)
     end
   end
 end
