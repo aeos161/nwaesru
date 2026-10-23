@@ -147,6 +147,46 @@ RSpec.describe Primus::Experiment do
         )).fetch("body").b)
       end
     end
+
+    it "retains the exact Warning path in saved source evidence" do
+      Dir.mktmpdir do |output_path|
+        runner = run_warning(output_path)
+
+        path = checkpoint(runner, "original").fetch("source").fetch("path")
+
+        expect(path).to eq("data/encoded/liber_primus/page_warning.yml")
+      end
+    end
+  end
+
+  describe "Primus::Analysis::ObservationReader#to_observation" do
+    it "selects the saved Atbash stage by explicit step ID" do
+      Dir.mktmpdir do |output_path|
+        runner = run_warning(output_path)
+        reader = Primus::Analysis::ObservationReader.new(
+          output_path: output_path, experiment_id: runner.log_entry.data.fetch("experiment_id"),
+          run_id: runner.log_entry.run_id, stage: "mirror"
+        )
+
+        runes = reader.to_observation.symbols("gp-runes-v1")
+
+        expect(runes.first(4)).to eq(%w[ᚪ ᚹ ᚪ ᚱ])
+      end
+    end
+
+    it "expands Latin from the saved Atbash rune checkpoint" do
+      Dir.mktmpdir do |output_path|
+        runner = run_warning(output_path)
+        reader = Primus::Analysis::ObservationReader.new(
+          output_path: output_path, experiment_id: runner.log_entry.data.fetch("experiment_id"),
+          run_id: runner.log_entry.run_id, stage: "mirror"
+        )
+
+        letters = reader.to_observation.symbols("gp-expanded-latin-v1")
+
+        expect(letters.first(5)).to eq(%w[a w a r n])
+      end
+    end
   end
 
   describe "warning oracle fixtures" do
