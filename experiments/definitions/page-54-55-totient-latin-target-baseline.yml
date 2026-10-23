@@ -1,0 +1,63 @@
+# Draft baseline; image audit remains required before execution.
+schema_version: 2
+id: page-54-55-totient-latin-target-baseline
+title: Pages 54-55 continuous totient Latin target baseline
+purpose: Apply the prime-totient shift followed by rune-to-Latin translation demonstrated by page 56 to pages 54 then 55 as one continuous input, starting at prime 2 with no skipped runes and no cipher-state reset at the page boundary. Compare the combined final output with the hash disclosed on page 56. Neither this decoding approach nor the hash's relationship to the combined text is established.
+input:
+  pages:
+    - id: page-54
+      sha256: ae7eb6c5c28cab7c4ecece509e4102113f2668f3671c046218bb0ce0a7edafa5
+    - id: page-55
+      sha256: e8594c0257d70c4cd8d7cf70749241ce0fe42add14e109d010e6b82128922c95
+steps:
+  - id: totient
+    operation: totient
+    parameters:
+      modulus: 29
+      prime_start: 2
+      skip_sequence: []
+  - id: letters
+    operation: latin
+    parameters: {}
+output:
+  policy: gp-latin-compatibility-v1
+checks:
+  - id: check-1
+    strategy: hash
+    algorithm: sha512
+    expectation:
+      digest: 36367763ab73783c7af284446c59466b4cd653239a311cb7116d4618dee09a8425893dc7500b464fdaf1672d7bef5e891c6e2274568926a49fb4f45132c2a8b4
+      provenance: >-
+        Target copied from docs/research/what-happened-liber-primus-post-2014.md,
+        section 4.1, joining the five hexadecimal lines without separators.
+        The target is 64 bytes; its algorithm, referent and serialization are unknown.
+        Treat hashing combined page-54-55 candidate bytes as a hypothesis, not a known plaintext control.
+        Draft provenance: page-54 and page-55 transcription image audits remain pending.
+        The page-56 target scan was checked during baseline preparation; retain its
+        audit evidence with the research results. See docs/plans/continuous-page-input.md.
+  - id: check-2
+    strategy: hash
+    algorithm: blake2b512
+    expectation:
+      digest: 36367763ab73783c7af284446c59466b4cd653239a311cb7116d4618dee09a8425893dc7500b464fdaf1672d7bef5e891c6e2274568926a49fb4f45132c2a8b4
+      provenance: >-
+        Target copied from docs/research/what-happened-liber-primus-post-2014.md,
+        section 4.1, joining the five hexadecimal lines without separators.
+        The target is 64 bytes; its algorithm, referent and serialization are unknown.
+        Treat hashing combined page-54-55 candidate bytes as a hypothesis, not a known plaintext control.
+        Draft provenance: page-54 and page-55 transcription image audits remain pending.
+        The page-56 target scan was checked during baseline preparation; retain its
+        audit evidence with the research results. See docs/plans/continuous-page-input.md.
+  - id: check-3
+    strategy: hash
+    algorithm: blake512
+    expectation:
+      digest: 36367763ab73783c7af284446c59466b4cd653239a311cb7116d4618dee09a8425893dc7500b464fdaf1672d7bef5e891c6e2274568926a49fb4f45132c2a8b4
+      provenance: >-
+        Target copied from docs/research/what-happened-liber-primus-post-2014.md,
+        section 4.1, joining the five hexadecimal lines without separators.
+        The target is 64 bytes; its algorithm, referent and serialization are unknown.
+        Treat hashing combined page-54-55 candidate bytes as a hypothesis, not a known plaintext control.
+        Draft provenance: page-54 and page-55 transcription image audits remain pending.
+        The page-56 target scan was checked during baseline preparation; retain its
+        audit evidence with the research results. See docs/plans/continuous-page-input.md.
