@@ -15,6 +15,14 @@ example again passed (1 example, 0 failures, seed 7871). This is distinct
 from the expected red ordered-input controls, which currently fail because
 `input.pages` has not been implemented.
 
+The full UTF-8 suite on the same branch then reported 886 examples, 27
+failures and 12 pending (seed 34912). Twenty-six failures were the intended
+new controls. The only existing-spec failure was the same clone-helper race
+at `runner_checkpoints_spec.rb:285`: temporary `.git/64419.tags` was missing,
+followed by `Errno::ENOTEMPTY` while cleaning the clone. Its punctuation
+assertion was not reached. The exact example passed on retry (1 example,
+0 failures, seed 41980). No other existing example failed.
+
 ## 2026-10-10: saved-output statistics TDD and integration
 
 On `codex/saved-output-text-analysis` at clean test-head `6473f8b`, MRI
