@@ -1,5 +1,28 @@
 # Observed test failures
 
+## 2026-10-23: continuous page input test-writer regression check
+
+On `codex/continuous-page-input` after test-only commits `f9dc476` and
+`8886a7b`, the Ruby 2.7.4 UTF-8 focused regression command covering
+`run_page_56_experiment_spec.rb`, `run_page_57_experiment_spec.rb`,
+`runner_checkpoints_spec.rb`, and `observation_reader_checkpoint_spec.rb`
+reported 58 examples, 1 failure, seed 41410. The sole failure was the
+existing clone-helper race in
+`observation_reader_checkpoint_spec.rb:99`: `Errno::ENOENT` for temporary
+`.git/61743.tags`, followed by `Errno::ENOTEMPTY` during temporary-directory
+cleanup. Its duplicate-key assertion was never reached. Running that exact
+example again passed (1 example, 0 failures, seed 7871). This is distinct
+from the expected red ordered-input controls, which currently fail because
+`input.pages` has not been implemented.
+
+The full UTF-8 suite on the same branch then reported 886 examples, 27
+failures and 12 pending (seed 34912). Twenty-six failures were the intended
+new controls. The only existing-spec failure was the same clone-helper race
+at `runner_checkpoints_spec.rb:285`: temporary `.git/64419.tags` was missing,
+followed by `Errno::ENOTEMPTY` while cleaning the clone. Its punctuation
+assertion was not reached. The exact example passed on retry (1 example,
+0 failures, seed 41980). No other existing example failed.
+
 ## 2026-10-10: saved-output statistics TDD and integration
 
 On `codex/saved-output-text-analysis` at clean test-head `6473f8b`, MRI

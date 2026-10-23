@@ -121,6 +121,23 @@ The CLI accepts experiment IDs and reads live definitions from
 `experiments/definitions/<ID>.yml`. Ruby callers can still load an explicit
 definition path with `Primus::Experiment.load(path: ...)`.
 
+A named v2 definition can select ordered whole pages:
+
+```yaml
+input:
+  pages:
+    - { id: page-54, sha256: "<64 lowercase hex digits>" }
+    - { id: page-55, sha256: "<64 lowercase hex digits>" }
+```
+
+The list has at least two entries. Page IDs may repeat; each entry has its own
+occurrence. The cipher and GP ordinal continue across every boundary, while
+source coordinates remain relative to each original page. Member bodies join
+byte for byte, with no added separator. Saved runs retain each YAML and body,
+an aggregate body, and an ordered manifest of source identity and byte ranges.
+Use a named definition for this input; the CLI's direct `--input page-N` form
+continues to select one page.
+
 `run` accepts `--output-path DIR` to retain attempts elsewhere. Legacy v1 runs
 reuse an unchanged attempt; v2 composed runs create a fresh attempt.
 `--rerun --reason "..."` remains available.

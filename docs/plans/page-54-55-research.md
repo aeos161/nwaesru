@@ -1,5 +1,18 @@
 # Final plan: Liber Primus page 55 and pages 54–55
 
+## Current sequence amendment (2026-10-22)
+
+The completed harness at local main `3a440b2` now captures transformation
+checkpoints and analyzes original/intermediate/final stages with IC interpretation.
+Earlier future-capability and delivery-order text below/above is historical. The
+current authorized sequence is: audit and refresh the two page-55 baselines with
+saved-stage analysis; extend those same baselines to pages 54 then 55 as ONE FULL
+CONTINUOUS piece; only then plan broader operations such as reversal and Atbash.
+Position windows remain at the VERY END. See [continuous ordered page input](continuous-page-input.md)
+for the concrete feature plan, old-run replacement rationale, image audit gates,
+source/boundary evidence contract and independent continuous-versus-reset control.
+No research execution, source edits or new test results are claimed by this amendment.
+
 ## Current milestone — 2026-10-18
 
 Explicit transformation checkpoints are merged on local `main` at `abc54e1`,
