@@ -92,6 +92,107 @@ RSpec.describe Primus::Experiment do
         expect(experiment).to be_valid
       end
     end
+
+    it "rejects an empty ordered page list" do
+      with_ordered_input do |_experiment, _output_path, definition|
+        definition.fetch("input").fetch("pages").clear
+        malformed = described_class.from_data(definition)
+
+        expect(malformed).not_to be_valid
+      end
+    end
+
+    it "rejects a one-entry ordered page list" do
+      with_ordered_input do |_experiment, _output_path, definition|
+        definition.fetch("input").fetch("pages").pop
+        malformed = described_class.from_data(definition)
+
+        expect(malformed).not_to be_valid
+      end
+    end
+
+    it "rejects a single-page ID mixed with an ordered list" do
+      with_ordered_input do |_experiment, _output_path, definition|
+        definition.fetch("input")["id"] = "page-99"
+        malformed = described_class.from_data(definition)
+
+        expect(malformed).not_to be_valid
+      end
+    end
+
+    it "rejects an unknown field beside the ordered list" do
+      with_ordered_input do |_experiment, _output_path, definition|
+        definition.fetch("input")["path"] = "data/encoded/liber_primus/page_99.yml"
+        malformed = described_class.from_data(definition)
+
+        expect(malformed).not_to be_valid
+      end
+    end
+
+    it "rejects an unknown field inside a page entry" do
+      with_ordered_input do |_experiment, _output_path, definition|
+        definition.fetch("input").fetch("pages").first["path"] = "page_99.yml"
+        malformed = described_class.from_data(definition)
+
+        expect(malformed).not_to be_valid
+      end
+    end
+
+    it "rejects a malformed page ID in one entry" do
+      with_ordered_input do |_experiment, _output_path, definition|
+        definition.fetch("input").fetch("pages")[1]["id"] = "page-../100"
+        malformed = described_class.from_data(definition)
+
+        expect(malformed).not_to be_valid
+      end
+    end
+
+    it "rejects an uppercase member checksum" do
+      with_ordered_input do |_experiment, _output_path, definition|
+        definition.fetch("input").fetch("pages")[1]["sha256"] = "A" * 64
+        malformed = described_class.from_data(definition)
+
+        expect(malformed).not_to be_valid
+      end
+    end
+
+    it "rejects a changed member checksum" do
+      with_ordered_input do |_experiment, _output_path, definition|
+        definition.fetch("input").fetch("pages")[1]["sha256"] = "0" * 64
+        malformed = described_class.from_data(definition)
+
+        expect(malformed).not_to be_valid
+      end
+    end
+
+    it "rejects a missing member file" do
+      with_ordered_input do |_experiment, _output_path, definition|
+        File.delete("data/encoded/liber_primus/page_100.yml")
+        malformed = described_class.from_data(definition)
+
+        expect(malformed).not_to be_valid
+      end
+    end
+
+    it "rejects a source link that leaves the repository" do
+      with_ordered_input do |_experiment, _output_path, definition|
+        source = "data/encoded/liber_primus/page_100.yml"
+        external = File.join(File.dirname(Dir.pwd), "external-page.yml")
+        File.binwrite(external, Psych.dump("body" => "ᚷᚻ"))
+        File.delete(source)
+        File.symlink(external, source)
+        definition.fetch("input").fetch("pages")[1]["sha256"] = Digest::SHA256.file(source).hexdigest
+        malformed = described_class.from_data(definition)
+
+        expect(malformed).not_to be_valid
+      end
+    end
+
+    it "rejects a global skip beyond the combined GP count" do
+      with_ordered_input(skip_sequence: [4]) do |experiment|
+        expect(experiment).not_to be_valid
+      end
+    end
   end
 
   describe "#run" do
@@ -101,7 +202,7 @@ RSpec.describe Primus::Experiment do
 
         actual = checkpoint_bytes(runner, "original")
 
-        expect(actual).to eq("ᚳ-ᚻᚷᚻ")
+        expect(actual).to eq("ᚳ-ᚻᚷᚻ".b)
       end
     end
 
@@ -111,7 +212,7 @@ RSpec.describe Primus::Experiment do
 
         actual = checkpoint_bytes(runner, "totient")
 
-        expect(actual).to eq("ᚱ-ᚷᚦᚦ")
+        expect(actual).to eq("ᚱ-ᚷᚦᚦ".b)
       end
     end
 
@@ -177,7 +278,7 @@ RSpec.describe Primus::Experiment do
 
         actual = checkpoint_bytes(runner, "totient")
 
-        expect(actual).to eq("ᚱ-ᚷᚷᚱ")
+        expect(actual).to eq("ᚱ-ᚷᚷᚱ".b)
       end
     end
 
@@ -257,7 +358,7 @@ RSpec.describe Primus::Experiment do
 
         artifact = runner.log_entry.data.fetch("artifacts").fetch("source-body.txt")
 
-        expect(File.binread(artifact.fetch("path"))).to eq("ᚳ-ᚻᚷᚻ")
+        expect(File.binread(artifact.fetch("path"))).to eq("ᚳ-ᚻᚷᚻ".b)
       end
     end
 
@@ -283,7 +384,7 @@ RSpec.describe Primus::Experiment do
           File.binread(artifacts.fetch(name).fetch("path"))
         end
 
-        expect(snapshots).to eq(["ᚳ-ᚻ", "ᚷᚻ"])
+        expect(snapshots).to eq(["ᚳ-ᚻ".b, "ᚷᚻ".b])
       end
     end
 
