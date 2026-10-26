@@ -5,6 +5,18 @@ RSpec.describe Primus::Experiment::Store do
   include SavedCheckpointAnalysisHelper
 
   describe "#review" do
+    it "retains the failed-step identity from an absolute partial chain" do
+      Dir.mktmpdir do |root|
+        with_checkpoint_analysis_run(root, failure: true) do |output_path, id, run_id|
+          store = described_class.new(output_path: output_path)
+
+          reviewed = store.review(id: id, run_id: run_id)
+
+          expect(reviewed.data.fetch("failed_step").fetch("id")).to eq("second")
+        end
+      end
+    end
+
     it "reads a partial failed checkpoint chain through a relative output root" do
       Dir.mktmpdir do |root|
         with_checkpoint_analysis_run(root, failure: true) do |_output_path, id, run_id|
