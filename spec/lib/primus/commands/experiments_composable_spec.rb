@@ -357,6 +357,27 @@ RSpec.describe Primus::Commands::Experiments do
       end
     end
 
+    it "shows the same saved match from default, relative, and absolute review paths" do
+      with_repository do |repository, _output_path|
+        write_v2_definition(repository)
+        cli(repository, "run", "page-57-composed")
+        record = saved_records(File.join(repository, "experiments/runs")).fetch(0)
+        id = record.fetch("experiment_id")
+        run_id = record.fetch("run_id")
+        choices = [[], ["--output-path", "experiments/runs"],
+                   ["--output-path", File.realpath(File.join(repository, "experiments/runs"))]]
+
+        outputs = choices.map do |flags|
+          cli(repository, "review", id, run_id, *flags).first
+        end
+        summary_lines = outputs.map do |output|
+          output.lines.find { |line| line.start_with?("#{id} #{run_id}:") }
+        end
+
+        expect(summary_lines).to eq(Array.new(3, "#{id} #{run_id}: matched match\n"))
+      end
+    end
+
     it "prints the named version-two identity from the saved attempt" do
       with_repository do |repository, output_path|
         write_v2_definition(repository)
