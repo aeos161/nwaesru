@@ -420,6 +420,42 @@ RSpec.describe Primus::Experiment do
   end
 
   describe "Primus::Experiment::Store#review" do
+    it "reviews ordered source snapshots through a relative output root" do
+      with_ordered_input do |experiment, output_path|
+        runner = run_ordered(experiment, output_path)
+        store = Primus::Experiment::Store.new(output_path: "../runs")
+
+        reviewed = store.review(id: experiment.id, run_id: runner.log_entry.run_id)
+
+        expect(reviewed.data.fetch("source_manifest").map { |item| item.fetch("page_number") }).to eq([99, 100])
+      end
+    end
+
+    it "reviews ordered source artifacts from a relative root containing spaces" do
+      with_ordered_input do |experiment, output_path|
+        spaced_root = File.join(File.dirname(output_path), "runs with spaces")
+        runner = run_ordered(experiment, spaced_root)
+        store = Primus::Experiment::Store.new(output_path: "../runs with spaces")
+
+        reviewed = store.review(id: experiment.id, run_id: runner.log_entry.run_id)
+
+        expect(reviewed.data.fetch("source_manifest").map { |item| item.fetch("occurrence") }).to eq([0, 1])
+      end
+    end
+
+    it "rejects a missing ordered source artifact through a relative output root" do
+      with_ordered_input do |experiment, output_path|
+        runner = run_ordered(experiment, output_path)
+        artifact = runner.log_entry.data.fetch("artifacts").fetch("source-1-body.txt")
+        File.delete(artifact.fetch("path"))
+        store = Primus::Experiment::Store.new(output_path: "../runs")
+
+        action = -> { store.review(id: experiment.id, run_id: runner.log_entry.run_id) }
+
+        expect(action).to raise_error(Primus::Experiment::Store::ReadError)
+      end
+    end
+
     it "reads retained ordered evidence after both live source files disappear" do
       with_ordered_input do |experiment, output_path|
         runner = run_ordered(experiment, output_path)
