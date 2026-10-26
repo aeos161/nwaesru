@@ -1,18 +1,25 @@
 class Primus::Experiment::Atbash
   def initialize(parameters)
-    @parameters = parameters
+    @modulus = parameters.fetch("modulus")
   end
 
   def call(transcription)
-    alphabet = Primus::GematriaPrimus.build
-    tokens = transcription.tokens.map do |token|
-      next token unless token.kind == :rune
-      index = alphabet.find_by(rune: token.lexeme).index
-      rune = alphabet.find_by(index: @parameters.fetch("modulus") - 1 - index).rune
-      Primus::Transcription::Token.new(lexeme: rune, kind: :rune,
-                                        source_location: token.source_location)
-    end
+    tokens = transcription.tokens.map { |token| mirrored_token(token) }
     Primus::Transcription.new(pages: transcription.pages, tokens: tokens,
                                boundaries: transcription.boundaries)
+  end
+
+  private
+
+  def mirrored_token(token)
+    return token unless token.kind == :rune
+    Primus::Transcription::Token.new(lexeme: mirrored_rune(token.lexeme),
+                                      kind: :rune, source_location: token.source_location)
+  end
+
+  def mirrored_rune(rune)
+    alphabet = Primus::GematriaPrimus.build
+    index = alphabet.find_by(rune: rune).index
+    alphabet.find_by(index: @modulus - 1 - index).rune
   end
 end
