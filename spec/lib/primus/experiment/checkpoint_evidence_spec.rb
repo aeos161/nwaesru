@@ -1,4 +1,6 @@
 require "json"
+require "digest"
+require "fileutils"
 require "tmpdir"
 
 RSpec.describe Primus::Experiment::CheckpointEvidence do
@@ -19,6 +21,105 @@ RSpec.describe Primus::Experiment::CheckpointEvidence do
           result = evidence.verify!
 
           expect(result).to be_nil
+        end
+      end
+    end
+
+    it "verifies every checkpoint from a relative record path" do
+      Dir.mktmpdir do |root|
+        with_checkpoint_analysis_run(root) do |_output_path, id, run_id|
+          relative_path = File.join("..", "runs", id, run_id, "record.json")
+          data = JSON.parse(File.binread(relative_path))
+          evidence = described_class.new(record_path: relative_path, data: data)
+
+          result = evidence.verify!
+
+          expect(result).to be_nil
+        end
+      end
+    end
+
+    it "accepts a leading dot on an equivalent relative record path" do
+      Dir.mktmpdir do |root|
+        with_checkpoint_analysis_run(root) do |_output_path, id, run_id|
+          relative_path = File.join(".", "..", "runs", id, run_id, "record.json")
+          data = JSON.parse(File.binread(relative_path))
+          evidence = described_class.new(record_path: relative_path, data: data)
+
+          result = evidence.verify!
+
+          expect(result).to be_nil
+        end
+      end
+    end
+
+    it "leaves saved record and artifact bytes unchanged across relative and absolute checks" do
+      Dir.mktmpdir do |root|
+        with_checkpoint_analysis_run(root) do |output_path, id, run_id|
+          relative_path = File.join("..", "runs", id, run_id, "record.json")
+          absolute_path = File.join(output_path, id, run_id, "record.json")
+          pattern = File.join(File.dirname(absolute_path), "**", "*")
+          before = Dir.glob(pattern).select { |path| File.file?(path) }.to_h do |path|
+            [path, Digest::SHA256.file(path).hexdigest]
+          end
+          data = JSON.parse(File.binread(relative_path))
+
+          described_class.new(record_path: relative_path, data: data).verify!
+          described_class.new(record_path: absolute_path, data: data).verify!
+          after = Dir.glob(pattern).select { |path| File.file?(path) }.to_h do |path|
+            [path, Digest::SHA256.file(path).hexdigest]
+          end
+
+          expect(after).to eq(before)
+        end
+      end
+    end
+
+    it "rejects a sibling artifact path through a relative record path" do
+      Dir.mktmpdir do |root|
+        with_checkpoint_analysis_run(root) do |_output_path, id, run_id|
+          relative_path = File.join("..", "runs", id, run_id, "record.json")
+          data = JSON.parse(File.binread(relative_path))
+          item = data.fetch("checkpoints")[1]
+          item.fetch("output")["path"] = item.fetch("symbols").fetch("path")
+          evidence = described_class.new(record_path: relative_path, data: data)
+
+          action = -> { evidence.verify! }
+
+          expect(action).to raise_error(described_class::Invalid)
+        end
+      end
+    end
+
+    it "rejects changed checkpoint bytes through a relative record path" do
+      Dir.mktmpdir do |root|
+        with_checkpoint_analysis_run(root) do |_output_path, id, run_id|
+          relative_path = File.join("..", "runs", id, run_id, "record.json")
+          data = JSON.parse(File.binread(relative_path))
+          artifact = data.fetch("checkpoints")[1].fetch("output").fetch("path")
+          File.binwrite(artifact, "changed")
+          evidence = described_class.new(record_path: relative_path, data: data)
+
+          action = -> { evidence.verify! }
+
+          expect(action).to raise_error(described_class::Invalid)
+        end
+      end
+    end
+
+    it "rejects a checkpoint symlink escaping the run through a relative path" do
+      Dir.mktmpdir do |root|
+        with_checkpoint_analysis_run(root) do |_output_path, id, run_id|
+          relative_path = File.join("..", "runs", id, run_id, "record.json")
+          data = JSON.parse(File.binread(relative_path))
+          artifact = data.fetch("checkpoints")[1].fetch("output").fetch("path")
+          FileUtils.rm(artifact)
+          File.symlink(File.expand_path("experiments/expected/synthetic-chain.txt"), artifact)
+          evidence = described_class.new(record_path: relative_path, data: data)
+
+          action = -> { evidence.verify! }
+
+          expect(action).to raise_error(described_class::Invalid)
         end
       end
     end
