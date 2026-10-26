@@ -22,13 +22,16 @@ class Primus::Experiment::Chain
   end
 
   def execute(step, index)
-    if step.fetch("operation") == "totient"
-      @transcription = Primus::Experiment::Totient.new(step.fetch("parameters")).call(@transcription)
-      capture(step, @transcription.tokens.map(&:lexeme).join)
-    else
+    if step.fetch("operation") == "latin"
       latin = Primus::Experiment::Latin.new
       @observation = latin.call(@transcription)
       capture(step, @observation.output_bytes, rendering: latin.output_map)
+    else
+      operations = { "totient" => Primus::Experiment::Totient,
+                     "atbash" => Primus::Experiment::Atbash,
+                     "reverse-runes" => Primus::Experiment::RuneReversal }
+      @transcription = operations.fetch(step.fetch("operation")).new(step.fetch("parameters")).call(@transcription)
+      capture(step, @transcription.tokens.map(&:lexeme).join)
     end
   rescue StandardError => error
     @failed_step = { "id" => step.fetch("id"), "index" => index,

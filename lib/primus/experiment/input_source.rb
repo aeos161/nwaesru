@@ -2,7 +2,8 @@ class Primus::Experiment::InputSource
   attr_reader :number, :occurrence, :path, :yaml_bytes, :body
 
   def initialize(selection:, occurrence:)
-    @number = selection.fetch("id").delete_prefix("page-").to_i
+    identifier = selection.fetch("id").delete_prefix("page-")
+    @number = identifier == "warning" ? "warning" : Integer(identifier, 10)
     @occurrence = occurrence
     @path = "data/encoded/liber_primus/page_#{number}.yml".freeze
     raise ArgumentError, "source path escapes repository" unless

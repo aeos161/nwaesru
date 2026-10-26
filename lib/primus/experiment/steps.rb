@@ -1,6 +1,8 @@
 class Primus::Experiment::Steps
   FIELDS = %w[id operation parameters].freeze
   TOTIENT_FIELDS = %w[modulus prime_start skip_sequence].freeze
+  ATBASH = { "alphabet" => "gematria-primus", "modulus" => 29 }.freeze
+  REVERSAL = { "scope" => "composed-input", "non_runes" => "fixed" }.freeze
 
   attr_reader :data
 
@@ -14,7 +16,7 @@ class Primus::Experiment::Steps
     return false unless data.all? { |step| valid_step?(step) }
     ids = data.map { |step| step.fetch("id") }
     ids.uniq == ids && data.last["operation"] == "latin" &&
-      data[0...-1].all? { |step| step["operation"] == "totient" }
+      data[0...-1].all? { |step| %w[totient atbash reverse-runes].include?(step["operation"]) }
   end
 
   def canonical
@@ -32,7 +34,13 @@ class Primus::Experiment::Steps
     return false unless step["id"].is_a?(String) && step["id"].match?(/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/)
     return false if %w[original final].include?(step["id"])
     return false unless step["parameters"].is_a?(Hash)
-    step["operation"] == "latin" ? step["parameters"].empty? : valid_totient?(step)
+    case step["operation"]
+    when "latin" then step["parameters"].empty?
+    when "atbash" then step["parameters"] == ATBASH && step["parameters"]["modulus"].instance_of?(Integer)
+    when "reverse-runes" then step["parameters"] == REVERSAL
+    when "totient" then valid_totient?(step)
+    else false
+    end
   end
 
   def valid_totient?(step)
