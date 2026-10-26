@@ -46,8 +46,9 @@ class Primus::Experiment::OrderedSourceEvidence
   def verify_source(source, occurrence)
     number = source.fetch("page_number")
     expected_path = "data/encoded/liber_primus/page_#{number}.yml"
-    invalid!("source page identity mismatch") unless number.is_a?(Integer) &&
-      number >= 0 && source.fetch("source_path") == expected_path
+    valid_number = number == "warning" || (number.is_a?(Integer) && number >= 0)
+    invalid!("source page identity mismatch") unless valid_number &&
+      source.fetch("source_path") == expected_path
     yaml = artifact("source-#{occurrence}.yml", source.fetch("yaml_sha256"))
     body = artifact("source-#{occurrence}-body.txt", source.fetch("body_sha256"))
     parsed = Psych.safe_load(yaml, aliases: false)

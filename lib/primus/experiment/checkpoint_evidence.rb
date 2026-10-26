@@ -62,7 +62,7 @@ class Primus::Experiment::CheckpointEvidence
     symbols = Primus::Analysis::StrictData.json(artifact(item, "symbols", "symbols.json"))
     lexemes = Primus::Analysis::StrictData.json(artifact(item, "lexemes", "lexemes.json"))
     verify_mapping(item, output, symbols, lexemes)
-    verify_lineage(index, lexemes)
+    verify_lineage(expected["operation"], lexemes)
     verify_spans(item, output, lexemes)
     item.merge("output_bytes" => output, "symbols_rows" => symbols, "lexemes_rows" => lexemes)
   end
@@ -93,7 +93,8 @@ class Primus::Experiment::CheckpointEvidence
       token = runes.fetch(ordinal)
       coordinates = Primus::Transcription::SourceLocation::ATTRIBUTES
       invalid!("invalid checkpoint coordinates") unless coordinates.all? { |name|
-        symbol[name.to_s].is_a?(Integer) && token["source_#{name}"].is_a?(Integer) }
+        key = name.to_s
+        valid_coordinate?(key, symbol[key]) && valid_coordinate?(key, token["source_#{key}"]) }
       coordinates_match = Primus::Transcription::SourceLocation::ATTRIBUTES.all? { |name|
         symbol[name.to_s] == token["source_#{name}"] }
       expected_latin = Primus::Analysis::MAP[token["lexeme"]]
@@ -109,19 +110,44 @@ class Primus::Experiment::CheckpointEvidence
     end
   end
 
-  def verify_lineage(index, lexemes)
-    if index.zero?
-      @original_lexemes = lexemes
+  def verify_lineage(operation, lexemes)
+    if operation == "capture"
+      @original_lexemes = @previous_lexemes = lexemes
       return
     end
-    invalid!("checkpoint lexical count changed") unless lexemes.size == @original_lexemes.size
-    lexemes.zip(@original_lexemes).each do |current, original|
-      source_keys = original.keys.select { |key| key.start_with?("source_") }
-      same_source = source_keys.all? { |key| current[key] == original[key] }
-      same_non_rune = current["kind"] == "rune" || current["lexeme"] == original["lexeme"]
-      invalid!("checkpoint lexical mapping changed") unless same_source &&
-        current["kind"] == original["kind"] && same_non_rune
+    previous = @previous_lexemes
+    invalid!("checkpoint lexical count changed") unless lexemes.size == previous.size
+    expected = operation == "reverse-runes" ? reversed_runes(previous) : previous
+    lexemes.zip(expected).each do |current, parent|
+      invalid!("checkpoint lexical mapping changed") unless same_identity?(current, parent)
+      invalid!("checkpoint non-rune changed") unless current["kind"] == "rune" || current["lexeme"] == parent["lexeme"]
+      invalid!("checkpoint Atbash mismatch") if operation == "atbash" &&
+        current["kind"] == "rune" && current["lexeme"] != mirrored(parent["lexeme"])
+      invalid!("checkpoint rune changed") if %w[reverse-runes latin].include?(operation) &&
+        current["kind"] == "rune" && current["lexeme"] != parent["lexeme"]
     end
+    @previous_lexemes = lexemes
+  end
+
+  def reversed_runes(tokens)
+    runes = tokens.select { |token| token["kind"] == "rune" }.reverse.each
+    tokens.map { |token| token["kind"] == "rune" ? runes.next : token }
+  end
+
+  def same_identity?(current, parent)
+    keys = parent.keys.select { |key| key.start_with?("source_") }
+    current["kind"] == parent["kind"] && keys.all? { |key| current[key] == parent[key] }
+  end
+
+  def mirrored(rune)
+    alphabet = Primus::GematriaPrimus.build
+    index = alphabet.find_by(rune: rune).index
+    alphabet.find_by(index: 28 - index).rune
+  end
+
+  def valid_coordinate?(name, value)
+    return value == "warning" || value.is_a?(Integer) if name == "page_number"
+    value.is_a?(Integer)
   end
 
   def verify_spans(item, output, lexemes)

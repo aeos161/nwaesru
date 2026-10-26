@@ -187,7 +187,8 @@ class Primus::Analysis::ObservationReader
   def validate_row!(row, index)
     raise Error, "invalid provenance row" unless row.is_a?(Hash)
     raise Error, "provenance ordinal mismatch" unless row["ordinal"] == index
-    raise Error, "missing source coordinates" unless COORDINATES.all? { |key| row[key].is_a?(Integer) }
+    raise Error, "missing source coordinates" unless COORDINATES.all? { |key|
+      key == "page_number" ? row[key] == "warning" || row[key].is_a?(Integer) : row[key].is_a?(Integer) }
     rune = row["decoded_rune"]
     raise Error, "invalid decoded rune symbol" unless Primus::Analysis::MAP.key?(rune)
     raise Error, "Latin expansion contradiction" unless row["latin"] == Primus::Analysis::MAP.fetch(rune)
