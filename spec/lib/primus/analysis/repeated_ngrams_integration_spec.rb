@@ -316,6 +316,24 @@ RSpec.describe "Repeated n-gram saved analysis" do
       end
     end
 
+    it "rejects a distinct candidate count missing a singleton pattern" do
+      Dir.mktmpdir do |root|
+        entry = run_repeated(root, runes: %w[ᚦ ᚪ ᚦ], letters: %w[th a th],
+                            output: "thath", stage: "original",
+                            representation: "gp-expanded-latin-v1")
+        data = JSON.parse(JSON.generate(entry.to_h))
+        validator_class = Primus::Analysis::RecordValidator
+        validator_class.new(data).validate!
+        pair = data.fetch("results").first.fetch("result").
+               fetch("length_groups").first
+        pair["distinct_pattern_count"] = 2
+
+        action = -> { validator_class.new(data).validate! }
+
+        expect(action).to raise_error(validator_class::Error)
+      end
+    end
+
     it "rejects a gap inconsistent with consecutive starts" do
       Dir.mktmpdir do |root|
         entry = run_repeated(root, runes: %w[ᚦ ᚪ ᚦ], letters: %w[th a th],
