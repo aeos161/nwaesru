@@ -4,6 +4,7 @@ require "tmpdir"
 
 RSpec.describe "Repeated n-gram saved analysis" do
   include SavedAnalysisHelper
+  include SavedCheckpointAnalysisHelper
 
   def repeated_definition(root, stage:, representation:)
     path = File.join(root, "repeated.yml")
@@ -31,6 +32,61 @@ RSpec.describe "Repeated n-gram saved analysis" do
   end
 
   describe "#run" do
+    it "treats punctuation, ASCII, and CRLF as omitted between GP runes" do
+      Dir.mktmpdir do |root|
+        with_checkpoint_analysis_run(root, source_body: "ᚪ !\r\nᚪ?ᚪ") do |output_path, id, run_id|
+          path = repeated_definition(root, stage: "original",
+                                     representation: "gp-runes-v1")
+          definition = Primus::Analysis::Definition.new(path: path)
+          observation = Primus::Analysis::ObservationReader.new(
+            output_path: output_path, experiment_id: id, run_id: run_id,
+            stage: "original",
+          ).to_observation
+          runner = Primus::Analysis::Runner.new(definition: definition,
+                                                observation: observation)
+
+          runner.run
+          pair = runner.log_entry.to_h.fetch("results").first.fetch("result").
+                 fetch("length_groups").first
+
+          expect(pair.fetch("patterns")).to include(
+            "symbols" => %w[ᚪ ᚪ], "count" => 2,
+            "occurrences" => [{ "start_index" => 0, "end_index" => 2 },
+                              { "start_index" => 1, "end_index" => 3 }],
+            "gaps" => [1],
+          )
+        end
+      end
+    end
+
+    it "keeps the original CRLF source coordinates in current analysis order" do
+      Dir.mktmpdir do |root|
+        with_checkpoint_analysis_run(root, source_body: "ᚪ !\r\nᚪ?ᚪ") do |output_path, id, run_id|
+          path = repeated_definition(root, stage: "original",
+                                     representation: "gp-runes-v1")
+          definition = Primus::Analysis::Definition.new(path: path)
+          observation = Primus::Analysis::ObservationReader.new(
+            output_path: output_path, experiment_id: id, run_id: run_id,
+            stage: "original",
+          ).to_observation
+          runner = Primus::Analysis::Runner.new(definition: definition,
+                                                observation: observation)
+
+          runner.run
+          positions = runner.log_entry.to_h.fetch("results").first.fetch("result").
+                      fetch("position_map")
+          coordinates = positions.map do |position|
+            position.values_at("byte_start", "byte_end", "character_start",
+                               "character_end", "line", "column")
+          end
+
+          expect(coordinates).to eq([[0, 3, 0, 1, 0, 0],
+                                     [7, 10, 5, 6, 1, 0],
+                                     [11, 14, 7, 8, 1, 2]])
+        end
+      end
+    end
+
     it "retains the original GP pair denominator without a false repeat" do
       Dir.mktmpdir do |root|
         entry = run_repeated(root, runes: %w[ᚦ ᚪ ᚦ], letters: %w[th a th],
