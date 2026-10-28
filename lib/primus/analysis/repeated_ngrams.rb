@@ -11,6 +11,7 @@ class Primus::Analysis::RepeatedNgrams
     Primus::Analysis::RepeatedNgramResult.new(
       "declaration_id" => @declaration_id, "representation" => @representation,
       "sample_size" => @symbols.size, "boundary_policy" => @boundary_policy,
+      "symbols" => @symbols,
       "position_map" => @position_map,
       "length_groups" => @lengths.map { |length| group(length) },
     )

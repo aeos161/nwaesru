@@ -1,8 +1,5 @@
 class Primus::Analysis::RepeatedNgramValidator
   Error = Primus::Analysis::RecordValidator::Error
-  SOURCE_KEYS = %w[rune_ordinal page_number occurrence rune_index byte_start byte_end
-                   character_start character_end line column].freeze
-
   def initialize(entry)
     @entry = entry
     @result = entry.fetch("result")
@@ -12,7 +9,7 @@ class Primus::Analysis::RepeatedNgramValidator
 
   def validate!
     identity!
-    positions!
+    Primus::Analysis::RepeatedNgramPositions.new(@entry).validate!
     groups!
     nil
   rescue KeyError, NoMethodError, TypeError => error
@@ -32,26 +29,12 @@ class Primus::Analysis::RepeatedNgramValidator
     raise Error, "invalid sample size" unless @result["sample_size"].instance_of?(Integer) && @result["sample_size"] >= 0
     alphabet = @entry["representation"] == "gp-runes-v1" ? Primus::Analysis::RUNES : Primus::Analysis::LATIN
     raise Error, "invalid alphabet" unless @profile["alphabet"] == alphabet
+    sequence = @result["symbols"]
+    raise Error, "invalid sequence" unless sequence.is_a?(Array) &&
+      sequence.size == @result["sample_size"] && sequence.all? { |symbol| alphabet.include?(symbol) }
     if @entry["representation"] == "gp-expanded-latin-v1"
       raise Error, "invalid expansion map" unless @profile["expansion_map"] == Primus::Analysis::MAP
     end
-  end
-
-  def positions!
-    positions = @result["position_map"]
-    raise Error, "invalid position map" unless positions.is_a?(Array) && positions.size == @result["sample_size"] &&
-      @profile["sample_size"] == positions.size
-    positions.each { |position| position! (position) }
-  end
-
-  def position!(position)
-    raise Error, "missing source coordinates" unless position.is_a?(Hash) &&
-      SOURCE_KEYS.all? { |key| position[key].instance_of?(Integer) || (key == "page_number" && position[key] == "warning") }
-    return if @entry["representation"] == "gp-runes-v1" &&
-      !position.key?("expansion_offset") && !position.key?("expansion_length")
-    raise Error, "invalid expansion coordinates" unless @entry["representation"] == "gp-expanded-latin-v1" &&
-      position["expansion_offset"].instance_of?(Integer) && position["expansion_length"].instance_of?(Integer) &&
-      position["expansion_length"].positive? && position["expansion_offset"].between?(0, position["expansion_length"] - 1)
   end
 
   def groups!
@@ -69,13 +52,18 @@ class Primus::Analysis::RepeatedNgramValidator
     raise Error, "group status mismatch" unless group["status"] == (candidates.zero? ? "insufficient_sample" : "computed")
     raise Error, "invalid patterns" unless patterns.is_a?(Array)
     patterns.each { |pattern| pattern!(pattern, length) }
+    expected = (0...candidates).each_with_object(Hash.new { |hash, key| hash[key] = [] }) do |index, hash|
+      hash[@result.fetch("symbols").slice(index, length)] << index
+    end
+    repeated = expected.select { |_symbols, indices| indices.size > 1 }
+    actual = patterns.to_h { |item| [item.fetch("symbols"), item.fetch("occurrences").map { |o| o.fetch("start_index") }] }
+    raise Error, "pattern occurrences mismatch" unless actual == repeated
     keys = patterns.map { |item| item.fetch("symbols").map { |symbol| alphabet.index(symbol) } }
     raise Error, "pattern order mismatch" unless keys == keys.uniq.sort
     raise Error, "repeated aggregate mismatch" unless group["repeated_pattern_count"] == patterns.size &&
       group["repeated_occurrence_count"] == patterns.sum { |item| item.fetch("count") }
     distinct = group["distinct_pattern_count"]
-    raise Error, "distinct aggregate mismatch" unless distinct.instance_of?(Integer) &&
-      distinct.between?(patterns.size, candidates - patterns.sum { |item| item.fetch("count") } + patterns.size)
+    raise Error, "distinct aggregate mismatch" unless distinct == expected.size
   end
 
   def pattern!(pattern, length)
