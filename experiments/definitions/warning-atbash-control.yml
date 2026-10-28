@@ -1,0 +1,25 @@
+schema_version: 2
+id: warning-atbash-control
+title: Real Warning Atbash plaintext control
+purpose: Verify the complete Warning page using GP Atbash and Latin rendering.
+input:
+  id: page-warning
+  sha256: 86a0a2a4d68c2fff1af86d3e7aa62bec05eb46a2bdbc480d4243bcf282561718
+steps:
+  - id: mirror
+    operation: atbash
+    parameters:
+      alphabet: gematria-primus
+      modulus: 29
+  - id: letters
+    operation: latin
+    parameters: {}
+output:
+  policy: gp-latin-compatibility-v1
+checks:
+  - id: plaintext
+    strategy: plaintext
+    expectation:
+      path: experiments/expected/warning-atbash-control.txt
+      sha256: 8d130adee72285dbde3a94576cba6a1492660286fcd764561bd1215b0f8d7222
+      provenance: Independently verified local Warning decoded body; see spec/fixtures/experiments/warning_atbash_oracle.md.

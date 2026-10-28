@@ -83,11 +83,11 @@ same target to every selected hash. Available hashes are `sha512`,
 expectation, and plaintext is optional. `validate` accepts the same composition
 flags without running the recipe or checking backend availability.
 
-Saved v2 definitions declare ordered `steps`: zero or more independent
-`totient` layers followed by one terminal `latin` step. Each totient layer
-declares `modulus`, `prime_start`, and `skip_sequence`; the output of one
-layer becomes the next layer's input. The CLI `latin` and `totient-latin`
-recipe shortcuts expand into these explicit steps before execution.
+Saved v2 definitions declare ordered `steps`: GP operations followed by one
+terminal `latin` step. Each `totient` layer declares `modulus`, `prime_start`,
+and `skip_sequence`; the output of one layer becomes the next layer's input.
+The CLI `latin` and `totient-latin` recipe shortcuts expand into explicit
+steps before execution.
 
 The CLI `totient-latin` shortcut works on any selected whole page. Its parameters
 default to `modulus: 29`, `prime_start: 2` and `skip_sequence: []`.
@@ -137,6 +137,21 @@ byte for byte, with no added separator. Saved runs retain each YAML and body,
 an aggregate body, and an ordered manifest of source identity and byte ranges.
 Use a named definition for this input; the CLI's direct `--input page-N` form
 continues to select one page.
+
+Named v2 definitions can also declare `atbash` and `reverse-runes` before the
+terminal `latin` step. Atbash requires `alphabet: gematria-primus` and
+`modulus: 29`. Reversal requires `scope: composed-input` and
+`non_runes: fixed`: it reverses GP rune tokens across the whole composed input
+while punctuation, whitespace, Latin and hexadecimal characters keep their
+slots. Each moved rune retains its original page, occurrence and coordinates.
+The operations can be composed with `totient` in the declared order. The
+`warning-atbash-control` definition applies Atbash to the real Warning page
+and checks its full plaintext against an independently verified local answer.
+
+```shell
+bin/primus experiments validate warning-atbash-control
+bin/primus experiments run warning-atbash-control
+```
 
 `run` accepts `--output-path DIR` to retain attempts elsewhere. Legacy v1 runs
 reuse an unchanged attempt; v2 composed runs create a fresh attempt.

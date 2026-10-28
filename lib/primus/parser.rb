@@ -37,20 +37,17 @@ class Primus::Parser
   end
 
   def view_sources
+    offset = 0
     @source.pages.each_with_index.flat_map do |_page, occurrence|
-      sources = sources_for(occurrence)
+      size = @source.tokens.count { |token| token.source_location.occurrence == occurrence }
+      sources = @source.tokens.slice(offset, size)
+      offset += size
       if intermediate_page?(occurrence)
         sources.pop while trailing_space?(sources.last)
         sources + [nil]
       else
         sources
       end
-    end
-  end
-
-  def sources_for(occurrence)
-    @source.tokens.select do |token|
-      token.source_location.occurrence == occurrence
     end
   end
 

@@ -2,14 +2,16 @@ class Primus::Experiment::CheckpointEvidence
   class Invalid < StandardError; end
 
   def initialize(record_path:, data:)
-    @record_path = record_path
+    @record_path = File.expand_path(record_path)
     @data = data
-    @directory = File.realpath(File.dirname(record_path))
+    @directory = File.realpath(File.dirname(@record_path))
   end
 
   def verify!
     @snapshots = nil
     @final_output_bytes = nil
+    invalid!("source record path mismatch") unless File.realpath(saved_record_path) ==
+      File.realpath(@record_path)
     items = @data.fetch("checkpoints")
     invalid!("invalid checkpoint list") unless items.is_a?(Array)
     ids = items.map { |item| item.fetch("id") }
@@ -62,7 +64,7 @@ class Primus::Experiment::CheckpointEvidence
     symbols = Primus::Analysis::StrictData.json(artifact(item, "symbols", "symbols.json"))
     lexemes = Primus::Analysis::StrictData.json(artifact(item, "lexemes", "lexemes.json"))
     verify_mapping(item, output, symbols, lexemes)
-    verify_lineage(index, lexemes)
+    verify_lineage(expected["operation"], lexemes)
     verify_spans(item, output, lexemes)
     item.merge("output_bytes" => output, "symbols_rows" => symbols, "lexemes_rows" => lexemes)
   end
@@ -76,7 +78,7 @@ class Primus::Experiment::CheckpointEvidence
     metadata = item.fetch(key)
     path = metadata.fetch("path")
     relative = File.join("checkpoints", item.fetch("step_id"), filename)
-    expected = File.join(File.dirname(@record_path), relative)
+    expected = File.join(File.dirname(saved_record_path), relative)
     resolved = File.join(@directory, relative)
     invalid!("checkpoint path mismatch") unless path == expected && File.realpath(path) == resolved
     bytes = File.binread(path)
@@ -93,7 +95,8 @@ class Primus::Experiment::CheckpointEvidence
       token = runes.fetch(ordinal)
       coordinates = Primus::Transcription::SourceLocation::ATTRIBUTES
       invalid!("invalid checkpoint coordinates") unless coordinates.all? { |name|
-        symbol[name.to_s].is_a?(Integer) && token["source_#{name}"].is_a?(Integer) }
+        key = name.to_s
+        valid_coordinate?(key, symbol[key]) && valid_coordinate?(key, token["source_#{key}"]) }
       coordinates_match = Primus::Transcription::SourceLocation::ATTRIBUTES.all? { |name|
         symbol[name.to_s] == token["source_#{name}"] }
       expected_latin = Primus::Analysis::MAP[token["lexeme"]]
@@ -109,19 +112,44 @@ class Primus::Experiment::CheckpointEvidence
     end
   end
 
-  def verify_lineage(index, lexemes)
-    if index.zero?
-      @original_lexemes = lexemes
+  def verify_lineage(operation, lexemes)
+    if operation == "capture"
+      @original_lexemes = @previous_lexemes = lexemes
       return
     end
-    invalid!("checkpoint lexical count changed") unless lexemes.size == @original_lexemes.size
-    lexemes.zip(@original_lexemes).each do |current, original|
-      source_keys = original.keys.select { |key| key.start_with?("source_") }
-      same_source = source_keys.all? { |key| current[key] == original[key] }
-      same_non_rune = current["kind"] == "rune" || current["lexeme"] == original["lexeme"]
-      invalid!("checkpoint lexical mapping changed") unless same_source &&
-        current["kind"] == original["kind"] && same_non_rune
+    previous = @previous_lexemes
+    invalid!("checkpoint lexical count changed") unless lexemes.size == previous.size
+    expected = operation == "reverse-runes" ? reversed_runes(previous) : previous
+    lexemes.zip(expected).each do |current, parent|
+      invalid!("checkpoint lexical mapping changed") unless same_identity?(current, parent)
+      invalid!("checkpoint non-rune changed") unless current["kind"] == "rune" || current["lexeme"] == parent["lexeme"]
+      invalid!("checkpoint Atbash mismatch") if operation == "atbash" &&
+        current["kind"] == "rune" && current["lexeme"] != mirrored(parent["lexeme"])
+      invalid!("checkpoint rune changed") if %w[reverse-runes latin].include?(operation) &&
+        current["kind"] == "rune" && current["lexeme"] != parent["lexeme"]
     end
+    @previous_lexemes = lexemes
+  end
+
+  def reversed_runes(tokens)
+    runes = tokens.select { |token| token["kind"] == "rune" }.reverse.each
+    tokens.map { |token| token["kind"] == "rune" ? runes.next : token }
+  end
+
+  def same_identity?(current, parent)
+    keys = parent.keys.select { |key| key.start_with?("source_") }
+    current["kind"] == parent["kind"] && keys.all? { |key| current[key] == parent[key] }
+  end
+
+  def mirrored(rune)
+    alphabet = Primus::GematriaPrimus.build
+    index = alphabet.find_by(rune: rune).index
+    alphabet.find_by(index: 28 - index).rune
+  end
+
+  def valid_coordinate?(name, value)
+    return value == "warning" || value.is_a?(Integer) if name == "page_number"
+    value.is_a?(Integer)
   end
 
   def verify_spans(item, output, lexemes)
@@ -156,7 +184,7 @@ class Primus::Experiment::CheckpointEvidence
     root = @data.fetch("artifacts").fetch("output.txt")
     invalid!("final output mismatch") unless root["sha256"] == terminal.fetch("output").fetch("sha256")
     path = root.fetch("path")
-    expected = File.join(File.dirname(@record_path), "output.txt")
+    expected = File.join(File.dirname(saved_record_path), "output.txt")
     invalid!("final output path mismatch") unless path == expected &&
       File.realpath(path) == File.join(@directory, "output.txt")
     bytes = File.binread(path)
@@ -169,13 +197,13 @@ class Primus::Experiment::CheckpointEvidence
     metadata = @data.fetch("artifacts").fetch("source-body.txt")
     path = metadata.fetch("path")
     invalid!("source-body path mismatch") unless
-      path == File.join(File.dirname(@record_path), "source-body.txt") &&
+      path == File.join(File.dirname(saved_record_path), "source-body.txt") &&
       File.realpath(path) == File.join(@directory, "source-body.txt")
     bytes = File.binread(path)
     invalid!("source-body artifact changed") unless metadata["bytes"] == bytes.bytesize &&
       metadata["sha256"] == Digest::SHA256.hexdigest(bytes)
     Primus::Experiment::OrderedSourceEvidence.new(
-      record_path: @record_path, data: @data, directory: @directory
+      record_path: saved_record_path, data: @data, directory: @directory
     ).verify!(bytes, @original_lexemes) if @data.key?("source_manifest")
     invalid!("original checkpoint differs from source body") unless
       original.fetch("output").fetch("sha256") == metadata["sha256"]
@@ -183,6 +211,11 @@ class Primus::Experiment::CheckpointEvidence
 
   def invalid!(message)
     raise Invalid, "#{@record_path}: #{message}"
+  end
+
+  def saved_record_path
+    path = @data.fetch("artifacts").fetch("source-body.txt").fetch("path")
+    File.join(File.dirname(path), "record.json")
   end
 
   def owned(value)

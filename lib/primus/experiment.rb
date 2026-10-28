@@ -133,7 +133,8 @@ class Primus::Experiment
   end
 
   def v2_page_number
-    input.fetch("id").delete_prefix("page-").to_i
+    identifier = input.fetch("id").delete_prefix("page-")
+    identifier == "warning" ? "warning" : Integer(identifier, 10)
   end
 
   def input_paths
@@ -330,13 +331,13 @@ class Primus::Experiment
 
   def valid_page_selection?(selection)
     selection.is_a?(Hash) && (selection.keys - %w[id sha256]).empty? &&
-      selection["id"].is_a?(String) && selection["id"].match?(/\Apage-[0-9]+\z/) &&
+      selection["id"].is_a?(String) && selection["id"].match?(/\Apage-(?:[0-9]+|warning)\z/) &&
       selection["sha256"].is_a?(String) && selection["sha256"].match?(/\A[0-9a-f]{64}\z/)
   end
 
   def validate_v2_steps
     return if Primus::Experiment::Steps.new(steps).valid?
-    reject(:steps, "must be ordered totient steps followed by Latin; use steps instead of recipe")
+    reject(:steps, "must be ordered GP operations followed by Latin; use steps instead of recipe")
   end
 
   def validate_v2_skip_bounds

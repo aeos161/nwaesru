@@ -378,3 +378,35 @@ An exact two-example retry yielded one pass and the same race for line 65
 (missing `.git/10744.tags`, seed 10141). The line-65 example then passed
 alone (1 example, 0 failures, seed 31138). The line-77 example passed
 in the two-example retry.
+
+At clean revision `3519fa7`, the Ruby 2.7.4 UTF-8 full suite reported
+973 examples, 1 failure, 12 pending, seed 36766. The failure was the
+established temporary Git clone race in
+`spec/lib/primus/experiment/runner_checkpoints_spec.rb:194`: clone setup
+lost `.git/59615.tags.tmp` (`Errno::ENOENT`), followed by
+`Errno::ENOTEMPTY` during temporary-directory cleanup before the assertion.
+The exact example passed on immediate retry (1 example, 0 failures,
+seed 62226). No checkpoint review assertion failed in the full run.
+
+At clean revision `162c134`, the next Ruby 2.7.4 UTF-8 full suite again
+reported 973 examples, 1 failure, 12 pending, seed 681. The sole failure
+was the same clone race in
+`spec/lib/primus/experiment/checkpoint_evidence_spec.rb:41`: setup lost
+`.git/67043.tags` (`Errno::ENOENT`), followed by `Errno::ENOTEMPTY`
+during cleanup before the assertion. The exact example passed on retry
+(1 example, 0 failures, seed 4948). No source assertion failed.
+
+User-reported local run on 2026-10-28: 973 examples, 1 failure,
+12 pending, elapsed 4m55.5s. The failed example was
+`spec/lib/primus/experiment/runner_checkpoints_spec.rb[1:1:3]`
+(`stores the independent original SHA-256`, example at line 88).
+The trace originates in `with_synthetic_experiment` at line 16:
+`Dir.mktmpdir` cleanup raised `Errno::ENOTEMPTY` for
+`/var/folders/wb/0qf6h_m92zg6k41nzvj2k1w80000gn/T/d20261028-11668-p4pib3`,
+caused by `Errno::ENOENT` removing `repo/.git/12840.tags`.
+This is the established temporary-repository cleanup race, not a reported
+SHA-256 assertion mismatch. The source of concurrent `.tags` file changes
+is not yet confirmed. User command, seed, Ruby/locale and tested revision
+were not supplied; current checkout when recording was `b269cae`.
+No exact retry of this occurrence was performed. Keep helper repair
+separate from the feature work.
