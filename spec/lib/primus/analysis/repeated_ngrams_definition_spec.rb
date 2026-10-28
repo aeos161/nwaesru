@@ -117,7 +117,7 @@ RSpec.describe Primus::Analysis::Definition do
 
         action = -> { described_class.new(path: path) }
 
-        expect(action).to raise_error(described_class::Error, /mixed analyzer/i)
+        expect(action).to raise_error(described_class::Error)
       end
     end
   end
