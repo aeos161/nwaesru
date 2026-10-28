@@ -195,6 +195,27 @@ RSpec.describe "Repeated n-gram saved analysis" do
   end
 
   describe "#review" do
+    it "rejects duplicate JSON keys in a retained analysis record" do
+      Dir.mktmpdir do |root|
+        entry = run_repeated(root, runes: %w[ᚦ ᚪ ᚦ], letters: %w[th a th],
+                            output: "thath", stage: "original",
+                            representation: "gp-expanded-latin-v1")
+        directory = File.join(root, entry.experiment_id, entry.run_id)
+        record_path = File.join(directory, "analyses", entry.analysis_run_id,
+                                "record.json")
+        original = File.binread(record_path)
+        changed = original.sub('"status": "completed",',
+                               '"status": "completed", "status": "completed",')
+        raise "Missing status field in retained record" if changed == original
+        File.binwrite(record_path, changed)
+        store = Primus::Analysis::Store.new(directory: File.realpath(directory))
+
+        action = -> { store.review(entry.analysis_run_id) }
+
+        expect(action).to raise_error(Primus::Analysis::Store::Error)
+      end
+    end
+
     it "does not present repetition as a language or plaintext score" do
       Dir.mktmpdir do |root|
         entry = run_repeated(root, runes: %w[ᚦ ᚪ ᚦ], letters: %w[th a th],
