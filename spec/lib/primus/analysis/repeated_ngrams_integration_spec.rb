@@ -153,4 +153,110 @@ RSpec.describe "Repeated n-gram saved analysis" do
       end
     end
   end
+
+  describe "Primus::Analysis::RecordValidator#validate!" do
+    it "rejects an envelope whose parameters differ from its declaration" do
+      Dir.mktmpdir do |root|
+        entry = run_repeated(root, runes: %w[ᚦ ᚪ ᚦ], letters: %w[th a th],
+                            output: "thath", stage: "original",
+                            representation: "gp-expanded-latin-v1")
+        data = JSON.parse(JSON.generate(entry.to_h))
+        validator_class = Primus::Analysis::RecordValidator
+        validator_class.new(data).validate!
+        data.fetch("results").first.fetch("parameters")["lengths"] = [3]
+
+        action = -> { validator_class.new(data).validate! }
+
+        expect(action).to raise_error(validator_class::Error)
+      end
+    end
+
+    it "rejects an altered repeated count against the retained starts" do
+      Dir.mktmpdir do |root|
+        entry = run_repeated(root, runes: %w[ᚦ ᚪ ᚦ], letters: %w[th a th],
+                            output: "thath", stage: "original",
+                            representation: "gp-expanded-latin-v1")
+        data = JSON.parse(JSON.generate(entry.to_h))
+        validator_class = Primus::Analysis::RecordValidator
+        validator_class.new(data).validate!
+        pattern = data.fetch("results").first.fetch("result").
+                  fetch("length_groups").first.fetch("patterns").first
+        pattern["count"] = 3
+
+        action = -> { validator_class.new(data).validate! }
+
+        expect(action).to raise_error(validator_class::Error)
+      end
+    end
+
+    it "rejects a gap inconsistent with consecutive starts" do
+      Dir.mktmpdir do |root|
+        entry = run_repeated(root, runes: %w[ᚦ ᚪ ᚦ], letters: %w[th a th],
+                            output: "thath", stage: "original",
+                            representation: "gp-expanded-latin-v1")
+        data = JSON.parse(JSON.generate(entry.to_h))
+        validator_class = Primus::Analysis::RecordValidator
+        validator_class.new(data).validate!
+        pattern = data.fetch("results").first.fetch("result").
+                  fetch("length_groups").first.fetch("patterns").first
+        pattern["gaps"] = [2]
+
+        action = -> { validator_class.new(data).validate! }
+
+        expect(action).to raise_error(validator_class::Error)
+      end
+    end
+
+    it "rejects an occurrence outside the expanded sequence" do
+      Dir.mktmpdir do |root|
+        entry = run_repeated(root, runes: %w[ᚦ ᚪ ᚦ], letters: %w[th a th],
+                            output: "thath", stage: "original",
+                            representation: "gp-expanded-latin-v1")
+        data = JSON.parse(JSON.generate(entry.to_h))
+        validator_class = Primus::Analysis::RecordValidator
+        validator_class.new(data).validate!
+        pattern = data.fetch("results").first.fetch("result").
+                  fetch("length_groups").first.fetch("patterns").first
+        pattern.fetch("occurrences").last["end_index"] = 6
+
+        action = -> { validator_class.new(data).validate! }
+
+        expect(action).to raise_error(validator_class::Error)
+      end
+    end
+
+    it "rejects a missing position while the sequence length is unchanged" do
+      Dir.mktmpdir do |root|
+        entry = run_repeated(root, runes: %w[ᚦ ᚪ ᚦ], letters: %w[th a th],
+                            output: "thath", stage: "original",
+                            representation: "gp-expanded-latin-v1")
+        data = JSON.parse(JSON.generate(entry.to_h))
+        validator_class = Primus::Analysis::RecordValidator
+        validator_class.new(data).validate!
+        positions = data.fetch("results").first.fetch("result").fetch("position_map")
+        positions.pop
+
+        action = -> { validator_class.new(data).validate! }
+
+        expect(action).to raise_error(validator_class::Error)
+      end
+    end
+
+    it "rejects an altered expansion profile" do
+      Dir.mktmpdir do |root|
+        entry = run_repeated(root, runes: %w[ᚦ ᚪ ᚦ], letters: %w[th a th],
+                            output: "thath", stage: "original",
+                            representation: "gp-expanded-latin-v1")
+        data = JSON.parse(JSON.generate(entry.to_h))
+        validator_class = Primus::Analysis::RecordValidator
+        validator_class.new(data).validate!
+        profile = data.fetch("results").first.fetch("profile")
+        profile.fetch("expansion_map")["ᚦ"] = "t"
+
+        action = -> { validator_class.new(data).validate! }
+
+        expect(action).to raise_error(validator_class::Error)
+      end
+    end
+  end
 end
