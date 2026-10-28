@@ -195,6 +195,23 @@ RSpec.describe "Repeated n-gram saved analysis" do
   end
 
   describe "#review" do
+    it "does not present repetition as a language or plaintext score" do
+      Dir.mktmpdir do |root|
+        entry = run_repeated(root, runes: %w[ᚦ ᚪ ᚦ], letters: %w[th a th],
+                            output: "thath", stage: "original",
+                            representation: "gp-expanded-latin-v1")
+
+        stdout, stderr, status = Open3.capture3(
+          "bin/primus", "analyses", "review", entry.experiment_id,
+          entry.run_id, entry.analysis_run_id, "--output-path", root,
+        )
+        raise "Review failed: #{stderr}" unless status.success?
+
+        expect(stdout).not_to match(/\b(?:likelihood|language[- ]like|score|ranking|
+                                      confidence|significance)\b/ix)
+      end
+    end
+
     it "explains retained candidate counts, overlap, units, starts, gaps, and source map" do
       Dir.mktmpdir do |root|
         entry = run_repeated(root, runes: %w[ᚦ ᚪ ᚦ], letters: %w[th a th],
@@ -231,6 +248,40 @@ RSpec.describe "Repeated n-gram saved analysis" do
   end
 
   describe "Primus::Analysis::RecordValidator#validate!" do
+    it "rejects a retained analyzer version unknown to the declaration" do
+      Dir.mktmpdir do |root|
+        entry = run_repeated(root, runes: %w[ᚦ ᚪ ᚦ], letters: %w[th a th],
+                            output: "thath", stage: "original",
+                            representation: "gp-expanded-latin-v1")
+        data = JSON.parse(JSON.generate(entry.to_h))
+        validator_class = Primus::Analysis::RecordValidator
+        validator_class.new(data).validate!
+        data.fetch("results").first["version"] = 2
+
+        action = -> { validator_class.new(data).validate! }
+
+        expect(action).to raise_error(validator_class::Error)
+      end
+    end
+
+    it "rejects repeated patterns outside canonical alphabet order" do
+      Dir.mktmpdir do |root|
+        entry = run_repeated(root, runes: %w[ᚪ ᚠ ᚪ ᚠ ᚪ],
+                            letters: %w[a f a f a], output: "afafa",
+                            stage: "original", representation: "gp-runes-v1")
+        data = JSON.parse(JSON.generate(entry.to_h))
+        validator_class = Primus::Analysis::RecordValidator
+        validator_class.new(data).validate!
+        patterns = data.fetch("results").first.fetch("result").
+                   fetch("length_groups").first.fetch("patterns")
+        patterns.reverse!
+
+        action = -> { validator_class.new(data).validate! }
+
+        expect(action).to raise_error(validator_class::Error)
+      end
+    end
+
     it "rejects an envelope whose parameters differ from its declaration" do
       Dir.mktmpdir do |root|
         entry = run_repeated(root, runes: %w[ᚦ ᚪ ᚦ], letters: %w[th a th],
