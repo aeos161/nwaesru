@@ -1,5 +1,6 @@
 require "digest"
 require "json"
+require "open3"
 require "tmpdir"
 
 RSpec.describe "Repeated n-gram saved analysis" do
@@ -194,6 +195,25 @@ RSpec.describe "Repeated n-gram saved analysis" do
   end
 
   describe "#review" do
+    it "explains retained candidate counts, overlap, units, starts, gaps, and source map" do
+      Dir.mktmpdir do |root|
+        entry = run_repeated(root, runes: %w[ᚦ ᚪ ᚦ], letters: %w[th a th],
+                            output: "thath", stage: "original",
+                            representation: "gp-expanded-latin-v1")
+        File.delete(File.join(root, entry.experiment_id, entry.run_id, "source.yml"))
+
+        stdout, stderr, status = Open3.capture3(
+          "bin/primus", "analyses", "review", entry.experiment_id,
+          entry.run_id, entry.analysis_run_id, "--output-path", root,
+        )
+        raise "Review failed: #{stderr}" unless status.success?
+
+        expect(stdout).to match(/(?=.*repetit)(?=.*candidate)(?=.*overlap)
+                                 (?=.*continuous-gp-v1)(?=.*Latin)(?=.*start)
+                                 (?=.*gap)(?=.*source)/imx)
+      end
+    end
+
     it "restores the same measurements after the live definition changes" do
       Dir.mktmpdir do |root|
         entry = run_repeated(root, runes: %w[ᚦ ᚪ ᚦ], letters: %w[th a th],
