@@ -78,7 +78,22 @@ class Primus::Analysis::ObservationReader
       experiment_id: @experiment_id, run_id: @run_id, directory: directory,
       symbols_by_representation: Primus::Analysis::REPRESENTATIONS.to_h { |name| [name, symbols(name)] },
       profiles: profiles, evidence: evidence,
+      position_maps: Primus::Analysis::REPRESENTATIONS.to_h { |name| [name, position_map(name)] },
     )
+  end
+
+  def position_map(representation)
+    rows = @checkpoint.fetch("symbols_rows")
+    return rows.each_with_index.map { |row, index| source_position(row, index) } if representation == "gp-runes-v1"
+    rows.each_with_index.flat_map do |row, index|
+      length = Primus::Analysis::MAP.fetch(row.fetch("rune")).size
+      Array.new(length) { |offset| source_position(row, index).merge(
+        "expansion_offset" => offset, "expansion_length" => length) }
+    end
+  end
+
+  def source_position(row, index)
+    { "rune_ordinal" => index }.merge(COORDINATES.to_h { |key| [key, row.fetch(key)] })
   end
 
   def evidence

@@ -69,6 +69,7 @@ class Primus::Commands::Analyses < Primus::Commands::SubCommandBase
   end
 
   def show_result(result, checkpoint)
+    return show_repetition(result, checkpoint) if result.is_a?(Primus::Analysis::RepeatedNgramResult)
     stage = checkpoint ? checkpoint.fetch("requested_stage") : "final"
     say "#{result.declaration_id} #{stage} #{result.representation} alphabet size #{result.alphabet_size} sample size #{result.sample_size} distinct #{result.distinct_count}"
     result.frequencies.each do |bin|
@@ -77,6 +78,23 @@ class Primus::Commands::Analyses < Primus::Commands::SubCommandBase
     ic = result.ic
     say "raw IC: #{ic.fetch('status')} #{ic.fetch('numerator')}/#{ic.fetch('denominator')} #{ic.fetch('value').inspect}"
     show_interpretation(result)
+  end
+
+  def show_repetition(result, checkpoint)
+    stage = checkpoint.fetch("requested_stage")
+    units = result.representation == "gp-runes-v1" ? "GP runes" : "expanded Latin letters"
+    say "#{result.declaration_id} #{stage} #{units}: sequence repetition, sample size #{result.sample_size}"
+    say "boundary policy: #{result.boundary_policy}; overlapping starts use current zero-based, end-exclusive #{units} indices"
+    result.length_groups.each { |group| show_repetition_group(group) }
+    result.position_map.each_with_index { |position, index| say "source map #{index}: #{position.inspect}" }
+  end
+
+  def show_repetition_group(group)
+    say "length #{group.fetch('length')}: #{group.fetch('status')}; candidate count #{group.fetch('candidate_count')}; distinct patterns #{group.fetch('distinct_pattern_count')}; repeated patterns #{group.fetch('repeated_pattern_count')}; repeated occurrences #{group.fetch('repeated_occurrence_count')}"
+    group.fetch("patterns").each do |pattern|
+      starts = pattern.fetch("occurrences").map { |item| item.fetch("start_index") }
+      say "pattern #{pattern.fetch('symbols').join} count #{pattern.fetch('count')} starts #{starts.inspect} consecutive gaps #{pattern.fetch('gaps').inspect}"
+    end
   end
 
   def show_interpretation(result)
