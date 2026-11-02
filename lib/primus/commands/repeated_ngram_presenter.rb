@@ -41,7 +41,9 @@ class Primus::Commands::RepeatedNgramPresenter
     return ["insufficient sample: N < #{group.fetch('length')}"] if group.fetch("status") == "insufficient_sample"
     patterns = group.fetch("patterns")
     return ["No repeated patterns among computed candidates."] if patterns.empty?
-    ranked = patterns.sort_by { |pattern| -pattern.fetch("count") }
+    ranked = patterns.each_with_index.sort_by do |pattern, index|
+      [-pattern.fetch("count"), index]
+    end.map(&:first)
     displayed = @details ? ranked : ranked.first(ROW_LIMIT)
     ["pattern | count | starts | consecutive start-to-start gaps"] +
       displayed.map { |pattern| pattern_line(pattern) } + omitted_rows(ranked, displayed)
