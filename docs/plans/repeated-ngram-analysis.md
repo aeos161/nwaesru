@@ -225,3 +225,108 @@ versioned change if later research needs additional lengths or boundary modes.
 
 Position windows/subranges belong at the VERY END of the broader roadmap, after
 these separately delivered sequence analyses and other agreed capabilities.
+
+
+## Review amendment: readable CLI output (2026-11-02)
+
+### Goal and delivery boundary
+
+Finish this increment with readable descriptive output for repeated n-grams.
+This amendment supersedes the earlier requirement to print every start, gap and
+source-map entry by default; complete evidence remains saved and accessible.
+Continue on `codex/repeated-ngram-analysis` from inspected HEAD `4f469c1`.
+No prerequisite refactor is warranted: the existing RepeatedNgramPresenter owns
+this presentation, and Analyses already routes both run and review through it.
+Preserve the unrelated working change to `experiments/analyses/repeated-ngrams.yml`.
+
+### Acceptance criteria
+
+- Default run and review identify the analysis/checkpoint and show a separate
+  section for each retained representation, with its sample size N and units.
+  For every requested n, show the existing candidate count, distinct pattern
+  count, distinct repeated-pattern count and repeated occurrence count. Label
+  the latter as overlapping occurrences, not disjoint coverage or probability.
+  Use saved aggregates; do not add scientific measurements.
+- Each n has a human-readable table of at most 10 repeated patterns with columns
+  pattern, count, starts and consecutive start-to-start gaps. Show at most the
+  first 8 values in each starts/gaps cell, followed by an explicit omitted-value
+  count when needed. These are display limits, not analysis thresholds.
+- Rank displayed patterns by descending saved count; ties retain their saved
+  canonical alphabet order. Sort a presentation copy, never the retained arrays.
+  GP patterns remain rune sequences; expanded-Latin patterns are labeled as
+  letters, never implicitly treated as adjacent GP runes. No new transliteration
+  lookup is needed for historical rendering.
+- Explicitly distinguish insufficient sample (N<n) from a computed result with
+  no repeated patterns. Neither renders an empty table without explanation.
+- When rows or values are omitted, say so with the omitted count. Default output
+  never dumps the position map. Every repeated-ngram entry points to its complete
+  saved `analyses/ANALYSIS_RUN_ID/record.json` under the chosen output root and
+  explains that `--details` reveals full patterns and source coordinates.
+- Add the same boolean `--details` (default false) to `analyses run` and
+  `analyses review`. It controls presentation only: full mode prints every
+  repeated pattern, every start/gap and every indexed source-map entry including
+  all retained coordinates and Latin expansion offsets/lengths. Use readable
+  labeled fields rather than raw Ruby hash inspection. Preserve the relation
+  between occurrence spans and indexed source rows. Keep the same frequency/tie
+  ordering in both display modes. No new definition parameter or saved field.
+- Retain a short boundary/overlap explanation, zero-based current indices and
+  end-exclusive spans in representation units. Expanded Latin also states that
+  canonical expansions can create repeats within one source rune; such repeats
+  are not evidence of English or of an improved decryption. Do not classify
+  individual patterns or calculate expansion-derived statistics in this change.
+- Existing saved analyses render through both modes without recomputation,
+  current source files or current expansion-map lookup. Full evidence and saved
+  canonical ordering remain unchanged. Symbol-statistics output stays unchanged;
+  its help may explain that the details option applies to repeated n-grams.
+
+### Approach
+
+- `lib/primus/commands/repeated_ngram_presenter.rb`: implement the bounded
+  overview, display ordering, explicit empty statuses and readable full-detail
+  rendering. Keep formatting here; no analyzer/validator/schema changes.
+- `lib/primus/commands/analyses.rb`: declare both options, pass the display choice
+  to the presenter and provide the artifact pointer using existing entry identity
+  and output path. Preserve existing provenance/checkpoint headers and normal
+  symbol-statistics rendering; avoid a broad command framework refactor.
+- `README.md`: document the default overview, fixed display limits and both
+  detailed run/review invocations. Explain full retained data is never truncated.
+- `spec/lib/primus/commands/repeated_ngram_presenter_spec.rb` (new if useful):
+  independent literal result fixtures for summaries, row and cell limits,
+  exact-limit versus over-limit cases, descending frequency/canonical ties,
+  no-repeat/insufficient/empty cases, both representations and full source detail.
+- `spec/lib/primus/analysis/repeated_ngrams_integration_spec.rb`: revise the
+  existing output example that currently requires source maps in default output;
+  add focused command coverage of default and detailed run/review parity and
+  artifact pointers with custom output roots (including spaces). Review an
+  existing-format record with live definition/source unavailable and prohibit
+  analyzer execution during review. Assert record bytes unchanged after review;
+  assert a default run still retains patterns/positions omitted from its display.
+  Compare retained result data across presentation choices, excluding naturally
+  different execution IDs/timestamps, rather than requiring identical new runs.
+- Tests should isolate one behavior per example with literal expectations for
+  counts/order/coordinates. Assert useful labels and omissions without coupling
+  to exact prose, padding or a snapshot of the whole terminal transcript.
+  Retain existing symbol-statistics command regression coverage.
+
+### Edge cases and validation
+
+Handle exactly 10 versus 11 rows, exactly 8 versus 9 values, unequal starts/gaps
+lengths, ties, N=0, N=n, and multiple declarations/analyses in one review.
+Truncation counts apply to each array independently. Unicode rune widths must
+not erase column boundaries; a simple delimited table is adequate. A Latin
+occurrence can map several indices to the same source rune; details preserve
+those separate indexed rows. Neither rendering mutates frozen result values.
+
+Run focused presenter/integration and existing analysis command specs, then the
+full suite and required project lint checks. Inspect representative synthetic
+CLI output for each mode. Do not create research runs or modify saved artifacts.
+
+### Out of scope and open questions
+
+No blocking questions remain; 10 rows, 8 values and `--details` are deliberately
+small presentation choices. No stage comparisons, new observations, statistical
+significance, English scoring, cipher classification, lag implementation,
+pattern-specific interpretation, new measurements or configurable report system.
+Comparisons and observations belong to the next phase after this increment is
+closed. Planning ends with a docs-only WIP commit; test writing and implementation
+are separate pipeline steps. No push, PR creation or squash is part of planning.
