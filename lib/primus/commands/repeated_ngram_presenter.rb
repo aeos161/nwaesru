@@ -1,10 +1,13 @@
 class Primus::Commands::RepeatedNgramPresenter
-  def initialize(result:, stage:)
-    @result, @stage = result, stage
+  ROW_LIMIT = 10
+  VALUE_LIMIT = 8
+
+  def initialize(result:, stage:, details: false)
+    @result, @stage, @details = result, stage, details
   end
 
   def lines
-    [heading, policy] + group_lines + source_lines
+    [heading, policy, latin_note].compact + group_lines + source_lines
   end
 
   private
@@ -18,7 +21,12 @@ class Primus::Commands::RepeatedNgramPresenter
   end
 
   def policy
-    "boundary policy: #{@result.boundary_policy}; overlapping starts use current zero-based, end-exclusive #{units} indices"
+    "boundary policy: #{@result.boundary_policy}; overlapping starts are zero-based current #{units} indices; each span ends at start + length (end-exclusive)"
+  end
+
+  def latin_note
+    return unless @result.representation == "gp-expanded-latin-v1"
+    "Canonical expansions can repeat within one source rune; this is not evidence of English or an improved decryption."
   end
 
   def group_lines
@@ -26,19 +34,44 @@ class Primus::Commands::RepeatedNgramPresenter
   end
 
   def group_heading(group)
-    "length #{group.fetch('length')}: #{group.fetch('status')}; candidate count #{group.fetch('candidate_count')}; distinct patterns #{group.fetch('distinct_pattern_count')}; repeated patterns #{group.fetch('repeated_pattern_count')}; repeated occurrences #{group.fetch('repeated_occurrence_count')}"
+    "length #{group.fetch('length')}: #{group.fetch('status')}; candidate count #{group.fetch('candidate_count')}; distinct patterns #{group.fetch('distinct_pattern_count')}; repeated patterns #{group.fetch('repeated_pattern_count')}; overlapping occurrences #{group.fetch('repeated_occurrence_count')}"
   end
 
   def pattern_lines(group)
-    group.fetch("patterns").map do |pattern|
-      starts = pattern.fetch("occurrences").map { |item| item.fetch("start_index") }
-      "pattern #{pattern.fetch('symbols').join} count #{pattern.fetch('count')} starts #{starts.inspect} consecutive gaps #{pattern.fetch('gaps').inspect}"
-    end
+    return ["insufficient sample: N < #{group.fetch('length')}"] if group.fetch("status") == "insufficient_sample"
+    patterns = group.fetch("patterns")
+    return ["No repeated patterns among computed candidates."] if patterns.empty?
+    ranked = patterns.sort_by { |pattern| -pattern.fetch("count") }
+    displayed = @details ? ranked : ranked.first(ROW_LIMIT)
+    ["pattern | count | starts | consecutive start-to-start gaps"] +
+      displayed.map { |pattern| pattern_line(pattern) } + omitted_rows(ranked, displayed)
+  end
+
+  def pattern_line(pattern)
+    starts = pattern.fetch("occurrences").map { |item| item.fetch("start_index") }
+    "#{pattern.fetch('symbols').join} | #{pattern.fetch('count')} | starts: #{values(starts)} | gaps: #{values(pattern.fetch('gaps'))}"
+  end
+
+  def values(items)
+    shown = @details ? items : items.first(VALUE_LIMIT)
+    text = shown.join(", ")
+    omitted = items.length - shown.length
+    omitted.positive? ? "#{text} … #{omitted} omitted" : text
+  end
+
+  def omitted_rows(ranked, displayed)
+    omitted = ranked.length - displayed.length
+    omitted.positive? ? ["#{omitted} pattern#{'s' unless omitted == 1} omitted"] : []
   end
 
   def source_lines
-    @result.position_map.each_with_index.map do |position, index|
-      "source map #{index}: #{position.inspect}"
-    end
+    return [] unless @details
+    ["Source map (index in current #{units} sequence; occurrence spans [start, end)):"] +
+      @result.position_map.each_with_index.map { |position, index| source_line(position, index) }
+  end
+
+  def source_line(position, index)
+    fields = position.map { |key, value| "#{key} #{value}" }.join(", ")
+    "source map #{index}: #{fields}"
   end
 end

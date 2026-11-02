@@ -5,6 +5,7 @@ class Primus::Commands::Analyses < Primus::Commands::SubCommandBase
   map "run" => :execute
   option :definition, type: :string, required: true
   option :output_path, type: :string, default: "experiments/runs"
+  option :details, type: :boolean, default: false, desc: "show full repeated n-gram patterns and source coordinates"
   def execute(experiment_id, run_id = nil)
     raise Thor::Error, "explicit run ID is required" unless run_id
     definition = Primus::Analysis::Definition.new(path: options[:definition])
@@ -26,6 +27,7 @@ class Primus::Commands::Analyses < Primus::Commands::SubCommandBase
 
   desc "review EXPERIMENT_ID RUN_ID [ANALYSIS_RUN_ID]", "review retained measurements"
   option :output_path, type: :string, default: "experiments/runs"
+  option :details, type: :boolean, default: false, desc: "show full repeated n-gram patterns and source coordinates"
   def review(experiment_id, run_id, analysis_run_id = nil)
     validate_identity!(experiment_id, run_id, analysis_run_id)
     directory = File.realpath(File.join(options[:output_path], experiment_id, run_id))
@@ -66,12 +68,21 @@ class Primus::Commands::Analyses < Primus::Commands::SubCommandBase
     say "definition SHA-256: #{entry.definition_sha256} code: #{entry.git_head} Ruby: #{entry.ruby_version}"
     say "started: #{entry.started_at} completed: #{entry.completed_at}"
     entry.measurements.each { |measurement| show_result(measurement, checkpoint) }
+    if entry.measurements.any? { |measurement| measurement.is_a?(Primus::Analysis::RepeatedNgramResult) }
+      say "Complete saved analysis: #{record_path(entry)}; use --details for full patterns and source coordinates."
+    end
+  end
+
+  def record_path(entry)
+    File.join(options[:output_path], entry.experiment_id, entry.run_id,
+              "analyses", entry.analysis_run_id, "record.json")
   end
 
   def show_result(result, checkpoint)
     if result.is_a?(Primus::Analysis::RepeatedNgramResult)
       presenter = Primus::Commands::RepeatedNgramPresenter.new(
-        result: result, stage: checkpoint.fetch("requested_stage"))
+        result: result, stage: checkpoint.fetch("requested_stage"),
+        details: options[:details])
       presenter.lines.each { |line| say line }
       return
     end

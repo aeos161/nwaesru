@@ -208,6 +208,8 @@ bin/primus analyses run EXPERIMENT_ID RUN_ID --definition experiments/analyses/o
 bin/primus analyses run EXPERIMENT_ID RUN_ID --definition experiments/analyses/repeated-ngrams.yml --output-path experiments/runs
 bin/primus analyses review EXPERIMENT_ID RUN_ID --output-path experiments/runs
 bin/primus analyses review EXPERIMENT_ID RUN_ID ANALYSIS_RUN_ID --output-path experiments/runs
+bin/primus analyses run EXPERIMENT_ID RUN_ID --definition experiments/analyses/repeated-ngrams.yml --output-path experiments/runs --details
+bin/primus analyses review EXPERIMENT_ID RUN_ID ANALYSIS_RUN_ID --output-path experiments/runs --details
 ```
 
 Set both targets' `stage` to `original`, `final`, or the same declared step ID
@@ -248,9 +250,12 @@ raw IC and explicitly say that no versioned comparison was retained.
 The separate repeated n-gram definition counts every overlapping pair and
 triple in the selected saved checkpoint. Its `continuous-gp-v1` policy omits
 non-GP text and treats captured runes as adjacent across spaces, punctuation,
-lines and pages. Results list all starts, consecutive start-to-start gaps and
-original source coordinates. GP results use rune units; expanded-Latin results
-use the canonical lowercase expansion, so two letters can come from one rune.
+lines and pages. The default report shows up to 10 repeated patterns per length,
+ordered by frequency, and up to 8 starts and gaps per cell; omitted counts are
+shown. `--details` on either run or review prints every pattern, start, gap and
+indexed source coordinate. The complete saved `record.json` is never truncated.
+GP results use rune units; expanded-Latin results use the canonical lowercase
+expansion, so two letters can come from one rune.
 Candidate count is the exact number of possible starts, including patterns
 that occur only once. Repetition is descriptive and gives no English or
 plaintext score.
