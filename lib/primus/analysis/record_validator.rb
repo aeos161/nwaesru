@@ -26,10 +26,16 @@ class Primus::Analysis::RecordValidator
 
   def validate_result!(entry)
     raise Error, "malformed result entry" unless entry.is_a?(Hash)
+    declaration = @data.dig("definition", "analyses")&.find { |item| item["id"] == entry["declaration_id"] }
+    raise Error, "result declaration mismatch" unless declaration.is_a?(Hash)
     raise Error, "invalid result declaration" unless Primus::Analysis::ID.match?(entry["declaration_id"].to_s)
     raise Error, "invalid representation" unless Primus::Analysis::REPRESENTATIONS.include?(entry["representation"])
     raise Error, "invalid analyzer" unless entry.values_at("analyzer", "version", "stage") ==
-      ["symbol-statistics", 1, @data.dig("checkpoint", "requested_stage")]
+      [declaration["analyzer"], declaration["version"], @data.dig("checkpoint", "requested_stage")]
+    raise Error, "unsupported analyzer" unless %w[symbol-statistics repeated-ngrams].include?(entry["analyzer"]) && entry["version"] == 1
+    raise Error, "declaration target mismatch" unless declaration["target"] ==
+      { "stage" => entry["stage"], "representation" => entry["representation"] }
+    raise Error, "parameter mismatch" unless entry["parameters"] == declaration["parameters"]
     raise Error, "checkpoint identity mismatch" unless entry["checkpoint_id"] == @data.dig("checkpoint", "id")
     raise Error, "checkpoint step mismatch" unless entry["checkpoint_step_id"] == @data.dig("checkpoint", "step_id")
     profile = entry["profile"]
@@ -47,6 +53,10 @@ class Primus::Analysis::RecordValidator
     raise Error, "profile lexemes mismatch" unless
       profile["lexemes_sha256"] == checkpoint.dig("lexemes", "sha256")
     result = entry["result"]
+    if entry["analyzer"] == "repeated-ngrams"
+      Primus::Analysis::RepeatedNgramValidator.new(entry).validate!
+      return
+    end
     raise Error, "malformed measurement" unless result.is_a?(Hash) && result["frequencies"].is_a?(Array) && result["ic"].is_a?(Hash)
     raise Error, "measurement representation mismatch" unless result["representation"] == entry["representation"]
     raise Error, "invalid measurement sample size" unless result["sample_size"].is_a?(Integer) && result["sample_size"] >= 0
@@ -70,7 +80,7 @@ class Primus::Analysis::RecordValidator
     raise Error, "invalid checkpoint ordinal" unless item["ordinal"].is_a?(Integer) &&
       item["ordinal"] >= 0
     raise Error, "invalid checkpoint operation" unless
-      %w[capture totient latin].include?(item["operation"]) && item["parameters"].is_a?(Hash)
+      %w[capture totient latin atbash reverse-runes].include?(item["operation"]) && item["parameters"].is_a?(Hash)
     raise Error, "invalid checkpoint parent" unless
       (item["ordinal"].zero? && item["parent_id"].nil?) ||
       (item["ordinal"].positive? && CHECKPOINT_ID.match?(item["parent_id"].to_s))

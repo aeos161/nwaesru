@@ -2,13 +2,14 @@ class Primus::Analysis::Observation
   attr_reader :experiment_id, :run_id, :directory, :evidence
 
   def initialize(experiment_id:, run_id:, directory:, symbols_by_representation:,
-                 profiles:, evidence:)
+                 profiles:, evidence:, position_maps: nil)
     @experiment_id = experiment_id.dup.freeze
     @run_id = run_id.dup.freeze
     @directory = directory.dup.freeze
     @symbols_by_representation = owned(symbols_by_representation)
     @profiles = owned(profiles)
     @evidence = owned(evidence)
+    @position_maps = owned(position_maps || {})
   end
 
   def symbols(representation)
@@ -21,6 +22,10 @@ class Primus::Analysis::Observation
 
   def profile(representation)
     @profiles.fetch(representation)
+  end
+
+  def position_map(representation)
+    @position_maps.fetch(representation)
   end
 
   def checkpoint

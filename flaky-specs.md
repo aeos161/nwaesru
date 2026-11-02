@@ -410,3 +410,30 @@ is not yet confirmed. User command, seed, Ruby/locale and tested revision
 were not supplied; current checkout when recording was `b269cae`.
 No exact retry of this occurrence was performed. Keep helper repair
 separate from the feature work.
+
+During repeated n-gram implementation at clean revision `04dbb80`, the
+changed analysis and command suite (`bundle exec rspec spec/lib/primus/analysis`
+plus the three analyses command specs, Ruby 2.7.4, UTF-8) reported 186
+examples, 1 failure, seed 59888. The failure was the established temporary
+Git-clone cleanup race in `observation_reader_checkpoint_spec.rb:45`:
+removing `.git/94893.tags` raised `Errno::ENOENT`, followed by
+`Errno::ENOTEMPTY` removing the temporary directory. The canonical Latin
+assertion was not reached. Its exact retry passed (1 example, 0 failures,
+seed 37560). Another copy of the same suite had been started concurrently
+by the tool invocation, which may have increased clone contention; no
+source assertion failed in the reported run.
+
+At clean source revision `04dbb80`, the full Ruby 2.7.4 UTF-8 suite
+reported 1023 examples, 0 failures, 12 pending, seed 19582, in 6 minutes
+26 seconds. No clone race occurred in that run. After the isolated CLI
+presentation refactor at `0750639`, the affected analyzer, checkpoint and
+command specs passed 81 examples, 0 failures, seed 24355.
+
+At clean source revision `a68bdba`, the full Ruby 2.7.4 UTF-8 suite
+reported 1042 examples, 1 failure, 12 pending, seed 8044, in 5 minutes.
+The sole failure was the established temporary Git-clone cleanup race in
+`spec/lib/primus/analysis/observation_reader_checkpoint_spec.rb:168`:
+removing `.git/39473.tags` raised `Errno::ENOENT`, followed by
+`Errno::ENOTEMPTY` while removing the temporary directory. The exact
+example passed immediately on isolated retry (1 example, 0 failures,
+seed 13357). No observation assertion failed in the full run.

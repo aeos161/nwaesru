@@ -1,0 +1,21 @@
+schema_version: 1
+id: repeated-ngrams
+analyses:
+  - id: rune-repeats
+    analyzer: repeated-ngrams
+    version: 1
+    parameters:
+      lengths: [2, 3]
+      boundary_policy: continuous-gp-v1
+    target:
+      stage: original
+      representation: gp-runes-v1
+  - id: latin-repeats
+    analyzer: repeated-ngrams
+    version: 1
+    parameters:
+      lengths: [2, 3]
+      boundary_policy: continuous-gp-v1
+    target:
+      stage: original
+      representation: gp-expanded-latin-v1

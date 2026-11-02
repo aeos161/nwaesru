@@ -4,7 +4,9 @@ class Primus::Analysis::LogEntry
   def initialize(data:)
     @data = owned(data)
     @measurements = @data.fetch("results").map do |entry|
-      Primus::Analysis::Result.new(entry.fetch("result"))
+      type = entry.fetch("analyzer") == "repeated-ngrams" ?
+        Primus::Analysis::RepeatedNgramResult : Primus::Analysis::Result
+      type.new(entry.fetch("result"))
     end.freeze
   end
 
@@ -48,13 +50,17 @@ class Primus::Analysis::LogEntry
 
   def result_envelope(result)
     checkpoint = @data.fetch("checkpoint")
-    { "declaration_id" => result.declaration_id, "analyzer" => "symbol-statistics",
+    declaration = @data.fetch("definition").fetch("analyses").find do |item|
+      item.fetch("id") == result.declaration_id
+    end
+    { "declaration_id" => result.declaration_id, "analyzer" => declaration.fetch("analyzer"),
       "version" => 1, "stage" => checkpoint.fetch("requested_stage"),
       "checkpoint_id" => checkpoint.fetch("id"),
       "checkpoint_step_id" => checkpoint.fetch("step_id"),
       "representation" => result.representation,
       "profile" => @data.fetch("representations").fetch(result.representation),
-      "exclusions" => "non-GP passthrough literals", "result" => result.to_h }
+      "exclusions" => "non-GP passthrough literals", "result" => result.to_h }.
+      tap { |envelope| envelope["parameters"] = declaration.fetch("parameters") if declaration.key?("parameters") }
   end
 
   def owned(value)

@@ -24,6 +24,7 @@ class Primus::Analysis::Runner
   private
 
   def result_for(entry)
+    return repeated_result(entry) if entry.fetch("analyzer") == "repeated-ngrams"
     name = entry.fetch("target").fetch("representation")
     measurement = Primus::Analysis::SymbolStatistics.new(
       symbols: @observation.symbols(name), alphabet: @observation.alphabet(name),
@@ -34,6 +35,17 @@ class Primus::Analysis::Runner
       measurement: measurement, references: references,
     ).to_h
     measurement.with_interpretation(snapshot)
+  end
+
+  def repeated_result(entry)
+    name = entry.fetch("target").fetch("representation")
+    params = entry.fetch("parameters")
+    Primus::Analysis::RepeatedNgrams.new(
+      symbols: @observation.symbols(name), alphabet: @observation.alphabet(name),
+      position_map: @observation.position_map(name), lengths: params.fetch("lengths"),
+      boundary_policy: params.fetch("boundary_policy"),
+      declaration_id: entry.fetch("id"), representation: name,
+    ).to_result
   end
 
   def initial_data
