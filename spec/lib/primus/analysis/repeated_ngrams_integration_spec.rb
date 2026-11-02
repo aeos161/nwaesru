@@ -33,6 +33,41 @@ RSpec.describe "Repeated n-gram saved analysis" do
   end
 
   describe "#run" do
+    it "accepts details on run and prints the retained source positions" do
+      Dir.mktmpdir do |root|
+        id, run_id = independent_three_rune_observation(root)
+        definition = repeated_definition(root, stage: "original",
+                                         representation: "gp-expanded-latin-v1")
+
+        stdout, stderr, status = Open3.capture3(
+          "bin/primus", "analyses", "run", id, run_id,
+          "--definition", definition, "--output-path", root, "--details",
+        )
+        raise "Analysis failed: #{stderr}" unless status.success?
+
+        expect(stdout).to match(/source (?:map )?0:.*page(?:_number)? 57.*expansion(?:_offset)? 0/im)
+      end
+    end
+
+    it "keeps all retained positions when the default CLI omits their display" do
+      Dir.mktmpdir do |root|
+        id, run_id = independent_three_rune_observation(root)
+        definition = repeated_definition(root, stage: "original",
+                                         representation: "gp-expanded-latin-v1")
+
+        _stdout, stderr, status = Open3.capture3(
+          "bin/primus", "analyses", "run", id, run_id,
+          "--definition", definition, "--output-path", root,
+        )
+        raise "Analysis failed: #{stderr}" unless status.success?
+        record_path = Dir.glob(File.join(root, id, run_id, "analyses", "*", "record.json")).fetch(0)
+        positions = JSON.parse(File.binread(record_path)).fetch("results").first.
+                    fetch("result").fetch("position_map")
+
+        expect(positions.length).to eq(5)
+      end
+    end
+
     it "treats punctuation, ASCII, and CRLF as omitted between GP runes" do
       Dir.mktmpdir do |root|
         with_checkpoint_analysis_run(root, source_body: "ᚪ !\r\nᚪ?ᚪ") do |output_path, id, run_id|
@@ -195,6 +230,78 @@ RSpec.describe "Repeated n-gram saved analysis" do
   end
 
   describe "#review" do
+    it "keeps indexed source rows out of the default review" do
+      Dir.mktmpdir do |root|
+        entry = run_repeated(root, runes: %w[ᚦ ᚪ ᚦ], letters: %w[th a th],
+                            output: "thath", stage: "original",
+                            representation: "gp-expanded-latin-v1")
+
+        stdout, stderr, status = Open3.capture3(
+          "bin/primus", "analyses", "review", entry.experiment_id,
+          entry.run_id, entry.analysis_run_id, "--output-path", root,
+        )
+        raise "Review failed: #{stderr}" unless status.success?
+
+        expect(stdout).not_to match(/source map 0:|rune_ordinal.*page_number/i)
+      end
+    end
+
+    it "points to the complete record under a custom output root with spaces" do
+      Dir.mktmpdir do |root|
+        output_root = File.join(root, "saved analyses")
+        entry = run_repeated(output_root, runes: %w[ᚦ ᚪ ᚦ],
+                             letters: %w[th a th], output: "thath",
+                             stage: "original", representation: "gp-expanded-latin-v1")
+        record_path = File.join(output_root, entry.experiment_id, entry.run_id,
+                                "analyses", entry.analysis_run_id, "record.json")
+
+        stdout, stderr, status = Open3.capture3(
+          "bin/primus", "analyses", "review", entry.experiment_id,
+          entry.run_id, entry.analysis_run_id, "--output-path", output_root,
+        )
+        raise "Review failed: #{stderr}" unless status.success?
+
+        expect(stdout).to include(record_path)
+      end
+    end
+
+    it "shows expanded source coordinates with the details option" do
+      Dir.mktmpdir do |root|
+        entry = run_repeated(root, runes: %w[ᚦ ᚪ ᚦ], letters: %w[th a th],
+                            output: "thath", stage: "original",
+                            representation: "gp-expanded-latin-v1")
+
+        stdout, stderr, status = Open3.capture3(
+          "bin/primus", "analyses", "review", entry.experiment_id,
+          entry.run_id, entry.analysis_run_id, "--output-path", root, "--details",
+        )
+        raise "Review failed: #{stderr}" unless status.success?
+
+        expect(stdout).to match(/source (?:map )?0:.*page(?:_number)? 57.*expansion(?:_offset)? 0.*source (?:map )?1:.*expansion(?:_offset)? 1/im)
+      end
+    end
+
+    it "leaves record bytes unchanged after detailed historical review" do
+      Dir.mktmpdir do |root|
+        entry = run_repeated(root, runes: %w[ᚦ ᚪ ᚦ], letters: %w[th a th],
+                            output: "thath", stage: "original",
+                            representation: "gp-expanded-latin-v1")
+        record_path = File.join(root, entry.experiment_id, entry.run_id,
+                                "analyses", entry.analysis_run_id, "record.json")
+        original = File.binread(record_path)
+        File.delete(File.join(root, entry.experiment_id, entry.run_id, "source.yml"))
+        File.delete(File.join(root, "repeated.yml"))
+
+        _stdout, stderr, status = Open3.capture3(
+          "bin/primus", "analyses", "review", entry.experiment_id,
+          entry.run_id, entry.analysis_run_id, "--output-path", root, "--details",
+        )
+        raise "Review failed: #{stderr}" unless status.success?
+
+        expect(File.binread(record_path)).to eq(original)
+      end
+    end
+
     it "rejects duplicate JSON keys in a retained analysis record" do
       Dir.mktmpdir do |root|
         entry = run_repeated(root, runes: %w[ᚦ ᚪ ᚦ], letters: %w[th a th],
@@ -233,7 +340,7 @@ RSpec.describe "Repeated n-gram saved analysis" do
       end
     end
 
-    it "explains retained candidate counts, overlap, units, starts, gaps, and source map" do
+    it "explains retained counts and points to source detail without dumping the map" do
       Dir.mktmpdir do |root|
         entry = run_repeated(root, runes: %w[ᚦ ᚪ ᚦ], letters: %w[th a th],
                             output: "thath", stage: "original",
@@ -248,7 +355,7 @@ RSpec.describe "Repeated n-gram saved analysis" do
 
         expect(stdout).to match(/(?=.*repetit)(?=.*candidate)(?=.*overlap)
                                  (?=.*continuous-gp-v1)(?=.*Latin)(?=.*start)
-                                 (?=.*gap)(?=.*source)/imx)
+                                 (?=.*gap)(?=.*--details)(?=.*record\.json)/imx)
       end
     end
 
